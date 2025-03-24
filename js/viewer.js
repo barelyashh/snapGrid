@@ -3,151 +3,16 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { TransformControls } from 'three/addons/controls/TransformControls.js';
 import { Popup } from './popup.js';
 import { Bodies } from './bodies.js';
+import { UserInterface } from './userInterface.js';
 
 let completeViewer = null;
 
 function create() {
     completeViewer = new Viewer();
-    createUI();
+    completeViewer.ui = new UserInterface(completeViewer)
     completeViewer.createViewer();
     completeViewer.animate();
 }
-
-function createUI() {
-    const header = document.createElement('header');
-    header.innerHTML = `
-        <div class="logo">CONFIGURAT<span class="gear">⚙️</span>R</div>
-    `;
-    document.body.appendChild(header);
-
-    const sideBarContainer = document.getElementById('sideBarContainer') || document.createElement('div');
-    sideBarContainer.id = 'sideBarContainer';
-    document.body.appendChild(sideBarContainer);
-
-    const sidebar = document.createElement('aside');
-    sidebar.className = 'sidebar';
-
-    function createPanel(title, fields, onAdd, defaultValues = {}) {
-        const panel = document.createElement('div');
-        panel.className = 'panel';
-        panel.innerHTML = `<div class="panel-header">${title}</div>`;
-
-        const panelBody = document.createElement('div');
-        panelBody.className = 'panel-body';
-
-        const inputs = {};
-        fields.forEach(field => {
-            const label = document.createElement('label');
-            label.innerText = field;
-
-            const input = document.createElement('input');
-            input.type = 'text';
-            input.placeholder = 'in mm';
-            input.value = defaultValues[field] || '';
-            inputs[field] = input;
-
-            label.appendChild(input);
-            panelBody.appendChild(label);
-        });
-
-        const button = document.createElement('button');
-        button.className = 'add-btn';
-        button.innerText = 'ADD';
-        button.onclick = () => onAdd(inputs);
-
-        panelBody.appendChild(button);
-        panel.appendChild(panelBody);
-        return panel;
-    }
-    const overallDefaults = { Width: 250, Height: 200, Depth: 20 };
-    const rectangleDefaults = { Width: 10, Height: 100, Depth: 10 };
-    const arcDefaults = { 'Start Angle': 1, 'End Angle': 180, 'Inner Radius': 10, 'Outer Radius': 15, 'Depth': 10, 'Segments': 20 };
-    const overallPanel = sidebar.appendChild(createPanel('OVERALL DIMENSIONS', ['Width', 'Height', 'Depth'], (inputs) => {
-        const width = Number(inputs.Width.value.trim());
-        const height = Number(inputs.Height.value.trim());
-        const depth = Number(inputs.Depth.value.trim());
-
-        if (!width || !height || width < 100 || width > 2000 || height < 100 || height > 2000 || depth < 0 || depth > 50) {
-            alert('Enter valid dimensions (100-2000mm for width/height, 0-50mm for depth)');
-            return;
-        }
-
-        completeViewer.overallWidth = width;
-        completeViewer.overallHeight = height;
-        completeViewer.overallDepth = depth;
-        completeViewer.bodies.addOverallDimension(width, height, depth);
-    }, overallDefaults));
-
-    const rectanglePanel = sidebar.appendChild(createPanel('ADD RECTANGLE', ['Width', 'Height', 'Depth'], (inputs) => {
-        const widthBox = Number(inputs.Width.value.trim());
-        const heightBox = Number(inputs.Height.value.trim());
-        const depthBox = Number(inputs.Depth.value.trim());
-
-        if (!completeViewer.overallWidth || !completeViewer.overallHeight) {
-            alert('First add overall dimension');
-            return;
-        }
-
-        if (!widthBox || !heightBox || !depthBox || widthBox >= completeViewer.overallWidth || heightBox >= completeViewer.overallHeight || depthBox > completeViewer.overallDepth) {
-            alert('Rectangle dimensions must be less than overall dimensions');
-            return;
-        }
-
-        completeViewer.bodies.addRectangle({ widthBox, heightBox, depthBox });
-    }, rectangleDefaults));
-
-    // Arc Panel
-    /* const arcPanel = sidebar.appendChild(createPanel('ADD ARC', ['Start Angle', 'End Angle', 'Inner Radius', 'Outer Radius', 'Depth', 'Segments'], (inputs) => {
-        const startAngle = Number(inputs['Start Angle'].value.trim());
-        const endAngle = Number(inputs['End Angle'].value.trim());
-        const innerRadius = Number(inputs['Inner Radius'].value.trim());
-        const outerRadius = Number(inputs['Outer Radius'].value.trim());
-        const depth = Number(inputs['Depth'].value.trim());
-        const segments = Number(inputs['Segments'].value.trim());
-
-        if (!completeViewer.overallWidth || !completeViewer.overallHeight) {
-            alert('First add overall dimension');
-            return;
-        }
-
-        if (startAngle < 0 || endAngle > 360 || innerRadius < 0 || outerRadius < innerRadius || depth > completeViewer.overallDepth || segments < 3) {
-            alert('Enter valid arc parameters');
-            return;
-        }
-
-        completeViewer.bodies.addArcUsingRing({ startAngle, endAngle, innerRadius, outerRadius, depth, segments });
-    }, arcDefaults));
- */
-
-    setTimeout(() => {
-        overallPanel.querySelector('.add-btn').click();
-        setTimeout(() => rectanglePanel.querySelector('.add-btn').click(), 200);
-        //setTimeout(() => arcPanel.querySelector('.add-btn').click(), 400);
-    }, 200);
-
-    const toggleButton = document.createElement('button');
-    toggleButton.innerText = 'Toggle Transform Control';
-    toggleButton.className = 'toggle-btn';
-    toggleButton.onclick = () => completeViewer.bodies.toggleTransformMode();
-    sidebar.appendChild(toggleButton);
-    sideBarContainer.appendChild(sidebar);
-
-    const toggle2D = document.createElement('button');
-    toggle2D.innerText = 'Switch mode';
-    toggle2D.className = 'toggle-btn-2d';
-    toggle2D.onclick = () => completeViewer.switchMode();
-    sidebar.appendChild(toggle2D);
-
-    const toggleSnap = document.createElement('button');
-    toggleSnap.innerText = 'Switch Snap';
-    toggleSnap.className = 'toggle-btn-2d';
-    toggleSnap.onclick = () => completeViewer.switchSnap();
-    sidebar.appendChild(toggleSnap);
-
-
-    sideBarContainer.appendChild(sidebar);
-}
-
 class Viewer {
     constructor() {
         this.camera = null;
