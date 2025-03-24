@@ -166,7 +166,7 @@ class Bodies {
                 }
                 tri.lineTo(uniquePositionsBuffer1[0].x, uniquePositionsBuffer1[0].y)
                 const geometry = new THREE.ShapeGeometry(tri);
-                const lineSegments = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ color: '#A24D2B' }))
+                const lineSegments = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ color: mesh.material.color }))
                 lineSegments.material.side = THREE.DoubleSide
                 lineSegments.name = `segments${i}`;
                 lineSegments.rotation.x = Math.PI / 2;
