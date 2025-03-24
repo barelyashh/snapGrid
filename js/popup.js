@@ -6,14 +6,13 @@ class Popup {
         if (this.selectedRectangle?.parent) {
             const parent = this.selectedRectangle.parent;
             this.initialProperties = {
-                position: { ...parent.position }, 
-                color: parent.material.color.getHexString(), 
+                position: parent.position.clone(), // ✅ Deep copy of Vector3
+                color: `#${parent.material.color.getHexString()}`, // ✅ Ensure correct hex format
                 opacity: parent.material.opacity,
                 metalness: parent.material.metalness,
                 roughness: parent.material.roughness,
-                type: parent.userData.type || ""
-            };
-        }
+                type: parent.userData?.type || "" // ✅ Avoids undefined errors
+            };}
         this.init();
     }
 
