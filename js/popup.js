@@ -2,6 +2,18 @@ import { MiniViewer } from './miniViewer.js';
 class Popup {
     constructor(selectedRectangle, onSave) {
         this.selectedRectangle = selectedRectangle;
+        this.onSave = onSave
+        if (this.selectedRectangle?.parent) {
+            const parent = this.selectedRectangle.parent;
+            this.initialProperties = {
+                position: { ...parent.position }, 
+                color: parent.material.color.getHexString(), 
+                opacity: parent.material.opacity,
+                metalness: parent.material.metalness,
+                roughness: parent.material.roughness,
+                type: parent.userData.type || ""
+            };
+        }
         this.init();
     }
 
@@ -89,6 +101,17 @@ class Popup {
         saveButton.onclick = () => this.saveChanges();
         this.detailsContainer.appendChild(saveButton);
 
+        const cancelButton = document.createElement("button");
+        cancelButton.innerText = "Cancel";
+        cancelButton.style.marginTop = "20px";
+        cancelButton.style.padding = "10px";
+        cancelButton.style.background = "red";
+        cancelButton.style.color = "white";
+        cancelButton.style.border = "none";
+        cancelButton.style.cursor = "pointer";
+        cancelButton.onclick = () => this.cancelButton();
+        this.detailsContainer.appendChild(cancelButton);
+
         // Append elements
         this.popupContainer.appendChild(this.miniContainer);
         this.popupContainer.appendChild(this.detailsContainer);
@@ -124,7 +147,7 @@ class Popup {
 
         const input = document.createElement("input");
         input.type = "number";
-        input.value = this.selectedRectangle?.parent?.position[axis] || 0; // Get current position
+        input.value = this.selectedRectangle?.parent?.position[axis] || 0; 
         input.step = "0.1"; // Small increments
         input.oninput = () => this.updatePosition(axis, parseFloat(input.value));
 
@@ -171,6 +194,25 @@ class Popup {
         this.popupContainer.remove();
         if (this.onSave) this.onSave();
     }
+
+    cancelButton() {
+        if (this.selectedRectangle?.parent) {
+            const parent = this.selectedRectangle.parent;
+            parent.position.set(
+                this.initialProperties.position.x, 
+                this.initialProperties.position.y, 
+                this.initialProperties.position.z
+            );
+            parent.material.color.set(`#${this.initialProperties.color}`);
+            parent.material.opacity = this.initialProperties.opacity;
+            parent.material.metalness = this.initialProperties.metalness;
+            parent.material.roughness = this.initialProperties.roughness;
+            parent.userData.type = this.initialProperties.type;
+            parent.material.needsUpdate = true;
+        }
+        this.popupContainer.remove();
+    }
+    
 }
 
 export { Popup };

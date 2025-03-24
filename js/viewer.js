@@ -169,6 +169,7 @@ class Viewer {
         this.mode2D = false
         this.position = new THREE.Vector3(0, 0, 0)
         this.target = new THREE.Vector3(0, 1, 0);
+        this.plane = null;
     }
 
     createViewer() {
@@ -176,6 +177,10 @@ class Viewer {
         document.body.appendChild(this.container);
 
         this.renderer = new THREE.WebGLRenderer({ antialias: true });
+        this.renderer.shadowMap.enabled = true;
+        this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+
+        this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         this.renderer.setSize(this.widthO, this.heightO);
         this.container.appendChild(this.renderer.domElement);
 
@@ -193,8 +198,35 @@ class Viewer {
         this.transformControls = new TransformControls(this.camera, this.renderer.domElement);
         this.transformControls.setSpace('world');
         this.transformControls.size = 0.5;
+        this.transformControls.showZ = false
         this.transformControls.setTranslationSnap(null);
         this.scene.add(this.transformControls);
+        this.transformControls.setMode('translate')
+
+        this.scene.background = new THREE.Color("white");
+        this.scene.fog = new THREE.Fog("white", 500, 2000);
+
+        const pointLight = new THREE.PointLight("white", 5, 0, 0.1);
+        pointLight.position.set(100, 100, 300);
+        pointLight.castShadow = true;
+        pointLight.shadowIntensity = 1;
+        this.scene.add(pointLight);
+
+        const planeWidth = 100000;
+        const planeHeight = 100000;
+
+        const PlaneGeometry = new THREE.PlaneGeometry(planeWidth, planeHeight);
+        const PlaneMaterial = new THREE.MeshPhysicalMaterial({
+            color: "#edb568",
+            roughness: 0.8,
+        });
+
+
+        this.plane = new THREE.Mesh(PlaneGeometry, PlaneMaterial);
+        this.plane.receiveShadow = true;
+        this.plane.position.y = -100;
+        this.plane.rotation.x = -Math.PI / 2;
+        this.scene.add(this.plane);
 
         this.bodies = new Bodies(this)
         window.addEventListener('keydown', (event) => {
@@ -231,6 +263,9 @@ class Viewer {
 
 
         if (this.mode2D) {
+            if(this.plane){
+                this.scene.remove(this.plane)
+            }
             controls.reset();
             if (this.transformControls) {
                 this.scene.remove(this.transformControls);
@@ -262,7 +297,7 @@ class Viewer {
             this.bodies.generate2DDrawing()
 
         } else {
-
+            this.scene.add(this.plane)
             const gridHelper = scene.getObjectByName(gridHelperName);
             const lineSegments = scene.getObjectByName(lineSegmentsName);
 
@@ -285,12 +320,10 @@ class Viewer {
                 const lineData = mesh.userData.line;
                 if (lineData) {
                     const { position, scale, rotation } = lineData;
-
                     mesh.position.set(position.x, -position.z, mesh.position.z);
                     mesh.scale.copy(scale);
                     mesh.rotation.z = -rotation.z;
                 }
-
                 scene.add(mesh);
             });
             this.bodies.twoDObjects = [];
