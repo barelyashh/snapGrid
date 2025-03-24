@@ -234,7 +234,8 @@ class Viewer {
 
     //removes circular dependecy of userdata
     updateOverAllBodies() {
-        console.log(this.bodies.overallBodies)
+        //postion rectangle created in 2d in proper place of 3d
+        //the rectangle is getting created inside the overalldimesnionbox as flat but not visible 
         this.bodies.overallBodies.forEach(mesh => {
             const lineData = mesh.userData.line;
             if (lineData) {
@@ -242,7 +243,6 @@ class Viewer {
                 mesh.position.set(position.x, -position.z, mesh.position.z);
                 mesh.scale.copy(scale);
                 mesh.rotation.z = -rotation.z;
-                this.bodies.positionOverAllBodies(mesh)
             }
             this.scene.add(mesh);
         });

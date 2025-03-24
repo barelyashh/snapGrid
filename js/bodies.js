@@ -47,6 +47,7 @@ class Bodies {
     }
 
     createRectangle(widthBox, heightBox, depthBox){
+        console.log(widthBox, heightBox, depthBox)
         const geometry = new THREE.BoxGeometry(widthBox, heightBox, depthBox);
         const material = new THREE.MeshPhysicalMaterial({ color: '#7F4125', clearcoat: 1, clearcoatRoughness: 0 });
         const rectangle = new THREE.Mesh(geometry, material);
@@ -80,13 +81,6 @@ class Bodies {
         const rectDepth = rectangle.geometry.parameters.depth;
         rectangle.position.z = this.viewer.overallDepth / 2 - rectDepth / 2;
     }
-    positionOverAllBodies(mesh){
-        if (!this.viewer.overallDepth) return;
-      
-            const rectDepth = mesh.geometry.parameters.depth;
-            mesh.position.z = this.viewer.overallDepth / 2 - rectDepth / 2; 
-       
-    }
 
     positionSprite(sprite, rectangle) {
         if (!this.viewer.overallDepth) return;
@@ -97,11 +91,45 @@ class Bodies {
     generate2DDrawing() {
         if (this.frame) {
             this.generate2DDrawingForFrame()
-
         }
         if (this.overallBodies) {
            this.generate2DDrawingForOverAllBodies()
         }
+    }
+
+    generate2DDrawingForFrame(){
+        let positions = this.frame.geometry.attributes.position.array
+        for (let i = 0; i < positions.length; i += 3) {
+            positions[i + 2] = 0;
+        }
+
+        function splitPoints(positions) {
+            const uniquePositions = [];
+            const seen = new Set();
+
+            for (let i = 0; i < positions.length; i += 3) {
+                const point = new THREE.Vector3(positions[i], positions[i + 1], positions[i + 2]);
+                const key = `${point.x},${point.y},${point.z}`;
+                seen.add(key);
+                uniquePositions.push(point);
+            }
+            return uniquePositions
+        }
+
+        let uniquePositionsBuffer1 = splitPoints(positions);
+        const tri = new THREE.Shape();
+        tri.moveTo(uniquePositionsBuffer1[0].x, uniquePositionsBuffer1[0].y);
+        for (let i = 0; i < uniquePositionsBuffer1.length; i++) {
+            tri.lineTo(uniquePositionsBuffer1[i].x, uniquePositionsBuffer1[i].y);
+        }
+        tri.lineTo(uniquePositionsBuffer1[0].x, uniquePositionsBuffer1[0].y)
+        const geometry = new THREE.ShapeGeometry(tri);
+        const lineSegments = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ color: '#C1C0BD' }));
+        lineSegments.material.side = THREE.DoubleSide
+        lineSegments.name = 'lineSegments'
+        lineSegments.rotation.x = Math.PI / 2
+        lineSegments.position.y = -0.1;
+        this.viewer.scene.add(lineSegments);
     }
 
     generate2DDrawingForOverAllBodies(){
@@ -151,42 +179,6 @@ class Bodies {
 
         })
     }
-
-    generate2DDrawingForFrame(){
-        let positions = this.frame.geometry.attributes.position.array
-        for (let i = 0; i < positions.length; i += 3) {
-            positions[i + 2] = 0;
-        }
-
-        function splitPoints(positions) {
-            const uniquePositions = [];
-            const seen = new Set();
-
-            for (let i = 0; i < positions.length; i += 3) {
-                const point = new THREE.Vector3(positions[i], positions[i + 1], positions[i + 2]);
-                const key = `${point.x},${point.y},${point.z}`;
-                seen.add(key);
-                uniquePositions.push(point);
-            }
-            return uniquePositions
-        }
-
-        let uniquePositionsBuffer1 = splitPoints(positions);
-        const tri = new THREE.Shape();
-        tri.moveTo(uniquePositionsBuffer1[0].x, uniquePositionsBuffer1[0].y);
-        for (let i = 0; i < uniquePositionsBuffer1.length; i++) {
-            tri.lineTo(uniquePositionsBuffer1[i].x, uniquePositionsBuffer1[i].y);
-        }
-        tri.lineTo(uniquePositionsBuffer1[0].x, uniquePositionsBuffer1[0].y)
-        const geometry = new THREE.ShapeGeometry(tri);
-        const lineSegments = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ color: '#C1C0BD' }));
-        lineSegments.material.side = THREE.DoubleSide
-        lineSegments.name = 'lineSegments'
-        lineSegments.rotation.x = Math.PI / 2
-        lineSegments.position.y = -0.1;
-        this.viewer.scene.add(lineSegments);
-    }
-
 
     toggleTransformMode() {
         this.transformEnabled = !this.transformEnabled;
