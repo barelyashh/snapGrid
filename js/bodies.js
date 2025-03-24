@@ -20,10 +20,10 @@ class Bodies {
 
         this.viewer.overallDimensionValues = { width, height, depth };
         const geometry = new THREE.BoxGeometry(width, height, depth);
-        const material = new THREE.MeshPhysicalMaterial({ color: '#82807C',clearcoat: 1, clearcoatRoughness: 0.3, });
-            this.frame = new THREE.Mesh(geometry, material);
-            this.frame.castShadow = true;
-            this.frame.receiveShadow = true;
+        const material = new THREE.MeshPhysicalMaterial({ color: '#82807C', clearcoat: 1, clearcoatRoughness: 0.3, });
+        this.frame = new THREE.Mesh(geometry, material);
+        this.frame.castShadow = true;
+        this.frame.receiveShadow = true;
         this.frame.name = 'frame'
         this.frame.position.z = -0.1;
         this.viewer.scene.add(this.frame);
@@ -32,15 +32,16 @@ class Bodies {
         const objectMaxSize = Math.max(this.frame.geometry.parameters.width, this.frame.geometry.parameters.height)
         this.viewer.position.z = objectMaxSize
         this.viewer.camera.position.set(0, 0, objectMaxSize);
+        this.viewer.setupPlane();
     }
-    
+
 
     addRectangle({ widthBox, heightBox, depthBox }) {
         if (this.mode2D) {
             this.generate2DDrawing();
         } else {
             const geometry = new THREE.BoxGeometry(widthBox, heightBox, depthBox);
-            const material = new THREE.MeshPhysicalMaterial({ color: '#7F4125',clearcoat: 1, clearcoatRoughness: 0 });
+            const material = new THREE.MeshPhysicalMaterial({ color: '#7F4125', clearcoat: 1, clearcoatRoughness: 0 });
             const rectangle = new THREE.Mesh(geometry, material);
             rectangle.castShadow = true;
             rectangle.receiveShadow = true;
@@ -57,33 +58,16 @@ class Bodies {
             this.positionSprite(sprite, rectangle);
             sprite.visible = false;
             rectangle.add(sprite);
-    
+
             this.viewer.scene.add(rectangle);
             rectangle.position.y = 0.1;
             this.overallBodies.push(rectangle);
             this.spriteObjects.push(sprite);
-    
+
             const { width, height, depth } = rectangle.geometry.parameters;
             rectangle.userData = { width, height, depth };
-            this.viewer.animate(); 
+            this.viewer.animate();
         }
-    }
-
-    addArcUsingRing({ startAngle, endAngle, innerRadius, outerRadius, segments }) {
-        if (!this.viewer.scene) {
-            console.error('Three.js scene not initialized.');
-            return;
-        }
-        const startRad = THREE.MathUtils.degToRad(startAngle);
-        const thetaLength = THREE.MathUtils.degToRad(endAngle - startAngle);
-        const ringGeometry = new THREE.RingGeometry(innerRadius, outerRadius, segments, 1, startRad, thetaLength);
-        const material = new THREE.MeshStandardMaterial({ color: 0xffa500, side: THREE.DoubleSide });
-        const mesh = new THREE.Mesh(ringGeometry, material);
-        this.arcBodies.push(mesh)
-        this.overallBodies.push(mesh);
-        this.positionArc(mesh); // Call the helper function
-        this.viewer.scene.add(mesh);
-
     }
 
     positionRectangle(rectangle) {
