@@ -45,7 +45,7 @@ class Bodies {
             const rectangle = new THREE.Mesh(geometry, material);
             rectangle.castShadow = true;
             rectangle.receiveShadow = true;
-            rectangle.name = 'shape';
+            rectangle.name = 'yash';
             this.positionRectangle(rectangle);
             const textureLoader = new THREE.TextureLoader();
             const spriteMaterial = new THREE.SpriteMaterial({
@@ -66,14 +66,50 @@ class Bodies {
 
             const { width, height, depth } = rectangle.geometry.parameters;
             rectangle.userData = { width, height, depth };
+            this.addDimensionLines(rectangle);
             this.viewer.animate();
+
+
         }
     }
+
+    addDimensionLines(rectangle) {
+        const { width, height, depth } = rectangle.geometry.parameters;
+        
+        // Define points for dimension lines
+        const positions = [
+            [[-width / 2, height / 2, depth / 2], [width / 2, height / 2, depth / 2]], // Top width
+            [[width / 2, -height / 2, depth / 2], [width / 2, height / 2, depth / 2]], // Right height
+        ];
+    
+        positions.forEach(([start, end]) => {
+            const geometry = new THREE.BufferGeometry().setFromPoints([
+                new THREE.Vector3(...start),
+                new THREE.Vector3(...end)
+            ]);
+            const material = new THREE.LineBasicMaterial({ color: 0x0000ff });
+            const line = new THREE.Line(geometry, material);
+    
+            // Positioning the lines above the rectangle
+            line.position.copy(rectangle.position);
+            line.position.z += 0.1; // Adjust height
+    
+            this.viewer.scene.add(line);
+        });
+    }
+    
 
     positionRectangle(rectangle) {
         if (!this.viewer.overallDepth) return;
         const rectDepth = rectangle.geometry.parameters.depth;
         rectangle.position.z = this.viewer.overallDepth / 2 - rectDepth / 2;
+    }
+
+    positionDimensionLines(lines){
+        this.overallBodies.forEach((line) => {
+            const rectDepth = line.geometry.parameters.depth;
+           line.position.z = this.viewer.overallDepth / 2 - rectDepth / 2;
+        })
     }
 
     positionSprite(sprite, rectangle) {
@@ -380,6 +416,82 @@ class Bodies {
             });
         }
         this.snapPoints = []; // Clear the global snap points array
+    }
+
+    add3DDimensionsToRectangles() {
+        this.overallBodies.forEach((mesh) => {
+            // Remove existing dimension lines and labels if they exist
+            if (mesh.userData.dimensionLines) {
+                mesh.userData.dimensionLines.forEach(line => this.viewer.scene.remove(line));
+            }
+            if (mesh.userData.dimensionLabels) {
+                mesh.userData.dimensionLabels.forEach(label => label.remove());
+            }
+    
+            const { width, height } = mesh.geometry.parameters;
+            const position = mesh.position.clone();
+            const scale = mesh.scale.clone();
+    
+            // 3D Dimension Lines
+            const createDimensionLine = (start, end) => {
+                const material = new THREE.LineBasicMaterial({ color: 'black' });
+                const points = [start, end];
+                const geometry = new THREE.BufferGeometry().setFromPoints(points);
+                const line = new THREE.Line(geometry, material);
+                this.viewer.scene.add(line);
+                return line;
+            };
+    
+            const halfWidth = (width * scale.x) / 2;
+            const halfHeight = (height * scale.y) / 2;
+    
+            const topStart = new THREE.Vector3(position.x - halfWidth, position.y + halfHeight, position.z);
+            const topEnd = new THREE.Vector3(position.x + halfWidth, position.y + halfHeight, position.z);
+            const sideStart = new THREE.Vector3(position.x + halfWidth, position.y - halfHeight, position.z);
+            const sideEnd = new THREE.Vector3(position.x + halfWidth, position.y + halfHeight, position.z);
+    
+            const topLine = createDimensionLine(topStart, topEnd);
+            const sideLine = createDimensionLine(sideStart, sideEnd);
+            this.positionDimensionLines([topLine, sideLine])
+            mesh.userData.dimensionLines = [topLine, sideLine];
+    
+            // 2D HTML Labels
+            const createDimensionLabel = (text, position) => {
+                const label = document.createElement('div');
+                label.className = 'dimension-label';
+                label.textContent = text;
+                label.style.position = 'absolute';
+                label.style.color = 'black';
+                label.style.background = 'white';
+                label.style.padding = '2px 5px';
+                label.style.fontSize = '12px';
+                document.body.appendChild(label);
+    
+                const updateLabelPosition = () => {
+                    const screenPosition = position.clone().project(this.viewer.camera);
+                    const x = (screenPosition.x * 0.5 + 0.5) * window.innerWidth;
+                    const y = (-screenPosition.y * 0.5 + 0.5) * window.innerHeight;
+                    label.style.left = `${x}px`;
+                    label.style.top = `${y}px`;
+                };
+    
+                updateLabelPosition();
+                return { element: label, updatePosition: updateLabelPosition };
+            };
+    
+            const topLabel = createDimensionLabel(`${width * scale.x} mm`, new THREE.Vector3(position.x, position.y + halfHeight + 10, position.z));
+            const sideLabel = createDimensionLabel(`${height * scale.y} mm`, new THREE.Vector3(position.x + halfWidth + 10, position.y, position.z));
+    
+            mesh.userData.dimensionLabels = [topLabel.element, sideLabel.element];
+    
+            // Ensure labels update with camera movement
+            const updateLabels = () => {
+                topLabel.updatePosition();
+                sideLabel.updatePosition();
+            };
+    
+            this.viewer.controls.addEventListener('change', updateLabels);
+        });
     }
 }
 
