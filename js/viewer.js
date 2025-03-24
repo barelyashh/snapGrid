@@ -234,6 +234,7 @@ class Viewer {
 
     //removes circular dependecy of userdata
     updateOverAllBodies() {
+        console.log(this.bodies.overallBodies)
         this.bodies.overallBodies.forEach(mesh => {
             const lineData = mesh.userData.line;
             if (lineData) {
@@ -241,6 +242,7 @@ class Viewer {
                 mesh.position.set(position.x, -position.z, mesh.position.z);
                 mesh.scale.copy(scale);
                 mesh.rotation.z = -rotation.z;
+                this.bodies.positionOverAllBodies(mesh)
             }
             this.scene.add(mesh);
         });

@@ -37,43 +37,55 @@ class Bodies {
 
 
     addRectangle({ widthBox, heightBox, depthBox }) {
-        if (this.mode2D) {
-            this.generate2DDrawing();
+        if (this.viewer.mode2D) {
+            const rectangle = this.createRectangle(widthBox, heightBox, depthBox)
+            this.generate2DDrawingForOverAllBodies()
         } else {
-            const geometry = new THREE.BoxGeometry(widthBox, heightBox, depthBox);
-            const material = new THREE.MeshPhysicalMaterial({ color: '#7F4125', clearcoat: 1, clearcoatRoughness: 0 });
-            const rectangle = new THREE.Mesh(geometry, material);
-            rectangle.castShadow = true;
-            rectangle.receiveShadow = true;
-            rectangle.name = 'shape';
-            this.positionRectangle(rectangle);
-            const textureLoader = new THREE.TextureLoader();
-            const spriteMaterial = new THREE.SpriteMaterial({
-                map: textureLoader.load('./images/sprite.png'),
-                transparent: true
-            });
-
-            const sprite = new THREE.Sprite(spriteMaterial);
-            sprite.scale.set(5, 5, 1);
-            this.positionSprite(sprite, rectangle);
-            sprite.visible = false;
-            rectangle.add(sprite);
-
+            const rectangle = this.createRectangle(widthBox, heightBox, depthBox)
             this.viewer.scene.add(rectangle);
-            rectangle.position.y = 0.1;
-            this.overallBodies.push(rectangle);
-            this.spriteObjects.push(sprite);
-
-            const { width, height, depth } = rectangle.geometry.parameters;
-            rectangle.userData = { width, height, depth };
-            this.viewer.animate();
         }
+    }
+
+    createRectangle(widthBox, heightBox, depthBox){
+        const geometry = new THREE.BoxGeometry(widthBox, heightBox, depthBox);
+        const material = new THREE.MeshPhysicalMaterial({ color: '#7F4125', clearcoat: 1, clearcoatRoughness: 0 });
+        const rectangle = new THREE.Mesh(geometry, material);
+        rectangle.castShadow = true;
+        rectangle.receiveShadow = true;
+        rectangle.name = 'shape';
+        this.positionRectangle(rectangle);
+        const textureLoader = new THREE.TextureLoader();
+        const spriteMaterial = new THREE.SpriteMaterial({
+            map: textureLoader.load('./images/sprite.png'),
+            transparent: true
+        });
+
+        const sprite = new THREE.Sprite(spriteMaterial);
+        sprite.scale.set(5, 5, 1);
+        this.positionSprite(sprite, rectangle);
+        sprite.visible = false;
+        rectangle.add(sprite);
+        rectangle.position.y = 0.1;
+        this.overallBodies.push(rectangle);
+        this.spriteObjects.push(sprite);
+
+        const { width, height, depth } = rectangle.geometry.parameters;
+        rectangle.userData = { width, height, depth };
+        this.viewer.animate();
+        return rectangle
     }
 
     positionRectangle(rectangle) {
         if (!this.viewer.overallDepth) return;
         const rectDepth = rectangle.geometry.parameters.depth;
         rectangle.position.z = this.viewer.overallDepth / 2 - rectDepth / 2;
+    }
+    positionOverAllBodies(mesh){
+        if (!this.viewer.overallDepth) return;
+      
+            const rectDepth = mesh.geometry.parameters.depth;
+            mesh.position.z = this.viewer.overallDepth / 2 - rectDepth / 2; 
+       
     }
 
     positionSprite(sprite, rectangle) {
@@ -84,11 +96,20 @@ class Bodies {
 
     generate2DDrawing() {
         if (this.frame) {
-            let positions = this.frame.geometry.attributes.position.array
+            this.generate2DDrawingForFrame()
+
+        }
+        if (this.overallBodies) {
+           this.generate2DDrawingForOverAllBodies()
+        }
+    }
+
+    generate2DDrawingForOverAllBodies(){
+        this.overallBodies.forEach((mesh, i) => {
+            let positions = mesh.geometry.attributes.position.array
             for (let i = 0; i < positions.length; i += 3) {
                 positions[i + 2] = 0;
             }
-
             function splitPoints(positions) {
                 const uniquePositions = [];
                 const seen = new Set();
@@ -99,9 +120,9 @@ class Bodies {
                     seen.add(key);
                     uniquePositions.push(point);
                 }
+
                 return uniquePositions
             }
-
             let uniquePositionsBuffer1 = splitPoints(positions);
             const tri = new THREE.Shape();
             tri.moveTo(uniquePositionsBuffer1[0].x, uniquePositionsBuffer1[0].y);
@@ -110,61 +131,60 @@ class Bodies {
             }
             tri.lineTo(uniquePositionsBuffer1[0].x, uniquePositionsBuffer1[0].y)
             const geometry = new THREE.ShapeGeometry(tri);
-            const lineSegments = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ color: '#C1C0BD' }));
+            const lineSegments = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ color: mesh.material.color }))
             lineSegments.material.side = THREE.DoubleSide
-            lineSegments.name = 'lineSegments'
-            lineSegments.rotation.x = Math.PI / 2
-            lineSegments.position.y = -0.1;
+            lineSegments.name = `segments${i}`;
+            lineSegments.rotation.x = Math.PI / 2;
+            lineSegments.position.set(mesh.position.x, 0.3, -mesh.position.y);
+
             this.viewer.scene.add(lineSegments);
+            this.twoDObjects.push(lineSegments);
 
+            const { width, height, depth } = mesh.userData;
+            lineSegments.userData = { width, height, depth };
+
+            lineSegments.scale.copy(mesh.scale);
+            lineSegments.rotation.z = -mesh.rotation.z;
+
+            mesh.userData.line = lineSegments;
+            lineSegments.userData.originalMesh = mesh;
+
+        })
+    }
+
+    generate2DDrawingForFrame(){
+        let positions = this.frame.geometry.attributes.position.array
+        for (let i = 0; i < positions.length; i += 3) {
+            positions[i + 2] = 0;
         }
-        if (this.overallBodies) {
-            this.overallBodies.forEach((mesh, i) => {
-                let positions = mesh.geometry.attributes.position.array
-                for (let i = 0; i < positions.length; i += 3) {
-                    positions[i + 2] = 0;
-                }
-                function splitPoints(positions) {
-                    const uniquePositions = [];
-                    const seen = new Set();
 
-                    for (let i = 0; i < positions.length; i += 3) {
-                        const point = new THREE.Vector3(positions[i], positions[i + 1], positions[i + 2]);
-                        const key = `${point.x},${point.y},${point.z}`;
-                        seen.add(key);
-                        uniquePositions.push(point);
-                    }
+        function splitPoints(positions) {
+            const uniquePositions = [];
+            const seen = new Set();
 
-                    return uniquePositions
-                }
-                let uniquePositionsBuffer1 = splitPoints(positions);
-                const tri = new THREE.Shape();
-                tri.moveTo(uniquePositionsBuffer1[0].x, uniquePositionsBuffer1[0].y);
-                for (let i = 0; i < uniquePositionsBuffer1.length; i++) {
-                    tri.lineTo(uniquePositionsBuffer1[i].x, uniquePositionsBuffer1[i].y);
-                }
-                tri.lineTo(uniquePositionsBuffer1[0].x, uniquePositionsBuffer1[0].y)
-                const geometry = new THREE.ShapeGeometry(tri);
-                const lineSegments = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ color: mesh.material.color }))
-                lineSegments.material.side = THREE.DoubleSide
-                lineSegments.name = `segments${i}`;
-                lineSegments.rotation.x = Math.PI / 2;
-                lineSegments.position.set(mesh.position.x, 0.3, -mesh.position.y);
-
-                this.viewer.scene.add(lineSegments);
-                this.twoDObjects.push(lineSegments);
-
-                const { width, height, depth } = mesh.userData;
-                lineSegments.userData = { width, height, depth };
-
-                lineSegments.scale.copy(mesh.scale);
-                lineSegments.rotation.z = -mesh.rotation.z;
-
-                mesh.userData.line = lineSegments;
-                lineSegments.userData.originalMesh = mesh;
-
-            })
+            for (let i = 0; i < positions.length; i += 3) {
+                const point = new THREE.Vector3(positions[i], positions[i + 1], positions[i + 2]);
+                const key = `${point.x},${point.y},${point.z}`;
+                seen.add(key);
+                uniquePositions.push(point);
+            }
+            return uniquePositions
         }
+
+        let uniquePositionsBuffer1 = splitPoints(positions);
+        const tri = new THREE.Shape();
+        tri.moveTo(uniquePositionsBuffer1[0].x, uniquePositionsBuffer1[0].y);
+        for (let i = 0; i < uniquePositionsBuffer1.length; i++) {
+            tri.lineTo(uniquePositionsBuffer1[i].x, uniquePositionsBuffer1[i].y);
+        }
+        tri.lineTo(uniquePositionsBuffer1[0].x, uniquePositionsBuffer1[0].y)
+        const geometry = new THREE.ShapeGeometry(tri);
+        const lineSegments = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ color: '#C1C0BD' }));
+        lineSegments.material.side = THREE.DoubleSide
+        lineSegments.name = 'lineSegments'
+        lineSegments.rotation.x = Math.PI / 2
+        lineSegments.position.y = -0.1;
+        this.viewer.scene.add(lineSegments);
     }
 
 
