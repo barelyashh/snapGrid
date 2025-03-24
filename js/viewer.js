@@ -323,7 +323,9 @@ class Viewer {
     switchSnap() {
         this.snapEnabled = !this.snapEnabled;
         if (this.snapEnabled) {
-            this.mode2D ? this.bodies.addSnapPointsTo2Drectangles() : this.bodies.addSnapPointsTo3DRectangles();
+            //wor on 3d snapping points + for 3d use dragballcontrols or something else for snap
+          //  this.mode2D ? this.bodies.addSnapPointsTo2Drectangles() : this.bodies.addSnapPointsTo3DRectangles();
+          this.bodies.addSnapPointsTo2Drectangles()
         } else {
             this.bodies.removeSnapPoints(this.mode2D);
         }
