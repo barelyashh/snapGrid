@@ -82,11 +82,6 @@ class Bodies {
         sprite.position.set(0, 0, rectDepth / 2 + 2);
     }
 
-    positionArc(arc) {
-        if (!this.viewer.overallDepth) return;
-        arc.position.set(0, 0, this.viewer.overallDepth / 2 + 0.1); // Position at the top of the overall dimensions
-    }
-
     generate2DDrawing() {
         if (this.frame) {
             let positions = this.frame.geometry.attributes.position.array
