@@ -20,8 +20,10 @@ class Bodies {
 
         this.viewer.overallDimensionValues = { width, height, depth };
         const geometry = new THREE.BoxGeometry(width, height, depth);
-        const material = new THREE.MeshBasicMaterial({ color: '#82807C' });
+        const material = new THREE.MeshPhysicalMaterial({ color: '#82807C', clearcoat: 1, clearcoatRoughness: 0.3, });
         this.frame = new THREE.Mesh(geometry, material);
+        this.frame.castShadow = true;
+        this.frame.receiveShadow = true;
         this.frame.name = 'frame'
         this.frame.position.z = -0.1;
         this.viewer.scene.add(this.frame);
@@ -30,50 +32,42 @@ class Bodies {
         const objectMaxSize = Math.max(this.frame.geometry.parameters.width, this.frame.geometry.parameters.height)
         this.viewer.position.z = objectMaxSize
         this.viewer.camera.position.set(0, 0, objectMaxSize);
+        this.viewer.setupPlane();
     }
+
 
     addRectangle({ widthBox, heightBox, depthBox }) {
-        const geometry = new THREE.BoxGeometry(widthBox, heightBox, depthBox);
-        const material = new THREE.MeshStandardMaterial({ color: '#181818', transparent: true });
-        const rectangle = new THREE.Mesh(geometry, material);
-        rectangle.name = 'shape'
-        this.positionRectangle(rectangle);
+        if (this.mode2D) {
+            this.generate2DDrawing();
+        } else {
+            const geometry = new THREE.BoxGeometry(widthBox, heightBox, depthBox);
+            const material = new THREE.MeshPhysicalMaterial({ color: '#7F4125', clearcoat: 1, clearcoatRoughness: 0 });
+            const rectangle = new THREE.Mesh(geometry, material);
+            rectangle.castShadow = true;
+            rectangle.receiveShadow = true;
+            rectangle.name = 'shape';
+            this.positionRectangle(rectangle);
+            const textureLoader = new THREE.TextureLoader();
+            const spriteMaterial = new THREE.SpriteMaterial({
+                map: textureLoader.load('./images/sprite.png'),
+                transparent: true
+            });
 
-        // Load sprite texture from an image
-        const textureLoader = new THREE.TextureLoader();
-        const spriteMaterial = new THREE.SpriteMaterial({
-            map: textureLoader.load('./images/sprite.png'),
-            transparent: true
-        });
+            const sprite = new THREE.Sprite(spriteMaterial);
+            sprite.scale.set(5, 5, 1);
+            this.positionSprite(sprite, rectangle);
+            sprite.visible = false;
+            rectangle.add(sprite);
 
-        const sprite = new THREE.Sprite(spriteMaterial);
-        sprite.scale.set(5, 5, 1); // Adjust size as needed
-        this.positionSprite(sprite, rectangle);
-        sprite.visible = false; // Initially hidden
-        rectangle.add(sprite); // Attach sprite to rectangle
-        this.viewer.scene.add(rectangle);
-        rectangle.position.y = 0.1
-        this.overallBodies.push(rectangle);
-        this.spriteObjects.push(sprite)
-        const { width, height, depth } = rectangle.geometry.parameters;
-        rectangle.userData = { width, height, depth };
-    }
+            this.viewer.scene.add(rectangle);
+            rectangle.position.y = 0.1;
+            this.overallBodies.push(rectangle);
+            this.spriteObjects.push(sprite);
 
-    addArcUsingRing({ startAngle, endAngle, innerRadius, outerRadius, segments }) {
-        if (!this.viewer.scene) {
-            console.error('Three.js scene not initialized.');
-            return;
+            const { width, height, depth } = rectangle.geometry.parameters;
+            rectangle.userData = { width, height, depth };
+            this.viewer.animate();
         }
-        const startRad = THREE.MathUtils.degToRad(startAngle);
-        const thetaLength = THREE.MathUtils.degToRad(endAngle - startAngle);
-        const ringGeometry = new THREE.RingGeometry(innerRadius, outerRadius, segments, 1, startRad, thetaLength);
-        const material = new THREE.MeshStandardMaterial({ color: 0xffa500, side: THREE.DoubleSide });
-        const mesh = new THREE.Mesh(ringGeometry, material);
-        this.arcBodies.push(mesh)
-        this.overallBodies.push(mesh);
-        this.positionArc(mesh); // Call the helper function
-        this.viewer.scene.add(mesh);
-
     }
 
     positionRectangle(rectangle) {
@@ -86,11 +80,6 @@ class Bodies {
         if (!this.viewer.overallDepth) return;
         const rectDepth = rectangle.geometry.parameters.depth;
         sprite.position.set(0, 0, rectDepth / 2 + 2);
-    }
-
-    positionArc(arc) {
-        if (!this.viewer.overallDepth) return;
-        arc.position.set(0, 0, this.viewer.overallDepth / 2 + 0.1); // Position at the top of the overall dimensions
     }
 
     generate2DDrawing() {
@@ -121,7 +110,7 @@ class Bodies {
             }
             tri.lineTo(uniquePositionsBuffer1[0].x, uniquePositionsBuffer1[0].y)
             const geometry = new THREE.ShapeGeometry(tri);
-            const lineSegments = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ color: 0xADD8E6 }))
+            const lineSegments = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ color: '#C1C0BD' }));
             lineSegments.material.side = THREE.DoubleSide
             lineSegments.name = 'lineSegments'
             lineSegments.rotation.x = Math.PI / 2
@@ -156,7 +145,7 @@ class Bodies {
                 }
                 tri.lineTo(uniquePositionsBuffer1[0].x, uniquePositionsBuffer1[0].y)
                 const geometry = new THREE.ShapeGeometry(tri);
-                const lineSegments = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ color: 0x90EE9 }))
+                const lineSegments = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ color: mesh.material.color }))
                 lineSegments.material.side = THREE.DoubleSide
                 lineSegments.name = `segments${i}`;
                 lineSegments.rotation.x = Math.PI / 2;
@@ -172,6 +161,7 @@ class Bodies {
                 lineSegments.rotation.z = -mesh.rotation.z;
 
                 mesh.userData.line = lineSegments;
+                lineSegments.userData.originalMesh = mesh;
 
             })
         }
@@ -317,7 +307,7 @@ class Bodies {
 
     addSnapPointsTo2Drectangles() {
         if (!this.viewer.scene || !this.twoDObjects.length) return;
-           this.twoDObjects.forEach(lineSegment => {
+        this.twoDObjects.forEach(lineSegment => {
             lineSegment.geometry.computeBoundingBox();
             const bbox = lineSegment.geometry.boundingBox;
 
@@ -337,10 +327,27 @@ class Bodies {
 
             positions.forEach(([x, y, z]) => {
                 const geometry = new THREE.BoxGeometry(2, 2, 2);
-                const material = new THREE.MeshBasicMaterial({ color: 0xff0000, wireframe: true });
+                const material = new THREE.MeshBasicMaterial({ color: 0xff0000, visible: false });
                 const snapPoint = new THREE.Mesh(geometry, material);
 
                 snapPoint.position.set(x, y, z);
+                const frontFaceVertices = [
+                    1, 1, -1,
+                    -1, 1, -1,
+                    -1, -1, -1,
+                    1, -1, -1,
+                    1, 1, -1,
+                ];
+
+                const frontFaceGeometry = new THREE.BufferGeometry();
+                frontFaceGeometry.setAttribute(
+                    'position',
+                    new THREE.Float32BufferAttribute(frontFaceVertices, 3)
+                );
+                const edgeMaterial = new THREE.LineBasicMaterial({ color: 'blue', transparent: true, opacity: 0.3 });
+                const borderLine = new THREE.Line(frontFaceGeometry, edgeMaterial);
+                borderLine.scale.set(1.5, 1.5, 1.5)
+                snapPoint.add(borderLine);
                 lineSegment.add(snapPoint);
                 lineSegment.userData.snapPoints.push(snapPoint);
                 this.snapPoints.push(snapPoint);

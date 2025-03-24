@@ -3,151 +3,16 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { TransformControls } from 'three/addons/controls/TransformControls.js';
 import { Popup } from './popup.js';
 import { Bodies } from './bodies.js';
+import { UserInterface } from './userInterface.js';
 
 let completeViewer = null;
 
 function create() {
     completeViewer = new Viewer();
-    createUI();
+    completeViewer.ui = new UserInterface(completeViewer)
     completeViewer.createViewer();
     completeViewer.animate();
 }
-
-function createUI() {
-    const header = document.createElement('header');
-    header.innerHTML = `
-        <div class="logo">CONFIGURAT<span class="gear">⚙️</span>R</div>
-    `;
-    document.body.appendChild(header);
-
-    const sideBarContainer = document.getElementById('sideBarContainer') || document.createElement('div');
-    sideBarContainer.id = 'sideBarContainer';
-    document.body.appendChild(sideBarContainer);
-
-    const sidebar = document.createElement('aside');
-    sidebar.className = 'sidebar';
-
-    function createPanel(title, fields, onAdd, defaultValues = {}) {
-        const panel = document.createElement('div');
-        panel.className = 'panel';
-        panel.innerHTML = `<div class="panel-header">${title}</div>`;
-
-        const panelBody = document.createElement('div');
-        panelBody.className = 'panel-body';
-
-        const inputs = {};
-        fields.forEach(field => {
-            const label = document.createElement('label');
-            label.innerText = field;
-
-            const input = document.createElement('input');
-            input.type = 'text';
-            input.placeholder = 'in mm';
-            input.value = defaultValues[field] || '';
-            inputs[field] = input;
-
-            label.appendChild(input);
-            panelBody.appendChild(label);
-        });
-
-        const button = document.createElement('button');
-        button.className = 'add-btn';
-        button.innerText = 'ADD';
-        button.onclick = () => onAdd(inputs);
-
-        panelBody.appendChild(button);
-        panel.appendChild(panelBody);
-        return panel;
-    }
-    const overallDefaults = { Width: 250, Height: 200, Depth: 20 };
-    const rectangleDefaults = { Width: 10, Height: 100, Depth: 10 };
-    const arcDefaults = { 'Start Angle': 1, 'End Angle': 180, 'Inner Radius': 10, 'Outer Radius': 15, 'Depth': 10, 'Segments': 20 };
-    const overallPanel = sidebar.appendChild(createPanel('OVERALL DIMENSIONS', ['Width', 'Height', 'Depth'], (inputs) => {
-        const width = Number(inputs.Width.value.trim());
-        const height = Number(inputs.Height.value.trim());
-        const depth = Number(inputs.Depth.value.trim());
-
-        if (!width || !height || width < 100 || width > 2000 || height < 100 || height > 2000 || depth < 0 || depth > 50) {
-            alert('Enter valid dimensions (100-2000mm for width/height, 0-50mm for depth)');
-            return;
-        }
-
-        completeViewer.overallWidth = width;
-        completeViewer.overallHeight = height;
-        completeViewer.overallDepth = depth;
-        completeViewer.bodies.addOverallDimension(width, height, depth);
-    }, overallDefaults));
-
-    const rectanglePanel = sidebar.appendChild(createPanel('ADD RECTANGLE', ['Width', 'Height', 'Depth'], (inputs) => {
-        const widthBox = Number(inputs.Width.value.trim());
-        const heightBox = Number(inputs.Height.value.trim());
-        const depthBox = Number(inputs.Depth.value.trim());
-
-        if (!completeViewer.overallWidth || !completeViewer.overallHeight) {
-            alert('First add overall dimension');
-            return;
-        }
-
-        if (!widthBox || !heightBox || !depthBox || widthBox >= completeViewer.overallWidth || heightBox >= completeViewer.overallHeight || depthBox > completeViewer.overallDepth) {
-            alert('Rectangle dimensions must be less than overall dimensions');
-            return;
-        }
-
-        completeViewer.bodies.addRectangle({ widthBox, heightBox, depthBox });
-    }, rectangleDefaults));
-
-    // Arc Panel
-    /* const arcPanel = sidebar.appendChild(createPanel('ADD ARC', ['Start Angle', 'End Angle', 'Inner Radius', 'Outer Radius', 'Depth', 'Segments'], (inputs) => {
-        const startAngle = Number(inputs['Start Angle'].value.trim());
-        const endAngle = Number(inputs['End Angle'].value.trim());
-        const innerRadius = Number(inputs['Inner Radius'].value.trim());
-        const outerRadius = Number(inputs['Outer Radius'].value.trim());
-        const depth = Number(inputs['Depth'].value.trim());
-        const segments = Number(inputs['Segments'].value.trim());
-
-        if (!completeViewer.overallWidth || !completeViewer.overallHeight) {
-            alert('First add overall dimension');
-            return;
-        }
-
-        if (startAngle < 0 || endAngle > 360 || innerRadius < 0 || outerRadius < innerRadius || depth > completeViewer.overallDepth || segments < 3) {
-            alert('Enter valid arc parameters');
-            return;
-        }
-
-        completeViewer.bodies.addArcUsingRing({ startAngle, endAngle, innerRadius, outerRadius, depth, segments });
-    }, arcDefaults));
- */
-
-    setTimeout(() => {
-        overallPanel.querySelector('.add-btn').click();
-        setTimeout(() => rectanglePanel.querySelector('.add-btn').click(), 200);
-        //setTimeout(() => arcPanel.querySelector('.add-btn').click(), 400);
-    }, 200);
-
-    const toggleButton = document.createElement('button');
-    toggleButton.innerText = 'Toggle Transform Control';
-    toggleButton.className = 'toggle-btn';
-    toggleButton.onclick = () => completeViewer.bodies.toggleTransformMode();
-    sidebar.appendChild(toggleButton);
-    sideBarContainer.appendChild(sidebar);
-
-    const toggle2D = document.createElement('button');
-    toggle2D.innerText = 'Switch mode';
-    toggle2D.className = 'toggle-btn-2d';
-    toggle2D.onclick = () => completeViewer.switchMode();
-    sidebar.appendChild(toggle2D);
-
-    const toggleSnap = document.createElement('button');
-    toggleSnap.innerText = 'Switch Snap';
-    toggleSnap.className = 'toggle-btn-2d';
-    toggleSnap.onclick = () => completeViewer.switchSnap();
-    sidebar.appendChild(toggleSnap);
-
-
-    sideBarContainer.appendChild(sidebar);
-}
-
 class Viewer {
     constructor() {
         this.camera = null;
@@ -169,133 +34,214 @@ class Viewer {
         this.mode2D = false
         this.position = new THREE.Vector3(0, 0, 0)
         this.target = new THREE.Vector3(0, 1, 0);
+        this.plane = null;
     }
 
     createViewer() {
+        this.setupContainer();
+        this.setupRenderer();
+        this.setupScene();
+        this.setupCamera();
+        this.setupLights();
+        this.setupControls();
+        this.setupRayCaster();
+        this.setupBodies();
+        this.setupEventListeners();
+    }
+
+    setupContainer() {
         this.container = document.getElementById('three-container') || document.createElement('div');
         document.body.appendChild(this.container);
+    }
 
+    setupRenderer() {
         this.renderer = new THREE.WebGLRenderer({ antialias: true });
+        this.renderer.shadowMap.enabled = true;
+        this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
         this.renderer.setSize(this.widthO, this.heightO);
         this.container.appendChild(this.renderer.domElement);
+    }
 
+    setupScene() {
         this.scene = new THREE.Scene();
-        this.scene.background = new THREE.Color(0xe5e5e5);
+        this.scene.background = new THREE.Color("white");
+        this.scene.fog = new THREE.Fog("white", 500, 2000);
+    }
 
+    setupCamera() {
         this.camera = new THREE.PerspectiveCamera(75, this.widthO / this.heightO, 10, 10000);
         this.scene.add(this.camera);
+    }
+
+    setupLights() {
         this.lights = new THREE.AmbientLight();
         this.scene.add(this.lights);
 
-        this.raycaster = new THREE.Raycaster();
+        const pointLight = new THREE.PointLight("white", 5, 0, 0.1);
+        pointLight.position.set(100, 100, 300);
+        pointLight.castShadow = true;
+        this.scene.add(pointLight);
+    }
 
+    setupControls() {
         this.controls = new OrbitControls(this.camera, this.renderer.domElement);
         this.transformControls = new TransformControls(this.camera, this.renderer.domElement);
         this.transformControls.setSpace('world');
         this.transformControls.size = 0.5;
+        this.transformControls.showZ = false;
         this.transformControls.setTranslationSnap(null);
+        this.transformControls.setMode('translate');
         this.scene.add(this.transformControls);
-
-        this.bodies = new Bodies(this)
-        window.addEventListener('keydown', (event) => {
-            switch (event.code) {
-                case 'KeyG':
-                    this.transformControls.setMode('translate');
-                    break;
-                case 'KeyR':
-                    this.transformControls.setMode('rotate');
-                    break;
-                case 'KeyS':
-                    this.transformControls.setMode('scale');
-                    break;
-            }
-        });
-        window.addEventListener('resize', this.onWindowResize, false);
-        this.renderer.setSize(this.widthO, this.heightO);
-        this.renderer.domElement.addEventListener("click", (event) => {
-            if (this.bodies.overallBodies.length > 0 || this.bodies.twoDObjects.length > 0) this.handleClick(event);
-        });
-        this.renderer.domElement.addEventListener("mouseover", (event) => {
-            this.bodies.addDragControls(event)
-        });
-
     }
-    switchMode() {
 
-        this.mode2D = !this.mode2D;
-        const scene = this.scene;
-        const camera = this.camera;
-        const controls = this.controls;
-        const gridHelperName = 'gridHelper';
-        const lineSegmentsName = 'lineSegments';
+    setupRayCaster() {
+        this.raycaster = new THREE.Raycaster();
+    }
 
+    setupPlane() {
+        const planeWidth = 100000;
+        const planeHeight = 100000;
+        const planeGeometry = new THREE.PlaneGeometry(planeWidth, planeHeight);
+        const planeMaterial = new THREE.MeshPhysicalMaterial({
+            color: "#edb568",
+            roughness: 0.8,
+        });
 
-        if (this.mode2D) {
-            controls.reset();
-            if (this.transformControls) {
-                this.scene.remove(this.transformControls);
-                this.transformControls.detach();
-            }
+        this.plane = new THREE.Mesh(planeGeometry, planeMaterial);
+        this.plane.receiveShadow = true;
+        this.plane.position.y = -100;
+        this.plane.rotation.x = -Math.PI / 2;
+        this.scene.add(this.plane);
+        this.updatePlanePosition()
+    }
 
-            const objectMaxSize = Math.max(this.bodies.frame.geometry.parameters.width, this.bodies.frame.geometry.parameters.height)
-            const size = objectMaxSize + 300;
-            const divisions = 10;
-            let gridHelper = scene.getObjectByName(gridHelperName);
+    updatePlanePosition() {
+        const boundingBox = new THREE.Box3().setFromObject(this.bodies.frame);
+        const minY = boundingBox.min.y - 5; // Slight offset to keep it below
+        this.plane.position.y = minY;
+    }
 
+    setupBodies() {
+        this.bodies = new Bodies(this);
+    }
 
-            if (!gridHelper) {
-                gridHelper = new THREE.GridHelper(size, divisions);
-                gridHelper.name = gridHelperName;
-                scene.add(gridHelper);
-            }
+    setupEventListeners() {
+        window.addEventListener('keydown', (event) => this.handleKeyDown(event));
+        window.addEventListener('resize', () => this.onWindowResize(), false);
+        this.renderer.domElement.addEventListener("click", (event) => this.handleClickIfNeeded(event));
+        this.renderer.domElement.addEventListener("mouseover", (event) => this.bodies.addDragControls(event));
+    }
 
-            camera.position.set(0, objectMaxSize, 0);
-            camera.lookAt(0, 0, 0);
-            controls.enabled = true;
-            controls.enableRotate = false;
-
-
-            this.scene.remove(this.bodies.frame);
-            this.bodies.overallBodies.forEach((mesh) => {
-                this.scene.remove(mesh)
-            })
-            this.bodies.generate2DDrawing()
-
-        } else {
-
-            const gridHelper = scene.getObjectByName(gridHelperName);
-            const lineSegments = scene.getObjectByName(lineSegmentsName);
-
-            if (gridHelper) scene.remove(gridHelper);
-            if (lineSegments) scene.remove(lineSegments);
-            this.bodies.twoDObjects.forEach((mesh) => {
-                if (mesh.name.includes('segments')) {
-                    this.scene.remove(mesh)
-                }
-            })
-
-            controls.reset();
-            controls.enableRotate = true;
-            this.scene.add(this.transformControls);
-
-            camera.position.set(this.position.x, this.position.y, this.position.z);
-            camera.lookAt(this.target.x, this.target.y, this.target.z);
-            scene.add(this.bodies.frame);
-            this.bodies.overallBodies.forEach((mesh) => {
-                const lineData = mesh.userData.line;
-                if (lineData) {
-                    const { position, scale, rotation } = lineData;
-
-                    mesh.position.set(position.x, -position.z, mesh.position.z);
-                    mesh.scale.copy(scale);
-                    mesh.rotation.z = -rotation.z;
-                }
-
-                scene.add(mesh);
-            });
-            this.bodies.twoDObjects = [];
+    handleKeyDown(event) {
+        switch (event.code) {
+            case 'KeyG':
+                this.transformControls.setMode('translate');
+                break;
+            case 'KeyR':
+                this.transformControls.setMode('rotate');
+                break;
+            case 'KeyS':
+                this.transformControls.setMode('scale');
+                break;
         }
     }
+
+    handleClickIfNeeded(event) {
+        if (this.bodies.overallBodies.length > 0 || this.bodies.twoDObjects.length > 0) {
+            this.handleClick(event);
+        }
+    }
+
+    onWindowResize = () => {
+        this.camera.aspect = this.widthO / this.heightO;
+        this.camera.updateProjectionMatrix();
+        this.renderer.setSize(this.widthO, this.heightO);
+    };
+
+    switchMode() {
+        this.mode2D = !this.mode2D;
+
+        if (this.mode2D) {
+            this.enable2DMode();
+        } else {
+            this.enable3DMode();
+        }
+    }
+
+    enable2DMode() {
+        if (this.plane) {
+            this.scene.remove(this.plane);
+        }
+
+        this.controls.reset();
+        if (this.transformControls) {
+            this.scene.remove(this.transformControls);
+            this.transformControls.detach();
+        }
+
+        const objectMaxSize = Math.max(
+            this.bodies.frame.geometry.parameters.width,
+            this.bodies.frame.geometry.parameters.height
+        );
+
+        const size = objectMaxSize + 300;
+        const divisions = 10;
+        let gridHelper = this.scene.getObjectByName('gridHelper');
+
+        if (!gridHelper) {
+            gridHelper = new THREE.GridHelper(size, divisions);
+            gridHelper.name = 'gridHelper';
+            this.scene.add(gridHelper);
+        }
+
+        this.camera.position.set(0, objectMaxSize, 0);
+        this.camera.lookAt(0, 0, 0);
+        this.controls.enabled = true;
+        this.controls.enableRotate = false;
+
+        this.scene.remove(this.bodies.frame);
+        this.bodies.overallBodies.forEach(mesh => this.scene.remove(mesh));
+        this.bodies.generate2DDrawing();
+    }
+
+    enable3DMode() {
+        this.scene.add(this.plane);
+
+        const gridHelper = this.scene.getObjectByName('gridHelper');
+        const lineSegments = this.scene.getObjectByName('lineSegments');
+
+        if (gridHelper) this.scene.remove(gridHelper);
+        if (lineSegments) this.scene.remove(lineSegments);
+
+        this.bodies.twoDObjects.forEach(mesh => {
+            if (mesh.name.includes('segments')) {
+                this.scene.remove(mesh);
+            }
+        });
+
+        this.controls.reset();
+        this.controls.enableRotate = true;
+        this.scene.add(this.transformControls);
+
+        this.camera.position.set(this.position.x, this.position.y, this.position.z);
+        this.camera.lookAt(this.target.x, this.target.y, this.target.z);
+        this.scene.add(this.bodies.frame);
+
+        this.bodies.overallBodies.forEach(mesh => {
+            const lineData = mesh.userData.line;
+            if (lineData) {
+                const { position, scale, rotation } = lineData;
+                mesh.position.set(position.x, -position.z, mesh.position.z);
+                mesh.scale.copy(scale);
+                mesh.rotation.z = -rotation.z;
+            }
+            this.scene.add(mesh);
+        });
+
+        this.bodies.twoDObjects = [];
+    }
+
 
     handleClick(event) {
         const rect = this.renderer.domElement.getBoundingClientRect();
@@ -305,16 +251,13 @@ class Viewer {
         );
 
         this.raycaster.setFromCamera(mouse, this.camera);
-
-        // Handle sprite clicks
         const spriteIntersects = this.raycaster.intersectObjects(this.bodies.spriteObjects, true);
         if (spriteIntersects.length > 0 && this.bodies.spriteObjects.includes(spriteIntersects[0].object)) {
+            spriteIntersects[0].object.userData = {}; // Remove circular references
             this.popup = new Popup(spriteIntersects[0].object, this.onSave.bind(this));
             return;
         }
-        if (this.mode2D) {
-            return
-        }
+        if (this.mode2D) return;
 
         if (this.bodies.transformEnabled) {
             const objectsToCheck = this.mode2D ? this.bodies.twoDObjects : this.bodies.overallBodies;
@@ -322,8 +265,6 @@ class Viewer {
 
             if (objectIntersects.length > 0) {
                 this.handleObjectIntersection(objectIntersects[0].object);
-
-
             } else {
                 this.resetTransformControls();
             }
@@ -331,7 +272,6 @@ class Viewer {
     }
 
     handleObjectIntersection(intersectedObject) {
-
         this.intersectedObject = intersectedObject;
         this.transformControls.detach();
         this.transformControls.attach(this.intersectedObject);
@@ -342,7 +282,7 @@ class Viewer {
 
         this.transformControls.addEventListener('change', () => this.transformControls.update());
         this.transformControls.addEventListener('objectChange', () => {
-            this.restrictDoorMovement(this.intersectedObject, this.mode2D);
+            this.restrictDoorMovement(this.intersectedObject);
         });
     }
 
@@ -351,37 +291,46 @@ class Viewer {
         this.controls.enabled = true;
     }
 
-    restrictDoorMovement(intersectedObject, mode2D) {
+    restrictDoorMovement(intersectedObject) {
+        if (!this.overallDimensionValues) return;
         const modelBoundingBox = new THREE.Box3().setFromObject(intersectedObject);
+        const boundaryBoundingBox = new THREE.Box3().setFromObject(this.bodies.frame);
+
         const restrictPosition = (position, halfDimension, rectangleHalf) => {
             return THREE.MathUtils.clamp(position, halfDimension, rectangleHalf);
         };
-        if (!this.overallDimensionValues) return;
-        const overallDepthHalf = this.overallDimensionValues.depth / 2;
-        const boundaryBoundingBox = new THREE.Box3().setFromObject(this.bodies.frame);
 
-        if (boundaryBoundingBox.max.x < modelBoundingBox.max.x || boundaryBoundingBox.min.x > modelBoundingBox.min.x || boundaryBoundingBox.min.y > modelBoundingBox.min.y || boundaryBoundingBox.max.y < modelBoundingBox.max.y) {
-            intersectedObject.position.x = restrictPosition(intersectedObject.position.x, boundaryBoundingBox.min.x + (modelBoundingBox.getSize(new THREE.Vector3()).x / 2), boundaryBoundingBox.max.x - (modelBoundingBox.getSize(new THREE.Vector3()).x / 2));
-            intersectedObject.position.y = restrictPosition(intersectedObject.position.y, boundaryBoundingBox.min.y + (modelBoundingBox.getSize(new THREE.Vector3()).y / 2), boundaryBoundingBox.max.y - (modelBoundingBox.getSize(new THREE.Vector3()).y / 2));
-            intersectedObject.position.z = overallDepthHalf;
-            return
+        if (
+            boundaryBoundingBox.max.x < modelBoundingBox.max.x ||
+            boundaryBoundingBox.min.x > modelBoundingBox.min.x ||
+            boundaryBoundingBox.min.y > modelBoundingBox.min.y ||
+            boundaryBoundingBox.max.y < modelBoundingBox.max.y
+        ) {
+            intersectedObject.position.x = restrictPosition(
+                intersectedObject.position.x,
+                boundaryBoundingBox.min.x + modelBoundingBox.getSize(new THREE.Vector3()).x / 2,
+                boundaryBoundingBox.max.x - modelBoundingBox.getSize(new THREE.Vector3()).x / 2
+            );
+            intersectedObject.position.y = restrictPosition(
+                intersectedObject.position.y,
+                boundaryBoundingBox.min.y + modelBoundingBox.getSize(new THREE.Vector3()).y / 2,
+                boundaryBoundingBox.max.y - modelBoundingBox.getSize(new THREE.Vector3()).y / 2
+            );
+            intersectedObject.position.z = this.overallDimensionValues.depth / 2;
         }
     }
 
     switchSnap() {
+        this.snapEnabled = !this.snapEnabled;
         if (this.snapEnabled) {
-            this.bodies.removeSnapPoints(this.mode2D);
-            this.snapEnabled = false;
-            return;
-        }
-        if (this.mode2D) {
-            this.snapEnabled = true;
-            this.bodies.addSnapPointsTo2Drectangles();
+            //wor on 3d snapping points + for 3d use dragballcontrols or something else for snap
+          //  this.mode2D ? this.bodies.addSnapPointsTo2Drectangles() : this.bodies.addSnapPointsTo3DRectangles();
+          this.bodies.addSnapPointsTo2Drectangles()
         } else {
-            this.snapEnabled = true;
-            this.bodies.addSnapPointsTo3DRectangles();
+            this.bodies.removeSnapPoints(this.mode2D);
         }
     }
+
 
     onSave() {
         this.bodies.hideAllSprites()
