@@ -277,7 +277,6 @@ class Bodies {
 
                 distance = new THREE.Vector3(x, 0, -y).distanceTo(point);
                 if (distance < 2) {
-                    draggedObject.position.x = x
                     if (x < point.x) {
                         draggedObject.position.x = (point.x - (modelBoundingBox.getSize(new THREE.Vector3()).x / 2))
                     } else {
