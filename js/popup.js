@@ -74,14 +74,14 @@ class Popup {
 
 
         // Color Picker
-        const colorLabel = document.createElement("label");
-        colorLabel.innerText = "Color";
-        const colorInput = document.createElement("input");
-        colorInput.type = "color";
-        colorInput.value = "#ffffff";
-        colorInput.oninput = () => this.updateMaterial('color', colorInput.value);
-        colorLabel.appendChild(colorInput);
-        this.detailsContainer.appendChild(colorLabel);
+        // const colorLabel = document.createElement("label");
+        // colorLabel.innerText = "Color";
+        // const colorInput = document.createElement("input");
+        // colorInput.type = "color";
+        // colorInput.value = "#ffffff";
+        // colorInput.oninput = () => this.updateMaterial('color', colorInput.value);
+        // colorLabel.appendChild(colorInput);
+        // this.detailsContainer.appendChild(colorLabel);
 
         // Opacity Slider
         this.detailsContainer.appendChild(this.createSlider("Opacity", "opacity", 0, 1, 0.01));
@@ -132,7 +132,7 @@ class Popup {
         input.max = max;
         input.step = step;
         input.value = 0.5;
-        input.oninput = () => this.updateMaterial(property, parseFloat(input.value));
+        // input.oninput = () => this.updateMaterial(property, parseFloat(input.value));
         wrapper.appendChild(label);
         wrapper.appendChild(input);
         return wrapper;

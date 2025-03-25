@@ -21,6 +21,8 @@ class Bodies {
         this.viewer.overallDimensionValues = { width, height, depth };
         const geometry = new THREE.BoxGeometry(width, height, depth);
         const material = new THREE.MeshPhysicalMaterial({ color: '#82807C', clearcoat: 1, clearcoatRoughness: 0.3, });
+        material.transparent = true
+        material.opacity = 0.6
         this.frame = new THREE.Mesh(geometry, material);
         this.frame.castShadow = true;
         this.frame.receiveShadow = true;
@@ -47,14 +49,13 @@ class Bodies {
             rectangle.receiveShadow = true;
             rectangle.name = 'shape';
             this.positionRectangle(rectangle);
-            const textureLoader = new THREE.TextureLoader();
-            const spriteMaterial = new THREE.SpriteMaterial({
-                map: textureLoader.load('./images/sprite.png'),
-                transparent: true
+            const circleGeometry = new THREE.CircleGeometry(2, 32);
+            const spriteMaterial = new THREE.MeshBasicMaterial({
+                color: 0x274e76,
+                side: THREE.DoubleSide
             });
-
-            const sprite = new THREE.Sprite(spriteMaterial);
-            sprite.scale.set(5, 5, 1);
+            const sprite = new THREE.Mesh(circleGeometry, spriteMaterial);
+            sprite.rotation.x = -Math.PI / 2; // Make circle face up
             this.positionSprite(sprite, rectangle);
             sprite.visible = false;
             rectangle.add(sprite);
