@@ -167,6 +167,7 @@ class Bodies {
         }
     }
 
+
     toggleTransformMode() {
         this.transformEnabled = !this.transformEnabled;
 
@@ -182,7 +183,7 @@ class Bodies {
     hideAllSprites() {
         this.spriteObjects.forEach(sprite => {
             if (sprite.isSprite) {
-                sprite.visible = false;
+                sprite.visible = true;
             }
         });
     }
