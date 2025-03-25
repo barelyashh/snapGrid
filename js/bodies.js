@@ -116,7 +116,9 @@ class Bodies {
             this.frame2D.name = 'frame2D'
             this.frame2D.rotation.x = Math.PI / 2
             this.frame2D.position.y = -0.1;
-            this.viewer.scene.add(this.frame2D);
+            if (!this.viewer.scene.getObjectByName("frame2D")) {
+                this.viewer.scene.add(this.frame2D);
+            }
 
         }
         if (this.overallBodies) {

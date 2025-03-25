@@ -170,6 +170,8 @@ class Viewer {
     }
 
     enable2DMode() {
+        this.handleRemove()
+
         if (this.plane) {
             this.scene.remove(this.plane);
             this.scene.fog = null
@@ -196,7 +198,6 @@ class Viewer {
         this.controls.enabled = true;
         this.controls.enableRotate = false;
 
-        this.scene.remove(this.bodies.frame);
         this.bodies.overallBodies.forEach(mesh => this.scene.remove(mesh));
         this.bodies.generate2DDrawing();
     }
@@ -224,7 +225,7 @@ class Viewer {
     }
 
     enable3DMode() {
-        
+        this.handleRemove()
         this.updateGrid({
             gridSpacing: null,
             gridEnabled: false
@@ -232,15 +233,6 @@ class Viewer {
 
         this.scene.add(this.plane);
         this.scene.fog = new THREE.Fog("white", 500, 2000);
-
-        const gridHelper = this.scene.getObjectByName('gridHelper');
-        const lineSegments = this.scene.getObjectByName('lineSegments');
-        const frame2D = this.scene.getObjectByName('frame2D');
-
-        if (gridHelper) this.scene.remove(gridHelper);
-        if (lineSegments) this.scene.remove(lineSegments);
-        if (frame2D) this.scene.remove(frame2D);
-        this.scene.remove(this.bodies.frame2D)
 
         this.bodies.twoDObjects.forEach(mesh => {
             if (mesh.name.includes('segments')) {
@@ -268,6 +260,21 @@ class Viewer {
         });
 
         this.bodies.twoDObjects = [];
+    }
+
+    handleRemove(){
+        if (this.mode2D) {
+            this.scene.remove(this.bodies.frame);
+        } else {
+            const gridHelper = this.scene.getObjectByName('gridHelper');
+            const lineSegments = this.scene.getObjectByName('lineSegments');
+            const frame2D = this.scene.getObjectByName('frame2D');
+
+            if (gridHelper) this.scene.remove(gridHelper);
+            if (lineSegments) this.scene.remove(lineSegments);
+            if (frame2D) this.scene.remove(frame2D);
+            this.scene.remove(this.bodies.frame2D)
+        }
     }
 
 
