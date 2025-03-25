@@ -7,6 +7,7 @@ class Bodies {
         this.arcBodies = [];
         this.overallBodies = [];
         this.frame = {}
+        this.frame2D = {}
         this.twoDObjects = []
         this.transformEnabled = true
         this.snapPoints = []
@@ -37,7 +38,7 @@ class Bodies {
 
 
     addRectangle({ widthBox, heightBox, depthBox }) {
-        if (this.mode2D) {
+        if (this.viewer.mode2D) {
             this.generate2DDrawing();
         } else {
             const geometry = new THREE.BoxGeometry(widthBox, heightBox, depthBox);
@@ -110,12 +111,12 @@ class Bodies {
             }
             tri.lineTo(uniquePositionsBuffer1[0].x, uniquePositionsBuffer1[0].y)
             const geometry = new THREE.ShapeGeometry(tri);
-            const lineSegments = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ color: '#C1C0BD' }));
-            lineSegments.material.side = THREE.DoubleSide
-            lineSegments.name = 'lineSegments'
-            lineSegments.rotation.x = Math.PI / 2
-            lineSegments.position.y = -0.1;
-            this.viewer.scene.add(lineSegments);
+            this.frame2D = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ color: '#C1C0BD' }));
+            this.frame2D.material.side = THREE.DoubleSide
+            this.frame2D.name = 'frame2D'
+            this.frame2D.rotation.x = Math.PI / 2
+            this.frame2D.position.y = -0.1;
+            this.viewer.scene.add(this.frame2D);
 
         }
         if (this.overallBodies) {

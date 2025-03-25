@@ -70,7 +70,7 @@ class Viewer {
     }
 
     setupCamera() {
-        this.camera = new THREE.PerspectiveCamera(75, this.widthO / this.heightO, 10, 10000);
+        this.camera = new THREE.PerspectiveCamera(75, this.widthO / this.heightO, 0.1, 10000);
         this.scene.add(this.camera);
     }
 
@@ -172,6 +172,7 @@ class Viewer {
     enable2DMode() {
         if (this.plane) {
             this.scene.remove(this.plane);
+            this.scene.fog = null
         }
 
         this.controls.reset();
@@ -180,20 +181,15 @@ class Viewer {
             this.transformControls.detach();
         }
 
+        this.updateGrid({
+            gridSpacing: 100,
+            gridEnabled: true
+        });
+
         const objectMaxSize = Math.max(
             this.bodies.frame.geometry.parameters.width,
             this.bodies.frame.geometry.parameters.height
         );
-
-        const size = objectMaxSize + 300;
-        const divisions = 10;
-        let gridHelper = this.scene.getObjectByName('gridHelper');
-
-        if (!gridHelper) {
-            gridHelper = new THREE.GridHelper(size, divisions);
-            gridHelper.name = 'gridHelper';
-            this.scene.add(gridHelper);
-        }
 
         this.camera.position.set(0, objectMaxSize, 0);
         this.camera.lookAt(0, 0, 0);
@@ -205,14 +201,46 @@ class Viewer {
         this.bodies.generate2DDrawing();
     }
 
+    updateGrid(settings) {
+        const existingGrid = this.scene.getObjectByName('gridHelper');
+        if (existingGrid) {
+            this.scene.remove(existingGrid);
+            existingGrid.geometry.dispose();
+            existingGrid.material.dispose();
+        }
+
+        const gridHelper = new THREE.GridHelper(
+            settings.gridSpacing * 5000, 
+            5000, 
+            0x444444,
+            0x888888
+        );
+        
+        gridHelper.name = 'gridHelper';
+        gridHelper.userData.spacing = settings.gridSpacing;
+        gridHelper.visible = settings.gridEnabled
+
+        this.scene.add(gridHelper);
+    }
+
     enable3DMode() {
+        
+        this.updateGrid({
+            gridSpacing: null,
+            gridEnabled: false
+        });
+
         this.scene.add(this.plane);
+        this.scene.fog = new THREE.Fog("white", 500, 2000);
 
         const gridHelper = this.scene.getObjectByName('gridHelper');
         const lineSegments = this.scene.getObjectByName('lineSegments');
+        const frame2D = this.scene.getObjectByName('frame2D');
 
         if (gridHelper) this.scene.remove(gridHelper);
         if (lineSegments) this.scene.remove(lineSegments);
+        if (frame2D) this.scene.remove(frame2D);
+        this.scene.remove(this.bodies.frame2D)
 
         this.bodies.twoDObjects.forEach(mesh => {
             if (mesh.name.includes('segments')) {
