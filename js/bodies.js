@@ -34,7 +34,7 @@ class Bodies {
         const objectMaxSize = Math.max(this.frame.geometry.parameters.width, this.frame.geometry.parameters.height)
         this.viewer.position.z = objectMaxSize
         this.viewer.camera.position.set(0, 0, objectMaxSize);
-         this.viewer.setupPlane();
+        this.viewer.setupPlane();
     }
 
 
@@ -44,7 +44,7 @@ class Bodies {
         } else {
             const geometry = new THREE.BoxGeometry(widthBox, heightBox, depthBox);
             const material = new THREE.MeshPhysicalMaterial({ color: '#7F4125', clearcoat: 1, clearcoatRoughness: 0 });
-           // material.transparent = true
+            // material.transparent = true
             material.opacity = 0.6
             const rectangle = new THREE.Mesh(geometry, material);
             rectangle.castShadow = true;
@@ -227,7 +227,7 @@ class Bodies {
         // console.log(boundary)
         const boundaryMin = boundaryBoundingBox.min;
         const boundaryMax = boundaryBoundingBox.max;
-        const snapOffset = Math.min(x, y)/2
+        const snapOffset = Math.min(x, y) / 2
         const points = [];
         let closestSnap = new THREE.Vector3()
         const step = (this.viewer.objectMaxSize + 300) / 10;
@@ -429,8 +429,8 @@ class Bodies {
             ];
             const points = [
                 [bbox.min.x, bbox.min.y, 0],
-                [bbox.max.x, bbox.min.y, 0], 
-                [bbox.min.x, bbox.max.y, 0], 
+                [bbox.max.x, bbox.min.y, 0],
+                [bbox.min.x, bbox.max.y, 0],
                 [bbox.max.x, bbox.max.y, 0],
             ]
             lineSegment.userData.points = points
