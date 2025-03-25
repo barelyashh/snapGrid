@@ -170,6 +170,7 @@ class Bodies {
         }
     }
 
+
     toggleTransformMode() {
         this.transformEnabled = !this.transformEnabled;
 
@@ -185,7 +186,7 @@ class Bodies {
     hideAllSprites() {
         this.spriteObjects.forEach(sprite => {
             if (sprite.isSprite) {
-                sprite.visible = false;
+                sprite.visible = true;
             }
         });
     }
@@ -207,9 +208,108 @@ class Bodies {
             const draggedObject = event.object;
             this.snapToNearestPoint(draggedObject);
             this.restrictDoorMovement(draggedObject)
+            this.snapTogrid(draggedObject)
+
         });
 
     }
+    snapTogrid(draggedObject) {
+        const { x, y } = draggedObject.geometry.boundingBox.getSize(new THREE.Vector3())
+        const boundaryBoundingBox = new THREE.Box3().setFromObject(this.frame);
+        const modelBoundingBox = new THREE.Box3().setFromObject(draggedObject);
+        const modelMin = modelBoundingBox.min;
+        const modelMax = modelBoundingBox.max;
+        const boundary = [[modelMin.x, modelMin.z, 0], // Bottom-left
+        [modelMax.x, modelMin.z, 0], // Bottom-right
+        [modelMin.x, modelMax.z, 0], // Top-left
+        [modelMax.x, modelMax.z, 0] // Top-right 
+        ]
+        // console.log(boundary)
+        const boundaryMin = boundaryBoundingBox.min;
+        const boundaryMax = boundaryBoundingBox.max;
+        const snapOffset = Math.min(x, y)/2
+        const points = [];
+        let closestSnap = new THREE.Vector3()
+        const step = (this.viewer.objectMaxSize + 300) / 10;
+        const halfSize = (this.viewer.objectMaxSize + 300) / 2;
+        const halfStep = step / 2;
+        const offset = halfSize - halfStep;
+
+        let minDistance = Infinity
+        let distance = 0
+
+        for (let i = 0; i < 10; i++) {
+
+            for (let j = 0; j < 10; j++) {
+                const baseX = offset - i * step;
+                const baseZ = offset - j * step;
+                const offsetX = step / 2;
+                const offsetZ = step / 2;
+                //points.push(new THREE.Vector3(baseX, 0, baseZ));
+
+                if (boundaryMin.x <= baseX && boundaryMax.x >= baseX && boundaryMin.y <= baseZ && boundaryMax.y >= baseZ) {
+                    //top left
+                    points.push(new THREE.Vector3(baseX - offsetX, 0, baseZ + offsetZ));
+                    //top right
+                    points.push(new THREE.Vector3(baseX + offsetX, 0, baseZ + offsetZ));
+                    //bottom left
+                    // points.push(new THREE.Vector3(baseX - offsetX, 0, baseZ - offsetZ));
+                    //bottom right
+                    // points.push(new THREE.Vector3(baseX + offsetX, 0, baseZ - offsetZ));
+
+                }
+
+
+            }
+
+        }
+        //    console.log(points)
+        // const geometry = new THREE.BufferGeometry().setFromPoints(points);
+        // const material = new THREE.PointsMaterial({
+        //     size: 2,
+        //     color: 'red'
+        // });
+        // const pointCloud = new THREE.Points(geometry, material);
+        // this.viewer.scene.add(pointCloud);
+
+        const currentPosition = draggedObject.position.clone();
+
+        points.forEach((point) => {
+            boundary.forEach(([x, y]) => {
+                // if(minDistance > distance) {
+
+                distance = new THREE.Vector3(x, 0, -y).distanceTo(point);
+                if (distance < 2) {
+                    draggedObject.position.x = x
+                    if (x < point.x) {
+                        draggedObject.position.x = (point.x - (modelBoundingBox.getSize(new THREE.Vector3()).x / 2))
+                    } else {
+                        draggedObject.position.x = (point.x + (modelBoundingBox.getSize(new THREE.Vector3()).x / 2))
+                    }
+                    if (y < point.z) {
+                        draggedObject.position.z = -point.z + modelBoundingBox.getSize(new THREE.Vector3()).z / 2
+                    } else {
+                        draggedObject.position.z = -point.z - modelBoundingBox.getSize(new THREE.Vector3()).z / 2
+                    }
+                }
+
+                // closestSnap = new THREE.Vector3(x,y,0)
+                // minDistance = distance
+                // }
+            })
+
+            //if (distance < snapOffset) {
+
+            // let offset = new THREE.Vector3().subVectors(closestSnap, draggedObject.position);
+            // draggedObject.position.add(offset);
+            //draggedObject.position.set(point.x, point.y, point.z)
+            //}
+
+        })
+
+    }
+
+
 
     restrictDoorMovement(intersectedObject,) {
         const modelBoundingBox = new THREE.Box3().setFromObject(intersectedObject);
@@ -327,6 +427,13 @@ class Bodies {
                 [bbox.min.x, (bbox.min.y + bbox.max.y) / 2, 0], // Left center
                 [bbox.max.x, (bbox.min.y + bbox.max.y) / 2, 0], // Right center
             ];
+            const points = [
+                [bbox.min.x, bbox.min.y, 0],
+                [bbox.max.x, bbox.min.y, 0], 
+                [bbox.min.x, bbox.max.y, 0], 
+                [bbox.max.x, bbox.max.y, 0],
+            ]
+            lineSegment.userData.points = points
 
             positions.forEach(([x, y, z]) => {
                 const geometry = new THREE.BoxGeometry(2, 2, 2);

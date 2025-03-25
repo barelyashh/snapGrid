@@ -35,6 +35,7 @@ class Viewer {
         this.position = new THREE.Vector3(0, 0, 0)
         this.target = new THREE.Vector3(0, 1, 0);
         this.plane = null;
+        this.objectMaxSize = 0
     }
 
     createViewer() {
@@ -188,12 +189,17 @@ class Viewer {
             gridEnabled: true
         });
 
-        const objectMaxSize = Math.max(
+        this.updateGrid({
+            gridSpacing: 100,
+            gridEnabled: true
+        });
+
+            this.objectMaxSize = Math.max(
             this.bodies.frame.geometry.parameters.width,
             this.bodies.frame.geometry.parameters.height
         );
 
-        this.camera.position.set(0, objectMaxSize, 0);
+        this.camera.position.set(0, this.objectMaxSize, 0);
         this.camera.lookAt(0, 0, 0);
         this.controls.enabled = true;
         this.controls.enableRotate = false;
@@ -247,7 +253,13 @@ class Viewer {
         this.camera.position.set(this.position.x, this.position.y, this.position.z);
         this.camera.lookAt(this.target.x, this.target.y, this.target.z);
         this.scene.add(this.bodies.frame);
+        this.updateOverAllBodies();
 
+        this.bodies.twoDObjects = [];
+    }
+
+    //removes circular dependecy of userdata
+    updateOverAllBodies() {
         this.bodies.overallBodies.forEach(mesh => {
             const lineData = mesh.userData.line;
             if (lineData) {
@@ -259,7 +271,10 @@ class Viewer {
             this.scene.add(mesh);
         });
 
-        this.bodies.twoDObjects = [];
+        this.bodies.overallBodies.forEach(mesh => {
+            mesh.userData = {};
+
+        });
     }
 
     handleRemove(){
@@ -289,7 +304,7 @@ class Viewer {
         const spriteIntersects = this.raycaster.intersectObjects(this.bodies.spriteObjects, true);
         if (spriteIntersects.length > 0 && this.bodies.spriteObjects.includes(spriteIntersects[0].object)) {
             spriteIntersects[0].object.userData = {}; // Remove circular references
-            this.popup = new Popup(spriteIntersects[0].object, this.onSave.bind(this));
+            this.popup = new Popup(spriteIntersects[0].object, this.onSave.bind(this), this.onCancel.bind(this));
             return;
         }
         if (this.mode2D) return;
@@ -305,6 +320,7 @@ class Viewer {
             }
         }
     }
+
 
     handleObjectIntersection(intersectedObject) {
         this.intersectedObject = intersectedObject;
@@ -359,8 +375,8 @@ class Viewer {
         this.snapEnabled = !this.snapEnabled;
         if (this.snapEnabled) {
             //wor on 3d snapping points + for 3d use dragballcontrols or something else for snap
-          //  this.mode2D ? this.bodies.addSnapPointsTo2Drectangles() : this.bodies.addSnapPointsTo3DRectangles();
-          this.bodies.addSnapPointsTo2Drectangles()
+            //  this.mode2D ? this.bodies.addSnapPointsTo2Drectangles() : this.bodies.addSnapPointsTo3DRectangles();
+            this.bodies.addSnapPointsTo2Drectangles()
         } else {
             this.bodies.removeSnapPoints(this.mode2D);
         }
@@ -368,6 +384,10 @@ class Viewer {
 
 
     onSave() {
+        this.bodies.hideAllSprites()
+    }
+
+    onCancel() {
         this.bodies.hideAllSprites()
     }
 

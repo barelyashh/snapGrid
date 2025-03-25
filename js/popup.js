@@ -1,8 +1,9 @@
 import { MiniViewer } from './miniViewer.js';
 class Popup {
-    constructor(selectedRectangle, onSave) {
+    constructor(selectedRectangle, onSave, onCancel) {
         this.selectedRectangle = selectedRectangle;
         this.onSave = onSave
+        this.onCancel = onCancel
         if (this.selectedRectangle?.parent) {
             const parent = this.selectedRectangle.parent;
             this.initialProperties = {
@@ -12,7 +13,8 @@ class Popup {
                 metalness: parent.material.metalness,
                 roughness: parent.material.roughness,
                 type: parent.userData?.type || "" // ✅ Avoids undefined errors
-            };}
+            };
+        }
         this.init();
     }
 
@@ -146,7 +148,7 @@ class Popup {
 
         const input = document.createElement("input");
         input.type = "number";
-        input.value = this.selectedRectangle?.parent?.position[axis] || 0; 
+        input.value = this.selectedRectangle?.parent?.position[axis] || 0;
         input.step = "0.1"; // Small increments
         input.oninput = () => this.updatePosition(axis, parseFloat(input.value));
 
@@ -198,8 +200,8 @@ class Popup {
         if (this.selectedRectangle?.parent) {
             const parent = this.selectedRectangle.parent;
             parent.position.set(
-                this.initialProperties.position.x, 
-                this.initialProperties.position.y, 
+                this.initialProperties.position.x,
+                this.initialProperties.position.y,
                 this.initialProperties.position.z
             );
             parent.material.color.set(`#${this.initialProperties.color}`);
@@ -210,8 +212,9 @@ class Popup {
             parent.material.needsUpdate = true;
         }
         this.popupContainer.remove();
+        if (this.onCancel) this.onCancel();
     }
-    
+
 }
 
 export { Popup };
