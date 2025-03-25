@@ -189,11 +189,6 @@ class Viewer {
             gridEnabled: true
         });
 
-        this.updateGrid({
-            gridSpacing: 100,
-            gridEnabled: true
-        });
-
             this.objectMaxSize = Math.max(
             this.bodies.frame.geometry.parameters.width,
             this.bodies.frame.geometry.parameters.height
