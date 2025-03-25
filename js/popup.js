@@ -74,21 +74,21 @@ class Popup {
 
 
         // Color Picker
-        const colorLabel = document.createElement("label");
-        colorLabel.innerText = "Color";
-        const colorInput = document.createElement("input");
-        colorInput.type = "color";
-        colorInput.value = "#ffffff";
-        colorInput.oninput = () => this.updateMaterial('color', colorInput.value);
-        colorLabel.appendChild(colorInput);
-        this.detailsContainer.appendChild(colorLabel);
+        // const colorLabel = document.createElement("label");
+        // colorLabel.innerText = "Color";
+        // const colorInput = document.createElement("input");
+        // colorInput.type = "color";
+        // colorInput.value = "#ffffff";
+        // colorInput.oninput = () => this.updateMaterial('color', colorInput.value);
+        // colorLabel.appendChild(colorInput);
+        // this.detailsContainer.appendChild(colorLabel);
 
-        // Opacity Slider
-        this.detailsContainer.appendChild(this.createSlider("Opacity", "opacity", 0, 1, 0.01));
-        // Metalness Slider
-        this.detailsContainer.appendChild(this.createSlider("Metalness", "metalness", 0, 1, 0.01));
-        // Roughness Slider
-        this.detailsContainer.appendChild(this.createSlider("Roughness", "roughness", 0, 1, 0.01));
+        // // Opacity Slider
+        // this.detailsContainer.appendChild(this.createSlider("Opacity", "opacity", 0, 1, 0.01));
+        // // Metalness Slider
+        // this.detailsContainer.appendChild(this.createSlider("Metalness", "metalness", 0, 1, 0.01));
+        // // Roughness Slider
+        // this.detailsContainer.appendChild(this.createSlider("Roughness", "roughness", 0, 1, 0.01));
 
         // Save Button
         const saveButton = document.createElement("button");
@@ -122,21 +122,21 @@ class Popup {
         this.miniViewer = new MiniViewer(this.selectedRectangle);
     }
 
-    createSlider(labelText, property, min, max, step) {
-        const wrapper = document.createElement("div");
-        const label = document.createElement("label");
-        label.innerText = labelText;
-        const input = document.createElement("input");
-        input.type = "range";
-        input.min = min;
-        input.max = max;
-        input.step = step;
-        input.value = 0.5;
-        input.oninput = () => this.updateMaterial(property, parseFloat(input.value));
-        wrapper.appendChild(label);
-        wrapper.appendChild(input);
-        return wrapper;
-    }
+    // createSlider(labelText, property, min, max, step) {
+    //     const wrapper = document.createElement("div");
+    //     const label = document.createElement("label");
+    //     label.innerText = labelText;
+    //     const input = document.createElement("input");
+    //     input.type = "range";
+    //     input.min = min;
+    //     input.max = max;
+    //     input.step = step;
+    //     input.value = 0.5;
+    //     // input.oninput = () => this.updateMaterial(property, parseFloat(input.value));
+    //     wrapper.appendChild(label);
+    //     wrapper.appendChild(input);
+    //     return wrapper;
+    // }
 
     createPositionInput(labelText, axis) {
         const wrapper = document.createElement("div");
