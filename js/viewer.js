@@ -35,6 +35,7 @@ class Viewer {
         this.position = new THREE.Vector3(0, 0, 0)
         this.target = new THREE.Vector3(0, 1, 0);
         this.plane = null;
+        this.objectMaxSize = 0
     }
 
     createViewer() {
@@ -180,12 +181,12 @@ class Viewer {
             this.transformControls.detach();
         }
 
-        const objectMaxSize = Math.max(
+        this.objectMaxSize = Math.max(
             this.bodies.frame.geometry.parameters.width,
             this.bodies.frame.geometry.parameters.height
         );
 
-        const size = objectMaxSize + 300;
+        const size = this.objectMaxSize + 300;
         const divisions = 10;
         let gridHelper = this.scene.getObjectByName('gridHelper');
 
@@ -195,7 +196,7 @@ class Viewer {
             this.scene.add(gridHelper);
         }
 
-        this.camera.position.set(0, objectMaxSize, 0);
+        this.camera.position.set(0, this.objectMaxSize, 0);
         this.camera.lookAt(0, 0, 0);
         this.controls.enabled = true;
         this.controls.enableRotate = false;
