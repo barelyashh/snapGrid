@@ -34,7 +34,7 @@ class Bodies {
         const objectMaxSize = Math.max(this.frame.geometry.parameters.width, this.frame.geometry.parameters.height)
         this.viewer.position.z = objectMaxSize
         this.viewer.camera.position.set(0, 0, objectMaxSize);
-        this.viewer.setupPlane();
+        // this.viewer.setupPlane();
     }
 
 
@@ -44,6 +44,8 @@ class Bodies {
         } else {
             const geometry = new THREE.BoxGeometry(widthBox, heightBox, depthBox);
             const material = new THREE.MeshPhysicalMaterial({ color: '#7F4125', clearcoat: 1, clearcoatRoughness: 0 });
+            material.transparent = true
+            material.opacity = 0.6
             const rectangle = new THREE.Mesh(geometry, material);
             rectangle.castShadow = true;
             rectangle.receiveShadow = true;

@@ -67,7 +67,7 @@ class Viewer {
     setupScene() {
         this.scene = new THREE.Scene();
         this.scene.background = new THREE.Color("white");
-        this.scene.fog = new THREE.Fog("white", 500, 2000);
+        // this.scene.fog = new THREE.Fog("white", 500, 2000);
     }
 
     setupCamera() {
@@ -100,22 +100,22 @@ class Viewer {
         this.raycaster = new THREE.Raycaster();
     }
 
-    setupPlane() {
-        const planeWidth = 100000;
-        const planeHeight = 100000;
-        const planeGeometry = new THREE.PlaneGeometry(planeWidth, planeHeight);
-        const planeMaterial = new THREE.MeshBasicMaterial({
-            color: "#ffffff",
-            // roughness: 0.8,
-        });
+    // setupPlane() {
+    //     const planeWidth = 100000;
+    //     const planeHeight = 100000;
+    //     const planeGeometry = new THREE.PlaneGeometry(planeWidth, planeHeight);
+    //     const planeMaterial = new THREE.MeshBasicMaterial({
+    //         color: "#ffffff",
+    //         // roughness: 0.8,
+    //     });
 
-        this.plane = new THREE.Mesh(planeGeometry, planeMaterial);
-        this.plane.receiveShadow = true;
-        this.plane.position.y = -100;
-        this.plane.rotation.x = -Math.PI / 2;
-        this.scene.add(this.plane);
-        this.updatePlanePosition()
-    }
+    //     this.plane = new THREE.Mesh(planeGeometry, planeMaterial);
+    //     this.plane.receiveShadow = true;
+    //     this.plane.position.y = -100;
+    //     this.plane.rotation.x = -Math.PI / 2;
+    //     this.scene.add(this.plane);
+    //     this.updatePlanePosition()
+    // }
 
     updatePlanePosition() {
         const boundingBox = new THREE.Box3().setFromObject(this.bodies.frame);
