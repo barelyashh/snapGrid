@@ -21,6 +21,8 @@ class Bodies {
         this.viewer.overallDimensionValues = { width, height, depth };
         const geometry = new THREE.BoxGeometry(width, height, depth);
         const material = new THREE.MeshPhysicalMaterial({ color: '#82807C', clearcoat: 1, clearcoatRoughness: 0.3, });
+        material.transparent = true
+        material.opacity = 0.6
         this.frame = new THREE.Mesh(geometry, material);
         this.frame.castShadow = true;
         this.frame.receiveShadow = true;
@@ -42,19 +44,20 @@ class Bodies {
         } else {
             const geometry = new THREE.BoxGeometry(widthBox, heightBox, depthBox);
             const material = new THREE.MeshPhysicalMaterial({ color: '#7F4125', clearcoat: 1, clearcoatRoughness: 0 });
+            // material.transparent = true
+            material.opacity = 0.6
             const rectangle = new THREE.Mesh(geometry, material);
             rectangle.castShadow = true;
             rectangle.receiveShadow = true;
             rectangle.name = 'shape';
             this.positionRectangle(rectangle);
-            const textureLoader = new THREE.TextureLoader();
-            const spriteMaterial = new THREE.SpriteMaterial({
-                map: textureLoader.load('./images/sprite.png'),
-                transparent: true
+            const circleGeometry = new THREE.CircleGeometry(2, 32);
+            const spriteMaterial = new THREE.MeshBasicMaterial({
+                color: 0x274e76,
+                side: THREE.DoubleSide
             });
-
-            const sprite = new THREE.Sprite(spriteMaterial);
-            sprite.scale.set(5, 5, 1);
+            const sprite = new THREE.Mesh(circleGeometry, spriteMaterial);
+            sprite.rotation.x = -Math.PI / 2; // Make circle face up
             this.positionSprite(sprite, rectangle);
             sprite.visible = false;
             rectangle.add(sprite);
@@ -224,7 +227,7 @@ class Bodies {
         // console.log(boundary)
         const boundaryMin = boundaryBoundingBox.min;
         const boundaryMax = boundaryBoundingBox.max;
-        const snapOffset = Math.min(x, y)/2
+        const snapOffset = Math.min(x, y) / 2
         const points = [];
         let closestSnap = new THREE.Vector3()
         const step = (this.viewer.objectMaxSize + 300) / 10;
@@ -426,8 +429,8 @@ class Bodies {
             ];
             const points = [
                 [bbox.min.x, bbox.min.y, 0],
-                [bbox.max.x, bbox.min.y, 0], 
-                [bbox.min.x, bbox.max.y, 0], 
+                [bbox.max.x, bbox.min.y, 0],
+                [bbox.min.x, bbox.max.y, 0],
                 [bbox.max.x, bbox.max.y, 0],
             ]
             lineSegment.userData.points = points
