@@ -105,7 +105,6 @@ class Viewer {
         const planeHeight = 100000;
         const planeGeometry = new THREE.PlaneGeometry(planeWidth, planeHeight);
         const planeMaterial = new THREE.MeshBasicMaterial({
-            // color: "#edb568",
             color: "#ffffff",
             // roughness: 0.8,
         });
