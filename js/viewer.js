@@ -4,6 +4,7 @@ import { TransformControls } from 'three/addons/controls/TransformControls.js';
 import { Popup } from './popup.js';
 import { Bodies } from './bodies.js';
 import { UserInterface } from './userInterface.js';
+import { Dimensions } from './dimensions.js';
 
 let completeViewer = null;
 
@@ -36,6 +37,7 @@ class Viewer {
         this.target = new THREE.Vector3(0, 1, 0);
         this.plane = null;
         this.objectMaxSize = 0
+        this.dimensions = null
     }
 
     createViewer() {
@@ -47,6 +49,7 @@ class Viewer {
         this.setupControls();
         this.setupRayCaster();
         this.setupBodies();
+        this.setupDimension();
         this.setupEventListeners();
     }
 
@@ -124,6 +127,10 @@ class Viewer {
 
     setupBodies() {
         this.bodies = new Bodies(this);
+    }
+
+    setupDimension(){
+        this.dimensions = new Dimensions(this);
     }
 
     setupEventListeners() {
@@ -263,7 +270,7 @@ class Viewer {
         const spriteIntersects = this.raycaster.intersectObjects(this.bodies.spriteObjects, true);
         if (spriteIntersects.length > 0 && this.bodies.spriteObjects.includes(spriteIntersects[0].object)) {
             spriteIntersects[0].object.userData = {}; // Remove circular references
-            this.popup = new Popup(spriteIntersects[0].object, this.onSave.bind(this), this.onCancel.bind(this));
+            this.popup = new Popup(spriteIntersects[0].object, this, this.onSave.bind(this), this.onCancel.bind(this));
             return;
         }
         if (this.mode2D) return;
@@ -292,9 +299,17 @@ class Viewer {
 
         this.transformControls.addEventListener('change', () => this.transformControls.update());
         this.transformControls.addEventListener('objectChange', () => {
-            this.updateDimensions(this.intersectedObject)
+            this.dimensions.add3DDimensionsToRectangles(this.intersectedObject)
             this.restrictDoorMovement(this.intersectedObject);
         });
+        this.transformControls.addEventListener('mouseUp', () => {
+            this.dimensions.removeDimensions();
+        });
+    }
+
+    resetTransformControls() {
+        this.transformControls.detach();
+        this.controls.enabled = true;
     }
 
     updateDimensions(object){
@@ -325,11 +340,6 @@ class Viewer {
         dimensionBox.style.left = `${x + 10}px`;
         dimensionBox.style.top = `${y}px`;
         dimensionBox.style.display = "block";  // Make it visible
-    }
-
-    resetTransformControls() {
-        this.transformControls.detach();
-        this.controls.enabled = true;
     }
 
     restrictDoorMovement(intersectedObject) {
