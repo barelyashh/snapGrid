@@ -11,6 +11,9 @@ class MiniViewer {
         this.isMiniViewerEnabled = true
         this.widthO = 555;
         this.heightO = 717;
+        this.activeAxis = null;
+        this.initialMouse = new THREE.Vector2();
+        this.deltaMouse = new THREE.Vector2();
         this.init(mesh);
     }
 
@@ -20,7 +23,7 @@ class MiniViewer {
         this.setupScene();
         this.setupLights()
         this.setupCamera()
-        this.addBody(mesh)
+        this.setupMesh(mesh)
         this.setupRayCaster()
         this.setupControls()
         this.setupEventListeners();
@@ -49,12 +52,18 @@ class MiniViewer {
         this.scene.add(this.lights);
     }
 
-    addBody(mesh) {
+    setupMesh(mesh) {
         mesh.visible = false
         const clonedRectangle = mesh.parent.clone();
         clonedRectangle.position.set(0, 0, 0); // Center in the mini viewer
-
+        this.pivot = new THREE.Object3D();
+        const pivotHelper = new THREE.Mesh(
+            new THREE.SphereGeometry(10),
+            new THREE.MeshBasicMaterial({ wireframe: false, color: 'red' })
+        );
+        this.pivot.add(pivotHelper)
         this.scene.add(clonedRectangle);
+        this.scene.add(this.pivot);
         this.miniViewerSceneObject.push(clonedRectangle)
     }
     setupRayCaster() {
@@ -78,7 +87,17 @@ class MiniViewer {
     }
     setupEventListeners() {
         window.addEventListener('keydown', (event) => this.handleKeyDown(event));
+        window.addEventListener('pointerdown', (event) => this.handlePointerDown(event));
+        window.addEventListener('pointermove', (event) => this.handlePointerMove(event));
         this.renderer.domElement.addEventListener("click", (event) => this.handleClick(event));
+    }
+
+    handlePointerDown(event) {
+        this.initialMouse.set(event.clientX, event.clientY);
+    }
+
+    handlePointerMove(event) {
+        this.deltaMouse.set(event.clientX - this.initialMouse.x, event.clientY - this.initialMouse.y);
     }
 
     handleKeyDown(event) {
@@ -114,20 +133,72 @@ class MiniViewer {
     handleObjectIntersection(intersectedObject) {
         this.intersectedObject = intersectedObject;
         this.transformControls.detach();
-        this.transformControls.attach(this.intersectedObject);
+        this.transformControls.attach(this.pivot);
 
         const gizmo = this.transformControls.getHelper();
         this.scene.add(gizmo);
         this.orbitControls.enabled = false;
-        this.transformControls.addEventListener('change', () => this.transformControls.update());
+        this.transformControls.addEventListener('change', () => {
+            this.transformControls.update()
+            this.scene.needsRender = true
+        }
+
+        );
         this.transformControls.addEventListener('objectChange', () => {
-            if(  this.transformControls.mode === 'scale'){
-                this.dimensions.add3DDimensionsToRectangles(this.intersectedObject)
+            if (this.transformControls.mode === 'scale') {
+                console.log("Scaling Event Triggered");
+                this.pivot.attach(this.intersectedObject);
+                /*   if (this.intersectedObject.parent !== this.pivot) {
+                      this.pivot.attach(this.intersectedObject);
+                  } */
+
+                /*  if (!this.initialPivotPosition) {
+                     this.initialPivotPosition = this.pivot.position.clone();
+                 }
+         
+                 const scaleHandle = this.transformControls.axis;
+                 if (scaleHandle === 'Y') {
+                     this.pivot.position.y = this.initialPivotPosition.y; // Maintain initial position
+                 }
+                 if (scaleHandle === 'X') {
+                     this.pivot.position.x = this.initialPivotPosition.x; // Maintain initial position
+                 } */
+
+                this.scene.needsRender = true;
             }
         });
-         this.transformControls.addEventListener('mouseUp', () => {
+        this.transformControls.addEventListener('mouseUp', () => {
             this.dimensions.removeDimensions();
-        }); 
+        });
+        this.transformControls.addEventListener('mouseDown', (event) => {
+            if (this.transformControls.mode === 'scale') {
+                const box = new THREE.Box3().setFromObject(this.intersectedObject);
+                this.pivot.position.copy(this.intersectedObject.position)
+                const scaleHandle = this.transformControls.axis;
+                if (scaleHandle === 'Y') {
+                    if (this.deltaMouse.x < 0) {
+                        console.log("Top Fixed - Scaling Downwards");
+                        this.pivot.position.y = box.min.y; 
+                    } else {
+                        console.log("Bottom Fixed - Scaling Upwards");
+                        this.pivot.position.y = box.max.y; 
+                    }
+                }
+
+                if (scaleHandle === 'X') {
+                    if (this.deltaMouse.x > 0) {
+                        console.log("Right Fixed - Scaling Left");
+                        this.pivot.position.x = box.min.x; 
+                    } else {
+                        console.log("Left Fixed - Scaling Right");
+                        this.pivot.position.x = box.max.x; 
+                    }
+                }
+                this.orbitControls.enabled = false
+                this.transformControls.attach(this.pivot);
+            }
+        });
+
     }
 
     resetTransformControls() {
