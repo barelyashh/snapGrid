@@ -10,6 +10,7 @@ class Bodies {
         this.twoDObjects = []
         this.transformEnabled = true
         this.snapPoints = []
+        this.points = [];
     }
 
     addOverallDimension(width, height, depth) {
@@ -21,6 +22,8 @@ class Bodies {
         this.viewer.overallDimensionValues = { width, height, depth };
         const geometry = new THREE.BoxGeometry(width, height, depth);
         const material = new THREE.MeshPhysicalMaterial({ color: '#82807C', clearcoat: 1, clearcoatRoughness: 0.3, });
+        material.transparent = true
+        material.opacity = 0.6
         this.frame = new THREE.Mesh(geometry, material);
         this.frame.castShadow = true;
         this.frame.receiveShadow = true;
@@ -42,19 +45,20 @@ class Bodies {
         } else {
             const geometry = new THREE.BoxGeometry(widthBox, heightBox, depthBox);
             const material = new THREE.MeshPhysicalMaterial({ color: '#7F4125', clearcoat: 1, clearcoatRoughness: 0 });
+            // material.transparent = true
+            material.opacity = 0.6
             const rectangle = new THREE.Mesh(geometry, material);
             rectangle.castShadow = true;
             rectangle.receiveShadow = true;
             rectangle.name = 'shape';
             this.positionRectangle(rectangle);
-            const textureLoader = new THREE.TextureLoader();
-            const spriteMaterial = new THREE.SpriteMaterial({
-                map: textureLoader.load('./images/sprite.png'),
-                transparent: true
+            const circleGeometry = new THREE.CircleGeometry(2, 32);
+            const spriteMaterial = new THREE.MeshBasicMaterial({
+                color: 0x274e76,
+                side: THREE.DoubleSide
             });
-
-            const sprite = new THREE.Sprite(spriteMaterial);
-            sprite.scale.set(5, 5, 1);
+            const sprite = new THREE.Mesh(circleGeometry, spriteMaterial);
+            sprite.rotation.x = -Math.PI / 2; // Make circle face up
             this.positionSprite(sprite, rectangle);
             sprite.visible = false;
             rectangle.add(sprite);
@@ -167,6 +171,7 @@ class Bodies {
         }
     }
 
+
     toggleTransformMode() {
         this.transformEnabled = !this.transformEnabled;
 
@@ -182,7 +187,7 @@ class Bodies {
     hideAllSprites() {
         this.spriteObjects.forEach(sprite => {
             if (sprite.isSprite) {
-                sprite.visible = false;
+                sprite.visible = true;
             }
         });
     }
@@ -204,9 +209,68 @@ class Bodies {
             const draggedObject = event.object;
             this.snapToNearestPoint(draggedObject);
             this.restrictDoorMovement(draggedObject)
+            this.snapTogrid(draggedObject)
+
         });
 
     }
+    snapTogrid(draggedObject) {
+        if( !this.points.length >0)  return
+
+        const modelBoundingBox = new THREE.Box3().setFromObject(draggedObject);
+        const modelMin = modelBoundingBox.min;
+        const modelMax = modelBoundingBox.max;
+        const boundary = [
+        [modelMin.x, modelMin.z, 0], // Bottom-left
+        [modelMax.x, modelMin.z, 0], // Bottom-right
+        [modelMin.x, modelMax.z, 0], // Top-left
+        [modelMax.x, modelMax.z, 0] // Top-right 
+        ]
+      
+       let distance = 0
+
+        this.points.forEach((point) => {
+            boundary.forEach(([x, y]) => {
+                distance = new THREE.Vector3(x, draggedObject.position.y, -y).distanceTo(point);
+
+                if (distance < 2) {
+                    let offset = new THREE.Vector3().subVectors(point, new THREE.Vector3(x, draggedObject.position.y, -y))
+                    if( point.x <= modelMin.x || point.x >= modelMax.x ||point.z > -modelMin.z ||point.z < -modelMax.z) {
+                        draggedObject.position.add(new THREE.Vector3( offset.x,0,-offset.z))
+                    }
+                }
+            })
+        })
+
+    }
+
+    addCornerPoints(frame){
+        const boundaryBoundingBox = new THREE.Box3().setFromObject(frame);
+        const boundaryMin = boundaryBoundingBox.min;
+        const boundaryMax = boundaryBoundingBox.max;
+        const step = (this.viewer.objectMaxSize + 300) / 10;
+        const halfSize = (this.viewer.objectMaxSize + 300) / 2;
+        const halfStep = step / 2;
+        const offset = halfSize - halfStep;
+
+
+        for (let i = 0; i < 10; i++) {
+
+            for (let j = 0; j < 10; j++) {
+                const baseX = offset - i * step;
+                const baseZ = offset - j * step;
+                const offsetX = step / 2;
+                const offsetZ = step / 2;
+                if (boundaryMin.x <= baseX  && boundaryMax.x >= baseX - offsetX && boundaryMin.y <= baseZ && boundaryMax.y >= baseZ + offsetZ) {
+                    this.points.push(new THREE.Vector3(baseX - offsetX, 0.1, baseZ + offsetZ));
+                }
+
+            }
+
+        }
+    }
+
+
 
     restrictDoorMovement(intersectedObject,) {
         const modelBoundingBox = new THREE.Box3().setFromObject(intersectedObject);
@@ -324,6 +388,13 @@ class Bodies {
                 [bbox.min.x, (bbox.min.y + bbox.max.y) / 2, 0], // Left center
                 [bbox.max.x, (bbox.min.y + bbox.max.y) / 2, 0], // Right center
             ];
+            const points = [
+                [bbox.min.x, bbox.min.y, 0],
+                [bbox.max.x, bbox.min.y, 0],
+                [bbox.min.x, bbox.max.y, 0],
+                [bbox.max.x, bbox.max.y, 0],
+            ]
+            lineSegment.userData.points = points
 
             positions.forEach(([x, y, z]) => {
                 const geometry = new THREE.BoxGeometry(2, 2, 2);
