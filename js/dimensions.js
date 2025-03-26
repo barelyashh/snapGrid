@@ -8,6 +8,7 @@ class Dimensions {
     }
 
     add3DDimensionsToRectangles(mesh) {
+        console.log(this.viewer.isMiniViewerEnabaled)
         // Remove existing dimension lines and labels if they exist
         if (mesh.userData.dimensionLines) {
             mesh.userData.dimensionLines.forEach(line => this.viewer.scene.remove(line));
@@ -88,7 +89,7 @@ class Dimensions {
             sideLabel.updatePosition();
         };
     
-        this.viewer.controls.addEventListener('change', updateLabels);
+        this.viewer.orbitControls.addEventListener('change', updateLabels);
     }
     
     positionDimensionLines(){
@@ -118,16 +119,19 @@ class Dimensions {
         document.querySelectorAll('.dimension-label').forEach(label => label.remove());
     
         // Remove references from userData for each mesh
-        this.viewer.bodies.overallBodies.forEach(mesh => {
-            if (mesh.userData.dimensionLines) {
-                mesh.userData.dimensionLines.forEach(line => this.viewer.scene.remove(line));
-                delete mesh.userData.dimensionLines;
-            }
-            if (mesh.userData.dimensionLabels) {
-                mesh.userData.dimensionLabels.forEach(label => label.remove());
-                delete mesh.userData.dimensionLabels;
-            }
-        });
+        if(  this.viewer.bodies){
+            this.viewer.bodies.overallBodies.forEach(mesh => {
+                if (mesh.userData.dimensionLines) {
+                    mesh.userData.dimensionLines.forEach(line => this.viewer.scene.remove(line));
+                    delete mesh.userData.dimensionLines;
+                }
+                if (mesh.userData.dimensionLabels) {
+                    mesh.userData.dimensionLabels.forEach(label => label.remove());
+                    delete mesh.userData.dimensionLabels;
+                }
+            });
+        }
+        
     }
     
 

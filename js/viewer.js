@@ -17,7 +17,7 @@ function create() {
 class Viewer {
     constructor() {
         this.camera = null;
-        this.controls = null;
+        this.orbitControls = null;
         this.container = null;
         this.scene = null;
         this.lights = null;
@@ -89,7 +89,7 @@ class Viewer {
     }
 
     setupControls() {
-        this.controls = new OrbitControls(this.camera, this.renderer.domElement);
+        this.orbitControls = new OrbitControls(this.camera, this.renderer.domElement);
         this.transformControls = new TransformControls(this.camera, this.renderer.domElement);
         this.transformControls.setSpace('world');
         this.transformControls.size = 0.5;
@@ -181,7 +181,7 @@ class Viewer {
             this.scene.remove(this.plane);
         }
 
-        this.controls.reset();
+        this.orbitControls.reset();
         if (this.transformControls) {
             this.scene.remove(this.transformControls);
             this.transformControls.detach();
@@ -204,8 +204,8 @@ class Viewer {
 
         this.camera.position.set(0, this.objectMaxSize, 0);
         this.camera.lookAt(0, 0, 0);
-        this.controls.enabled = true;
-        this.controls.enableRotate = false;
+        this.orbitControls.enabled = true;
+        this.orbitControls.enableRotate = false;
 
         this.scene.remove(this.bodies.frame);
         this.bodies.overallBodies.forEach(mesh => this.scene.remove(mesh));
@@ -227,8 +227,8 @@ class Viewer {
             }
         });
 
-        this.controls.reset();
-        this.controls.enableRotate = true;
+        this.orbitControls.reset();
+        this.orbitControls.enableRotate = true;
         this.scene.add(this.transformControls);
 
         this.camera.position.set(this.position.x, this.position.y, this.position.z);
@@ -295,7 +295,7 @@ class Viewer {
 
         const gizmo = this.transformControls.getHelper();
         this.scene.add(gizmo);
-        this.controls.enabled = this.mode2D;
+        this.orbitControls.enabled = this.mode2D;
 
         this.transformControls.addEventListener('change', () => this.transformControls.update());
         this.transformControls.addEventListener('objectChange', () => {
@@ -309,7 +309,7 @@ class Viewer {
 
     resetTransformControls() {
         this.transformControls.detach();
-        this.controls.enabled = true;
+        this.orbitControls.enabled = true;
     }
 
     updateDimensions(object){
@@ -398,7 +398,7 @@ class Viewer {
         });
 
         this.render();
-        this.controls.update();
+        this.orbitControls.update();
     }
 
     render() {
