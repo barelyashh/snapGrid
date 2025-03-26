@@ -193,6 +193,7 @@ class Viewer {
         if (!gridHelper) {
             gridHelper = new THREE.GridHelper(size, divisions);
             gridHelper.name = 'gridHelper';
+            this.bodies.addCornerPoints(this.bodies.frame)
             this.scene.add(gridHelper);
         }
 
@@ -208,7 +209,7 @@ class Viewer {
 
     enable3DMode() {
         this.scene.add(this.plane);
-
+        this.bodies.points = []
         const gridHelper = this.scene.getObjectByName('gridHelper');
         const lineSegments = this.scene.getObjectByName('lineSegments');
 
@@ -358,7 +359,8 @@ class Viewer {
         });
 
         this.render();
-        this.controls.update();
+        if(!this.mode2D) this.controls.update();
+      
     }
 
     render() {
