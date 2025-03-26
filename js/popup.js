@@ -1,9 +1,10 @@
 import { MiniViewer } from './miniViewer.js';
 class Popup {
-    constructor(selectedRectangle, onSave, onCancel) {
+    constructor(selectedRectangle, viewer, onSave, onCancel) {
         this.selectedRectangle = selectedRectangle;
         this.onSave = onSave
         this.onCancel = onCancel
+        this.viewer = viewer
         if (this.selectedRectangle?.parent) {
             const parent = this.selectedRectangle.parent;
             this.initialProperties = {
@@ -20,6 +21,7 @@ class Popup {
 
     init() {
         this.createPopup();
+        this.createDimensionBox()
     }
 
     createPopup() {
@@ -72,30 +74,12 @@ class Popup {
         this.detailsContainer.appendChild(this.createPositionInput("X Position", "x"));
         this.detailsContainer.appendChild(this.createPositionInput("Y Position", "y"));
 
-
-        // Color Picker
-        const colorLabel = document.createElement("label");
-        colorLabel.innerText = "Color";
-        const colorInput = document.createElement("input");
-        colorInput.type = "color";
-        colorInput.value = "#ffffff";
-        colorInput.oninput = () => this.updateMaterial('color', colorInput.value);
-        colorLabel.appendChild(colorInput);
-        this.detailsContainer.appendChild(colorLabel);
-
-        // Opacity Slider
-        this.detailsContainer.appendChild(this.createSlider("Opacity", "opacity", 0, 1, 0.01));
-        // Metalness Slider
-        this.detailsContainer.appendChild(this.createSlider("Metalness", "metalness", 0, 1, 0.01));
-        // Roughness Slider
-        this.detailsContainer.appendChild(this.createSlider("Roughness", "roughness", 0, 1, 0.01));
-
         // Save Button
         const saveButton = document.createElement("button");
         saveButton.innerText = "Save";
         saveButton.style.marginTop = "20px";
         saveButton.style.padding = "10px";
-        saveButton.style.background = "green";
+        saveButton.style.background = "#004080";
         saveButton.style.color = "white";
         saveButton.style.border = "none";
         saveButton.style.cursor = "pointer";
@@ -106,7 +90,7 @@ class Popup {
         cancelButton.innerText = "Cancel";
         cancelButton.style.marginTop = "20px";
         cancelButton.style.padding = "10px";
-        cancelButton.style.background = "red";
+        cancelButton.style.background = "#004080";
         cancelButton.style.color = "white";
         cancelButton.style.border = "none";
         cancelButton.style.cursor = "pointer";
@@ -119,23 +103,7 @@ class Popup {
         document.body.appendChild(this.popupContainer);
 
         // Initialize the mini viewer
-        this.miniViewer = new MiniViewer(this.selectedRectangle);
-    }
-
-    createSlider(labelText, property, min, max, step) {
-        const wrapper = document.createElement("div");
-        const label = document.createElement("label");
-        label.innerText = labelText;
-        const input = document.createElement("input");
-        input.type = "range";
-        input.min = min;
-        input.max = max;
-        input.step = step;
-        input.value = 0.5;
-        input.oninput = () => this.updateMaterial(property, parseFloat(input.value));
-        wrapper.appendChild(label);
-        wrapper.appendChild(input);
-        return wrapper;
+        this.miniViewer = new MiniViewer(this.selectedRectangle, this.viewer, this.popupContainer);
     }
 
     createPositionInput(labelText, axis) {
@@ -148,7 +116,7 @@ class Popup {
 
         const input = document.createElement("input");
         input.type = "number";
-        input.value = this.selectedRectangle?.parent?.position[axis] || 0;
+        input.value = Math.round(this.selectedRectangle?.parent?.position[axis]) || 0;
         input.step = "0.1"; // Small increments
         input.oninput = () => this.updatePosition(axis, parseFloat(input.value));
 
@@ -213,6 +181,16 @@ class Popup {
         }
         this.popupContainer.remove();
         if (this.onCancel) this.onCancel();
+    }
+
+    createDimensionBox() {
+        // Check if the dimension box already exists
+        let dimensionBox = document.getElementById("dimension-box");
+        if (!dimensionBox) {
+            dimensionBox = document.createElement("div");
+            dimensionBox.id = "dimension-box";
+            document.body.appendChild(dimensionBox);
+        }
     }
 
 }
