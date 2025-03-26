@@ -67,9 +67,10 @@ class Dimensions {
             }
 
             const updateLabelPosition = () => {
+
                 const screenPosition = position.clone().project(this.viewer.camera);
-                const x = (screenPosition.x * 0.5 + 0.5) * window.innerWidth;
-                const y = (-screenPosition.y * 0.5 + 0.5) * window.innerHeight;
+                const x = (screenPosition.x * 0.5 + 0.5) * this.viewer.widthO;
+                const y = (-screenPosition.y * 0.5 + 0.5) * this.viewer.heightO;
                 label.style.left = `${x}px`;
                 label.style.top = `${y}px`;
             };
