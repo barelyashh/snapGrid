@@ -4,6 +4,7 @@ import { TransformControls } from 'three/addons/controls/TransformControls.js';
 import { Popup } from './popup.js';
 import { Bodies } from './bodies.js';
 import { UserInterface } from './userInterface.js';
+import { Dimensions } from './dimensions.js';
 
 let completeViewer = null;
 
@@ -16,7 +17,7 @@ function create() {
 class Viewer {
     constructor() {
         this.camera = null;
-        this.controls = null;
+        this.orbitControls = null;
         this.container = null;
         this.scene = null;
         this.lights = null;
@@ -36,6 +37,7 @@ class Viewer {
         this.target = new THREE.Vector3(0, 1, 0);
         this.plane = null;
         this.objectMaxSize = 0
+        this.dimensions = null
     }
 
     createViewer() {
@@ -47,6 +49,7 @@ class Viewer {
         this.setupControls();
         this.setupRayCaster();
         this.setupBodies();
+        this.setupDimension();
         this.setupEventListeners();
     }
 
@@ -86,7 +89,7 @@ class Viewer {
     }
 
     setupControls() {
-        this.controls = new OrbitControls(this.camera, this.renderer.domElement);
+        this.orbitControls = new OrbitControls(this.camera, this.renderer.domElement);
         this.transformControls = new TransformControls(this.camera, this.renderer.domElement);
         this.transformControls.setSpace('world');
         this.transformControls.size = 0.5;
@@ -124,6 +127,10 @@ class Viewer {
 
     setupBodies() {
         this.bodies = new Bodies(this);
+    }
+
+    setupDimension() {
+        this.dimensions = new Dimensions(this);
     }
 
     setupEventListeners() {
@@ -174,7 +181,7 @@ class Viewer {
             this.scene.remove(this.plane);
         }
 
-        this.controls.reset();
+        this.orbitControls.reset();
         if (this.transformControls) {
             this.scene.remove(this.transformControls);
             this.transformControls.detach();
@@ -197,8 +204,8 @@ class Viewer {
 
         this.camera.position.set(0, this.objectMaxSize, 0);
         this.camera.lookAt(0, 0, 0);
-        this.controls.enabled = true;
-        this.controls.enableRotate = false;
+        this.orbitControls.enabled = true;
+        this.orbitControls.enableRotate = false;
 
         this.scene.remove(this.bodies.frame);
         this.bodies.overallBodies.forEach(mesh => this.scene.remove(mesh));
@@ -220,8 +227,8 @@ class Viewer {
             }
         });
 
-        this.controls.reset();
-        this.controls.enableRotate = true;
+        this.orbitControls.reset();
+        this.orbitControls.enableRotate = true;
         this.scene.add(this.transformControls);
 
         this.camera.position.set(this.position.x, this.position.y, this.position.z);
@@ -263,7 +270,7 @@ class Viewer {
         const spriteIntersects = this.raycaster.intersectObjects(this.bodies.spriteObjects, true);
         if (spriteIntersects.length > 0 && this.bodies.spriteObjects.includes(spriteIntersects[0].object)) {
             spriteIntersects[0].object.userData = {}; // Remove circular references
-            this.popup = new Popup(spriteIntersects[0].object, this.onSave.bind(this), this.onCancel.bind(this));
+            this.popup = new Popup(spriteIntersects[0].object, this, this.onSave.bind(this), this.onCancel.bind(this));
             return;
         }
         if (this.mode2D) return;
@@ -288,17 +295,23 @@ class Viewer {
 
         const gizmo = this.transformControls.getHelper();
         this.scene.add(gizmo);
-        this.controls.enabled = this.mode2D;
+        this.orbitControls.enabled = this.mode2D;
 
         this.transformControls.addEventListener('change', () => this.transformControls.update());
         this.transformControls.addEventListener('objectChange', () => {
+            if (this.transformControls.mode === 'scale') {
+                this.dimensions.add3DDimensionsToRectangles(this.intersectedObject)
+            }
             this.restrictDoorMovement(this.intersectedObject);
+        });
+        this.transformControls.addEventListener('mouseUp', () => {
+            this.dimensions.removeDimensions();
         });
     }
 
     resetTransformControls() {
         this.transformControls.detach();
-        this.controls.enabled = true;
+        this.orbitControls.enabled = true;
     }
 
     restrictDoorMovement(intersectedObject) {
@@ -341,7 +354,6 @@ class Viewer {
         }
     }
 
-
     onSave() {
         this.bodies.hideAllSprites()
     }
@@ -357,7 +369,7 @@ class Viewer {
         });
 
         this.render();
-        this.controls.update();
+        this.orbitControls.update();
     }
 
     render() {
