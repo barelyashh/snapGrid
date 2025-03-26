@@ -9,6 +9,8 @@ class MiniViewer {
         this.miniViewerContainerDiv = container
         this.dimensionLines = []
         this.isMiniViewerEnabled = true
+        this.widthO = 555;
+        this.heightO = 717;
         this.init(mesh);
     }
 
@@ -28,7 +30,7 @@ class MiniViewer {
 
     setupRenderer() {
         this.renderer = new THREE.WebGLRenderer({ antialias: true });
-        this.renderer.setSize(this.miniViewerContainer.clientWidth, this.miniViewerContainer.clientHeight);
+        this.renderer.setSize(this.widthO, this.heightO);
         this.miniViewerContainer.appendChild(this.renderer.domElement);
     }
 
@@ -38,8 +40,8 @@ class MiniViewer {
     }
 
     setupCamera() {
-        this.camera = new THREE.PerspectiveCamera(75, this.miniViewerContainer.clientWidth / this.miniViewerContainer.clientHeight, 10, 10000);
-        this.camera.position.set(0, 0, 175);
+        this.camera = new THREE.PerspectiveCamera(75, this.widthO / this.heightO, 10, 10000);
+        this.camera.position.set(0, 0, 150);
         this.scene.add(this.camera);
     }
     setupLights() {
