@@ -119,7 +119,9 @@ class MiniViewer {
         this.orbitControls.enabled = false;
         this.transformControls.addEventListener('change', () => this.transformControls.update());
         this.transformControls.addEventListener('objectChange', () => {
-            this.dimensions.add3DDimensionsToRectangles(this.intersectedObject)
+            if(  this.transformControls.mode === 'scale'){
+                this.dimensions.add3DDimensionsToRectangles(this.intersectedObject)
+            }
         });
          this.transformControls.addEventListener('mouseUp', () => {
             this.dimensions.removeDimensions();

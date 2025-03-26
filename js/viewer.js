@@ -299,7 +299,9 @@ class Viewer {
 
         this.transformControls.addEventListener('change', () => this.transformControls.update());
         this.transformControls.addEventListener('objectChange', () => {
-            this.dimensions.add3DDimensionsToRectangles(this.intersectedObject)
+            if (this.transformControls.mode === 'scale') {
+                this.dimensions.add3DDimensionsToRectangles(this.intersectedObject)
+            }
             this.restrictDoorMovement(this.intersectedObject);
         });
         this.transformControls.addEventListener('mouseUp', () => {
