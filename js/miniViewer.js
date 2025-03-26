@@ -71,7 +71,7 @@ class MiniViewer {
         this.scene.add(this.transformControls);
     }
 
-    setupDimension(){
+    setupDimension() {
         this.dimensions = new Dimensions(this);
     }
     setupEventListeners() {
@@ -121,9 +121,9 @@ class MiniViewer {
         this.transformControls.addEventListener('objectChange', () => {
             this.dimensions.add3DDimensionsToRectangles(this.intersectedObject)
         });
-          this.transformControls.addEventListener('mouseUp', () => {
+         this.transformControls.addEventListener('mouseUp', () => {
             this.dimensions.removeDimensions();
-        });  
+        }); 
     }
 
     resetTransformControls() {

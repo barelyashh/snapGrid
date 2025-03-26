@@ -2,7 +2,7 @@ class UserInterface {
     constructor(viewer) {
         this.completeViewer = viewer;
         this.createUI();
-        this.createDimensionBox(); 
+        this.createDimensionBox();
     }
 
     createUI() {

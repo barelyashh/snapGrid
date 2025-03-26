@@ -129,7 +129,7 @@ class Viewer {
         this.bodies = new Bodies(this);
     }
 
-    setupDimension(){
+    setupDimension() {
         this.dimensions = new Dimensions(this);
     }
 
@@ -312,36 +312,6 @@ class Viewer {
         this.orbitControls.enabled = true;
     }
 
-    updateDimensions(object){
-        if (!object) return;
-
-        // Get updated dimensions
-        const box = new THREE.Box3().setFromObject(object);
-        const size = new THREE.Vector3();
-        box.getSize(size);
-    
-        // Select the dimension box div
-        const dimensionBox = document.getElementById("dimension-box");
-    
-        // Update text with width & height
-        dimensionBox.innerHTML = `W: ${size.x.toFixed(2)}m | H: ${size.y.toFixed(2)}m`;
-    
-        // Get object's position in world space
-        const objectWorldPosition = new THREE.Vector3();
-        object.getWorldPosition(objectWorldPosition);
-    
-        // Convert 3D position to 2D screen space
-        const canvas = this.renderer.domElement;
-        const screenPosition = objectWorldPosition.project(this.camera);
-        const x = (screenPosition.x * 0.5 + 0.5) * canvas.clientWidth;
-        const y = (1 - screenPosition.y * 0.5 - 0.5) * canvas.clientHeight;
-    
-        // Set position near cursor
-        dimensionBox.style.left = `${x + 10}px`;
-        dimensionBox.style.top = `${y}px`;
-        dimensionBox.style.display = "block";  // Make it visible
-    }
-
     restrictDoorMovement(intersectedObject) {
         if (!this.overallDimensionValues) return;
         const modelBoundingBox = new THREE.Box3().setFromObject(intersectedObject);
@@ -381,7 +351,6 @@ class Viewer {
             this.bodies.removeSnapPoints(this.mode2D);
         }
     }
-
 
     onSave() {
         this.bodies.hideAllSprites()

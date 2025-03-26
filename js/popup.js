@@ -79,7 +79,7 @@ class Popup {
         saveButton.innerText = "Save";
         saveButton.style.marginTop = "20px";
         saveButton.style.padding = "10px";
-        saveButton.style.background = "green";
+        saveButton.style.background = "#004080";
         saveButton.style.color = "white";
         saveButton.style.border = "none";
         saveButton.style.cursor = "pointer";
@@ -90,7 +90,7 @@ class Popup {
         cancelButton.innerText = "Cancel";
         cancelButton.style.marginTop = "20px";
         cancelButton.style.padding = "10px";
-        cancelButton.style.background = "red";
+        cancelButton.style.background = "#004080";
         cancelButton.style.color = "white";
         cancelButton.style.border = "none";
         cancelButton.style.cursor = "pointer";
@@ -116,7 +116,7 @@ class Popup {
 
         const input = document.createElement("input");
         input.type = "number";
-        input.value = this.selectedRectangle?.parent?.position[axis] || 0;
+        input.value = Math.round(this.selectedRectangle?.parent?.position[axis]) || 0;
         input.step = "0.1"; // Small increments
         input.oninput = () => this.updatePosition(axis, parseFloat(input.value));
 
