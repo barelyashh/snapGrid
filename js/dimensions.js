@@ -29,8 +29,8 @@ class Dimensions {
         const createDimensionArrows = (start, end) => {
             const direction = new THREE.Vector3().subVectors(end, start).normalize();
             const length = start.distanceTo(end);
-            const arrowSize = 1; 
-            const arrowWidth = 3; 
+            const arrowSize = 1;
+            const arrowWidth = 3;
 
             const arrow1 = new THREE.ArrowHelper(direction, start, length, 0x000000, arrowSize, arrowWidth);
             const arrow2 = new THREE.ArrowHelper(direction.clone().negate(), end, length, 0x000000, arrowSize, arrowWidth);
@@ -48,10 +48,10 @@ class Dimensions {
 
         const topStart = new THREE.Vector3(center.x - halfWidth, center.y + halfHeight + offsetDistance, center.z);
         const topEnd = new THREE.Vector3(center.x + halfWidth, center.y + halfHeight + offsetDistance, center.z);
-        
+
         const sideStart = new THREE.Vector3(center.x + halfWidth + offsetDistance, center.y - halfHeight, center.z);
         const sideEnd = new THREE.Vector3(center.x + halfWidth + offsetDistance, center.y + halfHeight, center.z);
-        
+
         const topArrows = createDimensionArrows(topStart, topEnd);
         const sideArrows = createDimensionArrows(sideStart, sideEnd);
 
