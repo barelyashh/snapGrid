@@ -23,9 +23,9 @@ class Dimensions {
 
         const width = size.x;
         const height = size.y;
-        const position = mesh.position.clone();
-        const scale = mesh.scale.clone();
+        const position = (mesh.parent.name === 'scene') ? mesh.position.clone() : new THREE.Vector3(0, 0, 0);
 
+        const scale = mesh.scale.clone();
         const createDimensionArrows = (start, end) => {
             const direction = new THREE.Vector3().subVectors(end, start).normalize();
             const length = start.distanceTo(end);
@@ -99,21 +99,6 @@ class Dimensions {
         this.viewer.orbitControls.addEventListener('change', updateLabels);
     }
 
-    positionDimensionLines() {
-        this.dimensionLines.forEach((line) => {
-            line.geometry.computeBoundingBox();
-            const boundingBox = line.geometry.boundingBox;
-
-            if (!boundingBox) return; // Ensure bounding box exists
-
-            // Get the depth from bounding box
-            const rectDepth = boundingBox.max.z - boundingBox.min.z;
-
-            // Position the line at the top of overall depth
-            //  line.position.z = this.viewer.overallDepth / 2 - rectDepth / 2 ;
-            line.position.set(0, 0, rectDepth / 2 + 5);
-        })
-    }
 
     removeDimensions() {
         if (this.dimensionLines.length > 0) {

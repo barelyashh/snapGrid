@@ -169,9 +169,9 @@ class MiniViewer {
                 const scaleHandle = this.transformControls.axis;
                 if (scaleHandle === 'Y') {
                     if (this.deltaMouse.x < 0) {
-                        this.pivot.position.y = box.min.y;
-                    } else {
                         this.pivot.position.y = box.max.y;
+                    } else {
+                        this.pivot.position.y = box.min.y;
                     }
                 }
                 if (scaleHandle === 'X') {
