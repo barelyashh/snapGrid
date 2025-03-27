@@ -8,6 +8,12 @@ class Dimensions {
     }
 
     add3DDimensionsToRectangles(mesh) {
+        const box = new THREE.Box3().setFromObject(mesh);
+        const size = new THREE.Vector3();
+        const center = new THREE.Vector3();
+        box.getSize(size); // Get the updated dimensions
+        box.getCenter(center); // Get the new center of the object
+
         if (mesh.userData.dimensionLines) {
             mesh.userData.dimensionLines.forEach(line => this.viewer.scene.remove(line));
         }
@@ -15,7 +21,8 @@ class Dimensions {
             mesh.userData.dimensionLabels.forEach(label => label.remove());
         }
 
-        const { width, height } = mesh.geometry.parameters;
+        const width = size.x;
+        const height = size.y;
         const position = mesh.position.clone();
         const scale = mesh.scale.clone();
 
@@ -35,16 +42,16 @@ class Dimensions {
             return [arrow1, arrow2];
         };
 
-        const halfWidth = (width * scale.x) / 2;
-        const halfHeight = (height * scale.y) / 2;
+        const halfWidth = width / 2;
+        const halfHeight = height / 2;
         const offsetDistance = 5; // Adjust this value for spacing
 
-        const topStart = new THREE.Vector3(position.x - halfWidth, position.y + halfHeight + offsetDistance, position.z);
-        const topEnd = new THREE.Vector3(position.x + halfWidth, position.y + halfHeight + offsetDistance, position.z);
-
-        const sideStart = new THREE.Vector3(position.x + halfWidth + offsetDistance, position.y - halfHeight, position.z);
-        const sideEnd = new THREE.Vector3(position.x + halfWidth + offsetDistance, position.y + halfHeight, position.z);
-
+        const topStart = new THREE.Vector3(center.x - halfWidth, center.y + halfHeight + offsetDistance, center.z);
+        const topEnd = new THREE.Vector3(center.x + halfWidth, center.y + halfHeight + offsetDistance, center.z);
+        
+        const sideStart = new THREE.Vector3(center.x + halfWidth + offsetDistance, center.y - halfHeight, center.z);
+        const sideEnd = new THREE.Vector3(center.x + halfWidth + offsetDistance, center.y + halfHeight, center.z);
+        
         const topArrows = createDimensionArrows(topStart, topEnd);
         const sideArrows = createDimensionArrows(sideStart, sideEnd);
 

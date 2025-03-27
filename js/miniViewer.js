@@ -57,11 +57,6 @@ class MiniViewer {
         const clonedRectangle = mesh.parent.clone();
         clonedRectangle.position.set(0, 0, 0); // Center in the mini viewer
         this.pivot = new THREE.Object3D();
-        const pivotHelper = new THREE.Mesh(
-            new THREE.SphereGeometry(10),
-            new THREE.MeshBasicMaterial({ wireframe: false, color: 'red' })
-        );
-        this.pivot.add(pivotHelper)
         this.scene.add(clonedRectangle);
         this.scene.add(this.pivot);
         this.miniViewerSceneObject.push(clonedRectangle)
@@ -142,33 +137,30 @@ class MiniViewer {
             this.transformControls.update()
             this.scene.needsRender = true
         }
-
         );
+
         this.transformControls.addEventListener('objectChange', () => {
-            if (this.transformControls.mode === 'scale') {
-                console.log("Scaling Event Triggered");
-                this.pivot.attach(this.intersectedObject);
-                /*   if (this.intersectedObject.parent !== this.pivot) {
-                      this.pivot.attach(this.intersectedObject);
-                  } */
-
-                /*  if (!this.initialPivotPosition) {
-                     this.initialPivotPosition = this.pivot.position.clone();
-                 }
-         
-                 const scaleHandle = this.transformControls.axis;
-                 if (scaleHandle === 'Y') {
-                     this.pivot.position.y = this.initialPivotPosition.y; // Maintain initial position
-                 }
-                 if (scaleHandle === 'X') {
-                     this.pivot.position.x = this.initialPivotPosition.x; // Maintain initial position
-                 } */
-
-                this.scene.needsRender = true;
+            if(  this.transformControls.mode === 'scale'){
+                this.intersectedObject.updateMatrixWorld(true); // Ensure world transformations are applied
+                this.dimensions.add3DDimensionsToRectangles(this.intersectedObject)
             }
         });
+       
         this.transformControls.addEventListener('mouseUp', () => {
+            if (this.transformControls.mode === 'scale') {
+            if (this.intersectedObject && this.intersectedObject.parent === this.pivot) {
+                this.pivot.remove(this.intersectedObject); 
+                this.intersectedObject.applyMatrix4(this.pivot.matrixWorld);
+        
+                this.pivot.position.set(0, 0, 0);
+                this.pivot.scale.set(1, 1, 1);
+                this.pivot.rotation.set(0, 0, 0);
+                this.scene.add(this.intersectedObject); 
+            }
+        
+            this.transformControls.detach();
             this.dimensions.removeDimensions();
+        }
         });
         this.transformControls.addEventListener('mouseDown', (event) => {
             if (this.transformControls.mode === 'scale') {
@@ -177,25 +169,24 @@ class MiniViewer {
                 const scaleHandle = this.transformControls.axis;
                 if (scaleHandle === 'Y') {
                     if (this.deltaMouse.x < 0) {
-                        console.log("Top Fixed - Scaling Downwards");
                         this.pivot.position.y = box.min.y; 
                     } else {
-                        console.log("Bottom Fixed - Scaling Upwards");
                         this.pivot.position.y = box.max.y; 
                     }
                 }
-
                 if (scaleHandle === 'X') {
                     if (this.deltaMouse.x > 0) {
-                        console.log("Right Fixed - Scaling Left");
                         this.pivot.position.x = box.min.x; 
                     } else {
-                        console.log("Left Fixed - Scaling Right");
                         this.pivot.position.x = box.max.x; 
                     }
                 }
                 this.orbitControls.enabled = false
+                this.pivot.attach(this.intersectedObject);
                 this.transformControls.attach(this.pivot);
+            }else{
+
+                this.transformControls.attach(this.intersectedObject);
             }
         });
 
