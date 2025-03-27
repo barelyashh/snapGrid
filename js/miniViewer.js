@@ -11,6 +11,9 @@ class MiniViewer {
         this.isMiniViewerEnabled = true
         this.widthO = 555;
         this.heightO = 717;
+        this.activeAxis = null;
+        this.initialMouse = new THREE.Vector2();
+        this.deltaMouse = new THREE.Vector2();
         this.init(mesh);
     }
 
@@ -20,7 +23,7 @@ class MiniViewer {
         this.setupScene();
         this.setupLights()
         this.setupCamera()
-        this.addBody(mesh)
+        this.setupMesh(mesh)
         this.setupRayCaster()
         this.setupControls()
         this.setupEventListeners();
@@ -49,12 +52,13 @@ class MiniViewer {
         this.scene.add(this.lights);
     }
 
-    addBody(mesh) {
+    setupMesh(mesh) {
         mesh.visible = false
         const clonedRectangle = mesh.parent.clone();
         clonedRectangle.position.set(0, 0, 0); // Center in the mini viewer
-
+        this.pivot = new THREE.Object3D();
         this.scene.add(clonedRectangle);
+        this.scene.add(this.pivot);
         this.miniViewerSceneObject.push(clonedRectangle)
     }
     setupRayCaster() {
@@ -78,7 +82,17 @@ class MiniViewer {
     }
     setupEventListeners() {
         window.addEventListener('keydown', (event) => this.handleKeyDown(event));
+        window.addEventListener('pointerdown', (event) => this.handlePointerDown(event));
+        window.addEventListener('pointermove', (event) => this.handlePointerMove(event));
         this.renderer.domElement.addEventListener("click", (event) => this.handleClick(event));
+    }
+
+    handlePointerDown(event) {
+        this.initialMouse.set(event.clientX, event.clientY);
+    }
+
+    handlePointerMove(event) {
+        this.deltaMouse.set(event.clientX - this.initialMouse.x, event.clientY - this.initialMouse.y);
     }
 
     handleKeyDown(event) {
@@ -114,20 +128,69 @@ class MiniViewer {
     handleObjectIntersection(intersectedObject) {
         this.intersectedObject = intersectedObject;
         this.transformControls.detach();
-        this.transformControls.attach(this.intersectedObject);
+        this.transformControls.attach(this.pivot);
 
         const gizmo = this.transformControls.getHelper();
         this.scene.add(gizmo);
         this.orbitControls.enabled = false;
-        this.transformControls.addEventListener('change', () => this.transformControls.update());
+        this.transformControls.addEventListener('change', () => {
+            this.transformControls.update()
+            this.scene.needsRender = true
+        }
+        );
+
         this.transformControls.addEventListener('objectChange', () => {
-            if(  this.transformControls.mode === 'scale'){
+            if (this.transformControls.mode === 'scale') {
+                this.intersectedObject.updateMatrixWorld(true); // Ensure world transformations are applied
                 this.dimensions.add3DDimensionsToRectangles(this.intersectedObject)
             }
         });
-         this.transformControls.addEventListener('mouseUp', () => {
-            this.dimensions.removeDimensions();
-        }); 
+
+        this.transformControls.addEventListener('mouseUp', () => {
+            if (this.transformControls.mode === 'scale') {
+                if (this.intersectedObject && this.intersectedObject.parent === this.pivot) {
+                    this.pivot.remove(this.intersectedObject);
+                    this.intersectedObject.applyMatrix4(this.pivot.matrixWorld);
+                    //need to work yash find generic logic
+                    this.viewer.popup.selectedRectangle.parent.scale.set(this.pivot.scale.x,this.pivot.scale.y,this.pivot.scale.z);
+                    this.pivot.position.set(0, 0, 0);
+                    this.pivot.scale.set(1, 1, 1);
+                    this.pivot.rotation.set(0, 0, 0);
+                    this.scene.add(this.intersectedObject);
+                }
+
+                this.transformControls.detach();
+                this.dimensions.removeDimensions();
+            }
+        });
+        this.transformControls.addEventListener('mouseDown', (event) => {
+            if (this.transformControls.mode === 'scale') {
+                const box = new THREE.Box3().setFromObject(this.intersectedObject);
+                this.pivot.position.copy(this.intersectedObject.position)
+                const scaleHandle = this.transformControls.axis;
+                if (scaleHandle === 'Y') {
+                    if (this.deltaMouse.x < 0) {
+                        this.pivot.position.y = box.max.y;
+                    } else {
+                        this.pivot.position.y = box.min.y;
+                    }
+                }
+                if (scaleHandle === 'X') {
+                    if (this.deltaMouse.x > 0) {
+                        this.pivot.position.x = box.min.x;
+                    } else {
+                        this.pivot.position.x = box.max.x;
+                    }
+                }
+                this.orbitControls.enabled = false
+                this.pivot.attach(this.intersectedObject);
+                this.transformControls.attach(this.pivot);
+            } else {
+
+                this.transformControls.attach(this.intersectedObject);
+            }
+        });
+
     }
 
     resetTransformControls() {
