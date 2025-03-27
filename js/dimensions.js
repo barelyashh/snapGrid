@@ -23,6 +23,7 @@ class Dimensions {
 
         const width = size.x;
         const height = size.y;
+        //need to work find genric solution for it
         const position = (mesh.parent.name === 'scene') ? mesh.position.clone() : new THREE.Vector3(0, 0, 0);
 
         const scale = mesh.scale.clone();

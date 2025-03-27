@@ -151,7 +151,8 @@ class MiniViewer {
                 if (this.intersectedObject && this.intersectedObject.parent === this.pivot) {
                     this.pivot.remove(this.intersectedObject);
                     this.intersectedObject.applyMatrix4(this.pivot.matrixWorld);
-
+                    //need to work yash find generic logic
+                    this.viewer.popup.selectedRectangle.parent.scale.set(this.pivot.scale.x,this.pivot.scale.y,this.pivot.scale.z);
                     this.pivot.position.set(0, 0, 0);
                     this.pivot.scale.set(1, 1, 1);
                     this.pivot.rotation.set(0, 0, 0);
