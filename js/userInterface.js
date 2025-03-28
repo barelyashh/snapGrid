@@ -46,7 +46,7 @@ class UserInterface {
 
         sidebar.appendChild(this.createButton('Toggle Transform Control', 'toggle-btn', () => this.completeViewer.bodies.toggleTransformMode()));
         sidebar.appendChild(this.createButton('Switch mode', 'toggle-btn-2d', () => this.completeViewer.switchMode()));
-        sidebar.appendChild(this.createButton('Switch Snap', 'toggle-btn-2d', () => this.completeViewer.switchSnap()));
+        sidebar.appendChild(this.createButton('Switch Snap', 'toggle-btn-2d', () => this.completeViewer.bodies.switchSnap()));
 
         sideBarContainer.appendChild(sidebar);
     }
