@@ -15,6 +15,7 @@ class Bodies {
         this.points = [];
         this.innerObjects = []
         this.snap = new SnapPoints(this)
+        this.gridPercentage = 0
     }
 
     addOverallDimension(width, height, depth) {
@@ -262,15 +263,15 @@ class Bodies {
         const boundaryBoundingBox = new THREE.Box3().setFromObject(frame);
         const boundaryMin = boundaryBoundingBox.min;
         const boundaryMax = boundaryBoundingBox.max;
-        const step = (this.viewer.objectMaxSize + 300) / 10;
-        const halfSize = (this.viewer.objectMaxSize + 300) / 2;
+        const step = (this.viewer.size) / this.viewer.division ;
+        const halfSize = (this.viewer.size) / 2;
         const halfStep = step / 2;
         const offset = halfSize - halfStep;
 
 
-        for (let i = 0; i < 10; i++) {
+        for (let i = 0; i <this.viewer.division; i++) {
 
-            for (let j = 0; j < 10; j++) {
+            for (let j = 0; j <this.viewer.division; j++) {
                 const baseX = offset - i * step;
                 const baseZ = offset - j * step;
                 const offsetX = step / 2;

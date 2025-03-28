@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 class SnapPoints {
     constructor(shapeData) {
-        this.shapeData = shapeData
+        this.shapeData = shapeData 
     }
     snapTogrid(draggedObject) {
         if (!this.shapeData.points.length > 0) return
@@ -21,8 +21,7 @@ class SnapPoints {
         this.shapeData.points.forEach((point) => {
             boundary.forEach(([x, y]) => {
                 distance = new THREE.Vector3(x, draggedObject.position.y, -y).distanceTo(point);
-
-                if (distance < 2) {
+                if (distance <  this.shapeData.gridPercentage) {
                     let offset = new THREE.Vector3().subVectors(point, new THREE.Vector3(x, draggedObject.position.y, -y))
                     if (point.x <= modelMin.x || point.x >= modelMax.x || point.z > -modelMin.z || point.z < -modelMax.z) {
                         draggedObject.position.add(new THREE.Vector3(offset.x, 0, -offset.z))
