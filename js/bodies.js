@@ -80,13 +80,15 @@ class Bodies {
         rectangle.receiveShadow = true;
         rectangle.name = 'shape';
         this.positionRectangle(rectangle);
-        const circleGeometry = new THREE.CircleGeometry(2, 32);
-        const spriteMaterial = new THREE.MeshBasicMaterial({
-            color: 0x274e76,
-            side: THREE.DoubleSide
+        const textureLoader = new THREE.TextureLoader();
+        const spriteMaterial = new THREE.SpriteMaterial({
+            map: textureLoader.load('./images/sprite.png'),
+            transparent: true
         });
-        const sprite = new THREE.Mesh(circleGeometry, spriteMaterial);
-        sprite.rotation.x = -Math.PI / 2; // Make circle face up
+
+        const sprite = new THREE.Sprite(spriteMaterial);
+        //need to add scale dynamic
+        sprite.scale.set(5, 5, 1);
         this.positionSprite(sprite, rectangle);
         sprite.visible = false;
         rectangle.add(sprite);
@@ -114,7 +116,7 @@ class Bodies {
     positionSprite(sprite, rectangle) {
         if (!this.viewer.overallDepth) return;
         const rectDepth = rectangle.geometry.parameters.depth;
-        sprite.position.set(0, 0, rectDepth / 2 + 2);
+        sprite.position.set(0, 0, rectDepth / 2 + 3);
     }
 
     generate2DDrawing() {
@@ -222,10 +224,14 @@ class Bodies {
     }
 
     hideAllSprites() {
-        this.spriteObjects.forEach(sprite => {
-            if (sprite.isSprite) {
+         this.spriteObjects.forEach(sprite => {
+                sprite.visible = false;
+        }); 
+    }
+
+    showAllSprites() {
+         this.spriteObjects.forEach(sprite => {
                 sprite.visible = true;
-            }
         });
     }
 

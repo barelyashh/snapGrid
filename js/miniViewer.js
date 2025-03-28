@@ -63,7 +63,7 @@ class MiniViewer {
     }
 
     setupMesh(mesh) {
-        mesh.visible = false
+        this.viewer.bodies.hideAllSprites()
         const clonedRectangle = mesh.parent.clone();
         clonedRectangle.position.set(0, 0, 0); // Center in the mini viewer
         this.pivot = new THREE.Object3D();
