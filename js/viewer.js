@@ -137,7 +137,6 @@ class Viewer {
         window.addEventListener('keydown', (event) => this.handleKeyDown(event));
         window.addEventListener('resize', () => this.onWindowResize(), false);
         this.renderer.domElement.addEventListener("click", (event) => this.handleClickIfNeeded(event));
-        this.renderer.domElement.addEventListener("mouseover", (event) => this.bodies.addDragControls(event));
     }
 
     handleKeyDown(event) {
@@ -209,8 +208,10 @@ class Viewer {
         this.orbitControls.enableRotate = false;
 
         this.scene.remove(this.bodies.frame);
-        this.bodies.overallBodies.forEach(mesh => this.scene.remove(mesh));
+        this.bodies.overallBodies.forEach(child => this.scene.remove(child.mesh));
         this.bodies.generate2DDrawing();
+
+        this.renderer.domElement.addEventListener("mouseenter", (event) => this.bodies.addDragControls(event));
     }
 
     enable3DMode() {
@@ -221,7 +222,6 @@ class Viewer {
 
         if (gridHelper) this.scene.remove(gridHelper);
         if (lineSegments) this.scene.remove(lineSegments);
-
         this.bodies.twoDObjects.forEach(mesh => {
             if (mesh.name.includes('segments')) {
                 this.scene.remove(mesh);
@@ -238,24 +238,22 @@ class Viewer {
         this.updateOverAllBodies();
 
         this.bodies.twoDObjects = [];
+        this.bodies.innerObjects = []
+
+        this.renderer.domElement.removeEventListener("mouseenter",(event) => this.bodies.addDragControls(event));
     }
 
     //removes circular dependecy of userdata
     updateOverAllBodies() {
-        this.bodies.overallBodies.forEach(mesh => {
-            const lineData = mesh.userData.line;
+        this.bodies.overallBodies.forEach(child => {
+            const lineData = child.line.lineSegments;
             if (lineData) {
                 const { position, scale, rotation } = lineData;
-                mesh.position.set(position.x, -position.z, mesh.position.z);
-                mesh.scale.copy(scale);
-                mesh.rotation.z = -rotation.z;
+                child.mesh.position.set(position.x, -position.z, child.mesh.position.z);
+                child.mesh.scale.copy(scale);
+                child.mesh.rotation.z = -rotation.z;
             }
-            this.scene.add(mesh);
-        });
-
-        this.bodies.overallBodies.forEach(mesh => {
-            mesh.userData = {};
-
+            this.scene.add(child.mesh);
         });
     }
 
@@ -270,15 +268,20 @@ class Viewer {
         this.raycaster.setFromCamera(mouse, this.camera);
         const spriteIntersects = this.raycaster.intersectObjects(this.bodies.spriteObjects, true);
         if (spriteIntersects.length > 0 && this.bodies.spriteObjects.includes(spriteIntersects[0].object)) {
-            spriteIntersects[0].object.userData = {}; // Remove circular references
+            // spriteIntersects[0].object.userData = {}; // Remove circular references
+            console.log(spriteIntersects[0].object.parent.geometry)
             this.popup = new Popup(spriteIntersects[0].object, this, this.onSave.bind(this), this.onCancel.bind(this));
             return;
         }
         if (this.mode2D) return;
 
         if (this.bodies.transformEnabled) {
-            const objectsToCheck = this.mode2D ? this.bodies.twoDObjects : this.bodies.overallBodies;
-            const objectIntersects = this.raycaster.intersectObjects(objectsToCheck, true);
+            const objectsToCheck = this.bodies.overallBodies;
+            const items=[]
+            objectsToCheck.forEach((item) => {
+                items.push(item.mesh)
+          });
+            const objectIntersects = this.raycaster.intersectObjects(items, true);
 
             if (objectIntersects.length > 0) {
                 this.handleObjectIntersection(objectIntersects[0].object);
@@ -344,16 +347,7 @@ class Viewer {
         }
     }
 
-    switchSnap() {
-        this.snapEnabled = !this.snapEnabled;
-        if (this.snapEnabled) {
-            //wor on 3d snapping points + for 3d use dragballcontrols or something else for snap
-            //  this.mode2D ? this.bodies.addSnapPointsTo2Drectangles() : this.bodies.addSnapPointsTo3DRectangles();
-            this.bodies.addSnapPointsTo2Drectangles()
-        } else {
-            this.bodies.removeSnapPoints(this.mode2D);
-        }
-    }
+  
 
     onSave() {
         this.bodies.hideAllSprites()
