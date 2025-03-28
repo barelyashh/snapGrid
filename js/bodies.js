@@ -1,5 +1,7 @@
 import * as THREE from 'three';
 import { DragControls } from "three/addons/controls/DragControls.js";
+import { SnapPoints } from './snapToPoints.js';
+
 class Bodies {
     constructor(viewer) {
         this.viewer = viewer
@@ -11,6 +13,8 @@ class Bodies {
         this.transformEnabled = true
         this.snapPoints = []
         this.points = [];
+        this.innerObjects = []
+        this.snap = new SnapPoints(this)
     }
 
     addOverallDimension(width, height, depth) {
@@ -39,39 +43,66 @@ class Bodies {
     }
 
 
-    addRectangle({ widthBox, heightBox, depthBox }) {
-        if (this.mode2D) {
-            this.generate2DDrawing();
+    addRectangle({ widthBox, heightBox ,depthBox}) {
+        if (this.viewer.mode2D) {
+            this.create2DShape(widthBox, heightBox, depthBox);
         } else {
-            const geometry = new THREE.BoxGeometry(widthBox, heightBox, depthBox);
-            const material = new THREE.MeshPhysicalMaterial({ color: '#7F4125', clearcoat: 1, clearcoatRoughness: 0 });
-            // material.transparent = true
-            material.opacity = 0.6
-            const rectangle = new THREE.Mesh(geometry, material);
-            rectangle.castShadow = true;
-            rectangle.receiveShadow = true;
-            rectangle.name = 'shape';
-            this.positionRectangle(rectangle);
-            const circleGeometry = new THREE.CircleGeometry(2, 32);
-            const spriteMaterial = new THREE.MeshBasicMaterial({
-                color: 0x274e76,
-                side: THREE.DoubleSide
-            });
-            const sprite = new THREE.Mesh(circleGeometry, spriteMaterial);
-            sprite.rotation.x = -Math.PI / 2; // Make circle face up
-            this.positionSprite(sprite, rectangle);
-            sprite.visible = false;
-            rectangle.add(sprite);
-
-            this.viewer.scene.add(rectangle);
-            rectangle.position.y = 0.1;
-            this.overallBodies.push(rectangle);
-            this.spriteObjects.push(sprite);
-
-            const { width, height, depth } = rectangle.geometry.parameters;
-            rectangle.userData = { width, height, depth };
+            this.createRectangle(widthBox, heightBox, depthBox, true)
             this.viewer.animate();
         }
+    }
+    create2DShape(widthBox, heightBox, depthBox) {
+        console.log("v", widthBox, heightBox)
+        const tri = new THREE.Shape();
+        tri.moveTo(-widthBox/2, heightBox/2);
+        tri.lineTo(widthBox/2, heightBox/2);
+        tri.lineTo(widthBox/2, -heightBox/2);
+        tri.lineTo(-widthBox/2, -heightBox/2)
+        tri.lineTo(-widthBox/2, heightBox/2)
+        const geometry = new THREE.ShapeGeometry(tri);
+        const lineSegments = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ color: "#7F4125" }))
+        lineSegments.material.side = THREE.DoubleSide
+        lineSegments.name = 'segments'
+        lineSegments.position.y = 0.3;
+        lineSegments.rotation.x = Math.PI / 2
+        this.viewer.scene.add(lineSegments);
+        this.innerObjects.push({lineSegments, width : widthBox, height :heightBox , depth :depthBox });
+        this.twoDObjects.push(lineSegments)
+        this.createRectangle(widthBox, heightBox, depthBox, false,lineSegments )
+    }
+
+    createRectangle(widthBox, heightBox, depthBox, visible,lineSegments){
+        const material = new THREE.MeshPhysicalMaterial({ color: '#7F4125', clearcoat: 1, clearcoatRoughness: 0 });
+        // material.transparent = true
+        material.opacity = 0.6
+        const rectangle = new THREE.Mesh(new THREE.BoxGeometry(widthBox, heightBox, depthBox), material);
+        rectangle.castShadow = true;
+        rectangle.receiveShadow = true;
+        rectangle.name = 'shape';
+        this.positionRectangle(rectangle);
+        const circleGeometry = new THREE.CircleGeometry(2, 32);
+        const spriteMaterial = new THREE.MeshBasicMaterial({
+            color: 0x274e76,
+            side: THREE.DoubleSide
+        });
+        const sprite = new THREE.Mesh(circleGeometry, spriteMaterial);
+        sprite.rotation.x = -Math.PI / 2; // Make circle face up
+        this.positionSprite(sprite, rectangle);
+        sprite.visible = false;
+        rectangle.add(sprite);
+
+        if(visible)this.viewer.scene.add(rectangle);
+        rectangle.position.y = 0.1;
+       if(lineSegments) {
+        const object = {lineSegments, width : widthBox, height :heightBox , depth :depthBox}
+        this.overallBodies.push({mesh:rectangle,line:object});
+       } else {
+        this.overallBodies.push({mesh:rectangle});
+       }
+      
+        this.spriteObjects.push(sprite);
+        return rectangle
+
     }
 
     positionRectangle(rectangle) {
@@ -89,16 +120,17 @@ class Bodies {
     generate2DDrawing() {
         if (this.frame) {
             let positions = this.frame.geometry.attributes.position.array
-            for (let i = 0; i < positions.length; i += 3) {
-                positions[i + 2] = 0;
-            }
+                const updatedArray = JSON.parse(JSON.stringify(positions))
+                for (let i = 0; i < positions.length; i += 3) {
+                    updatedArray[i + 2] = 0;
+                }
 
             function splitPoints(positions) {
                 const uniquePositions = [];
                 const seen = new Set();
 
                 for (let i = 0; i < positions.length; i += 3) {
-                    const point = new THREE.Vector3(positions[i], positions[i + 1], positions[i + 2]);
+                    const point = new THREE.Vector3(updatedArray[i], updatedArray[i + 1], updatedArray[i + 2]);
                     const key = `${point.x},${point.y},${point.z}`;
                     seen.add(key);
                     uniquePositions.push(point);
@@ -123,17 +155,21 @@ class Bodies {
 
         }
         if (this.overallBodies) {
-            this.overallBodies.forEach((mesh, i) => {
-                let positions = mesh.geometry.attributes.position.array
+            this.overallBodies.forEach((child, i) => {
+                let positions = child.mesh.geometry.attributes.position.array
+
+                const updatedArray = JSON.parse(JSON.stringify(positions))
                 for (let i = 0; i < positions.length; i += 3) {
-                    positions[i + 2] = 0;
+                    updatedArray[i + 2] = 0;
+
                 }
-                function splitPoints(positions) {
+
+                function splitPoints() {
                     const uniquePositions = [];
                     const seen = new Set();
 
                     for (let i = 0; i < positions.length; i += 3) {
-                        const point = new THREE.Vector3(positions[i], positions[i + 1], positions[i + 2]);
+                        const point = new THREE.Vector3(updatedArray[i], updatedArray[i + 1], updatedArray[i + 2]);
                         const key = `${point.x},${point.y},${point.z}`;
                         seen.add(key);
                         uniquePositions.push(point);
@@ -141,7 +177,7 @@ class Bodies {
 
                     return uniquePositions
                 }
-                let uniquePositionsBuffer1 = splitPoints(positions);
+                let uniquePositionsBuffer1 = splitPoints();
                 const tri = new THREE.Shape();
                 tri.moveTo(uniquePositionsBuffer1[0].x, uniquePositionsBuffer1[0].y);
                 for (let i = 0; i < uniquePositionsBuffer1.length; i++) {
@@ -149,23 +185,24 @@ class Bodies {
                 }
                 tri.lineTo(uniquePositionsBuffer1[0].x, uniquePositionsBuffer1[0].y)
                 const geometry = new THREE.ShapeGeometry(tri);
-                const lineSegments = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ color: mesh.material.color }))
+                const lineSegments = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ color: child.mesh.material.color }))
                 lineSegments.material.side = THREE.DoubleSide
                 lineSegments.name = `segments${i}`;
                 lineSegments.rotation.x = Math.PI / 2;
-                lineSegments.position.set(mesh.position.x, 0.3, -mesh.position.y);
+                lineSegments.position.set(child.mesh.position.x, 0.3, -child.mesh.position.y);
 
                 this.viewer.scene.add(lineSegments);
                 this.twoDObjects.push(lineSegments);
 
-                const { width, height, depth } = mesh.userData;
-                lineSegments.userData = { width, height, depth };
+                const { width, height, depth } = child.mesh.geometry.parameters;;
 
-                lineSegments.scale.copy(mesh.scale);
-                lineSegments.rotation.z = -mesh.rotation.z;
+            
+                this.innerObjects.push({ lineSegments, width, height, depth });
+                lineSegments.scale.copy(child.mesh.scale);
+                lineSegments.rotation.z = -child.mesh.rotation.z;
 
-                mesh.userData.line = lineSegments;
-                lineSegments.userData.originalMesh = mesh;
+
+                this.overallBodies[i].line = { lineSegments, width, height, depth }
 
             })
         }
@@ -207,40 +244,11 @@ class Bodies {
         this.dragControls = new DragControls(this.twoDObjects, cam, this.renderer.domElement);
         this.dragControls.addEventListener("drag", (event) => {
             const draggedObject = event.object;
-            this.snapToNearestPoint(draggedObject);
+            this.snap.snapToNearestPoint(draggedObject);
             this.restrictDoorMovement(draggedObject)
-            this.snapTogrid(draggedObject)
+            this.snap.snapTogrid(draggedObject)
 
         });
-
-    }
-    snapTogrid(draggedObject) {
-        if( !this.points.length >0)  return
-
-        const modelBoundingBox = new THREE.Box3().setFromObject(draggedObject);
-        const modelMin = modelBoundingBox.min;
-        const modelMax = modelBoundingBox.max;
-        const boundary = [
-        [modelMin.x, modelMin.z, 0], // Bottom-left
-        [modelMax.x, modelMin.z, 0], // Bottom-right
-        [modelMin.x, modelMax.z, 0], // Top-left
-        [modelMax.x, modelMax.z, 0] // Top-right 
-        ]
-      
-       let distance = 0
-
-        this.points.forEach((point) => {
-            boundary.forEach(([x, y]) => {
-                distance = new THREE.Vector3(x, draggedObject.position.y, -y).distanceTo(point);
-
-                if (distance < 2) {
-                    let offset = new THREE.Vector3().subVectors(point, new THREE.Vector3(x, draggedObject.position.y, -y))
-                    if( point.x <= modelMin.x || point.x >= modelMax.x ||point.z > -modelMin.z ||point.z < -modelMax.z) {
-                        draggedObject.position.add(new THREE.Vector3( offset.x,0,-offset.z))
-                    }
-                }
-            })
-        })
 
     }
 
@@ -297,160 +305,53 @@ class Bodies {
 
     }
 
-    snapToNearestPoint(draggedMesh) {
-        let threshold = 5; // Adjust as needed
-        let closestSnap = null;
-        let minDistance = Infinity;
-        if (!draggedMesh.userData.snapPoints) return
-        draggedMesh.userData.snapPoints.forEach(draggedSnapPoint => {
-            let draggedWorldPos = new THREE.Vector3();
-            draggedSnapPoint.getWorldPosition(draggedWorldPos);
+    // addSnapPointsTo3DRectangles() {
 
-            this.snapPoints.forEach(targetSnapPoint => {
-                if (targetSnapPoint === draggedSnapPoint) return;
+    //     if (!this.viewer.scene || !this.overallBodies.length) return;
+    //     this.overallBodies.forEach(rectangle => {
+    //         const { width, height, depth } = rectangle.mesh.geometry.parameters;
+    //         rectangle.mesh.userData.snapPoints = [];
+    //         const positions = [
+    //             // Corners
+    //             [-width / 2, -height / 2, depth / 2], // Bottom-left front
+    //             [width / 2, -height / 2, depth / 2], // Bottom-right front
+    //             [-width / 2, height / 2, depth / 2], // Top-left front
+    //             [width / 2, height / 2, depth / 2], // Top-right front
 
-                let targetWorldPos = new THREE.Vector3();
-                targetSnapPoint.getWorldPosition(targetWorldPos);
+    //             // Midpoints of edges
+    //             [0, -height / 2, depth / 2], // Bottom front edge
+    //             [0, height / 2, depth / 2], // Top front edge
+    //             [-width / 2, 0, depth / 2], // Left front edge
+    //             [width / 2, 0, depth / 2], // Right front edge
 
-                let distance = draggedWorldPos.distanceTo(targetWorldPos);
+    //             // Center points
+    //             [0, 0, depth / 2], // Front center
+    //             [0, 0, -depth / 2], // Back center
+    //         ];
 
-                if (distance < threshold && distance < minDistance) {
-                    minDistance = distance;
-                    closestSnap = {
-                        targetPosition: targetWorldPos.clone(),
-                        draggedPosition: draggedWorldPos.clone()
-                    };
-                }
-            });
-        });
+    //         positions.forEach(([x, y, z]) => {
+    //             const geometry = new THREE.BoxGeometry(2, 2, 2); // Small wireframe box as snap point
+    //             const material = new THREE.MeshBasicMaterial({ color: 0xff0000, wireframe: true });
+    //             const snapPoint = new THREE.Mesh(geometry, material);
 
-        if (closestSnap) {
-            let offset = new THREE.Vector3().subVectors(closestSnap.targetPosition, closestSnap.draggedPosition);
-            draggedMesh.position.add(offset);
+    //             snapPoint.position.set(
+    //                 x, y, z
+    //             );
+    //             rectangle.mesh.add(snapPoint); // Attach snap point to the rectangle.mesh
+    //             rectangle.mesh.userData.snapPoints.push(snapPoint);
+    //             this.snapPoints.push(snapPoint);
+    //         });
+    //     });
+    // }
+    switchSnap() {
+        this.snapEnabled = !this.snapEnabled;
+        if (this.snapEnabled) {
+            //wor on 3d snapping points + for 3d use dragballcontrols or something else for snap
+            //this.mode2D ? this.bodies.addSnapPointsTo2Drectangles() : this.bodies.addSnapPointsTo3DRectangles();
+            this.snap.addSnapPointsTo2Drectangles()
+        } else {
+            this.snap.removeSnapPoints(this.viewer.mode2D);
         }
-    }
-
-    addSnapPointsTo3DRectangles() {
-
-        if (!this.viewer.scene || !this.overallBodies.length) return;
-        this.overallBodies.forEach(rectangle => {
-            const { width, height, depth } = rectangle.geometry.parameters;
-            rectangle.userData.snapPoints = [];
-            const positions = [
-                // Corners
-                [-width / 2, -height / 2, depth / 2], // Bottom-left front
-                [width / 2, -height / 2, depth / 2], // Bottom-right front
-                [-width / 2, height / 2, depth / 2], // Top-left front
-                [width / 2, height / 2, depth / 2], // Top-right front
-
-                // Midpoints of edges
-                [0, -height / 2, depth / 2], // Bottom front edge
-                [0, height / 2, depth / 2], // Top front edge
-                [-width / 2, 0, depth / 2], // Left front edge
-                [width / 2, 0, depth / 2], // Right front edge
-
-                // Center points
-                [0, 0, depth / 2], // Front center
-                [0, 0, -depth / 2], // Back center
-            ];
-
-            positions.forEach(([x, y, z]) => {
-                const geometry = new THREE.BoxGeometry(2, 2, 2); // Small wireframe box as snap point
-                const material = new THREE.MeshBasicMaterial({ color: 0xff0000, wireframe: true });
-                const snapPoint = new THREE.Mesh(geometry, material);
-
-                snapPoint.position.set(
-                    x, y, z
-                );
-                rectangle.add(snapPoint); // Attach snap point to the rectangle
-                rectangle.userData.snapPoints.push(snapPoint);
-                this.snapPoints.push(snapPoint);
-            });
-        });
-    }
-
-    addSnapPointsTo2Drectangles() {
-        if (!this.viewer.scene || !this.twoDObjects.length) return;
-        this.twoDObjects.forEach(lineSegment => {
-            lineSegment.geometry.computeBoundingBox();
-            const bbox = lineSegment.geometry.boundingBox;
-
-            if (lineSegment.userData.snapPoints) {
-                lineSegment.userData.snapPoints.forEach(sp => this.viewer.scene.remove(sp));
-            }
-            lineSegment.userData.snapPoints = [];
-
-            const positions = [
-                [bbox.min.x, bbox.min.y, 0], // Bottom-left
-                [bbox.max.x, bbox.min.y, 0], // Bottom-right
-                [bbox.min.x, bbox.max.y, 0], // Top-left
-                [bbox.max.x, bbox.max.y, 0], // Top-right
-                [bbox.min.x, (bbox.min.y + bbox.max.y) / 2, 0], // Left center
-                [bbox.max.x, (bbox.min.y + bbox.max.y) / 2, 0], // Right center
-            ];
-            const points = [
-                [bbox.min.x, bbox.min.y, 0],
-                [bbox.max.x, bbox.min.y, 0],
-                [bbox.min.x, bbox.max.y, 0],
-                [bbox.max.x, bbox.max.y, 0],
-            ]
-            lineSegment.userData.points = points
-
-            positions.forEach(([x, y, z]) => {
-                const geometry = new THREE.BoxGeometry(2, 2, 2);
-                const material = new THREE.MeshBasicMaterial({ color: 0xff0000, visible: false });
-                const snapPoint = new THREE.Mesh(geometry, material);
-
-                snapPoint.position.set(x, y, z);
-                const frontFaceVertices = [
-                    1, 1, -1,
-                    -1, 1, -1,
-                    -1, -1, -1,
-                    1, -1, -1,
-                    1, 1, -1,
-                ];
-
-                const frontFaceGeometry = new THREE.BufferGeometry();
-                frontFaceGeometry.setAttribute(
-                    'position',
-                    new THREE.Float32BufferAttribute(frontFaceVertices, 3)
-                );
-                const edgeMaterial = new THREE.LineBasicMaterial({ color: 'blue', transparent: true, opacity: 0.3 });
-                const borderLine = new THREE.Line(frontFaceGeometry, edgeMaterial);
-                borderLine.scale.set(1.5, 1.5, 1.5)
-                snapPoint.add(borderLine);
-                lineSegment.add(snapPoint);
-                lineSegment.userData.snapPoints.push(snapPoint);
-                this.snapPoints.push(snapPoint);
-            });
-        });
-    }
-
-    removeSnapPoints(mode) {
-        if (!this.viewer.scene || !this.overallBodies.length) return;
-        if (mode) {
-            this.twoDObjects.forEach(rectangle => {
-                if (rectangle.userData.snapPoints) {
-                    rectangle.userData.snapPoints.forEach(snapPoint => {
-                        this.viewer.scene.remove(snapPoint);
-                        rectangle.remove(snapPoint); // Also remove from the rectangle
-                    });
-                    rectangle.userData.snapPoints = []; // Clear snap points from rectangle
-                }
-            })
-        }
-        else {
-            this.overallBodies.forEach(rectangle => {
-                if (rectangle.userData.snapPoints) {
-                    rectangle.userData.snapPoints.forEach(snapPoint => {
-                        this.viewer.scene.remove(snapPoint);
-                        rectangle.remove(snapPoint); // Also remove from the rectangle
-                    });
-                    rectangle.userData.snapPoints = []; // Clear snap points from rectangle
-                }
-            });
-        }
-        this.snapPoints = []; // Clear the global snap points array
     }
 }
 
