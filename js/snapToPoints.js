@@ -1,78 +1,78 @@
 import * as THREE from 'three';
 class SnapPoints {
     constructor(shapeData) {
-      this.shapeData = shapeData
+        this.shapeData = shapeData
     }
-     snapTogrid(draggedObject) {
-            if( ! this.shapeData.points.length >0)  return
-    
-            const modelBoundingBox = new THREE.Box3().setFromObject(draggedObject);
-            const modelMin = modelBoundingBox.min;
-            const modelMax = modelBoundingBox.max;
-            const boundary = [
+    snapTogrid(draggedObject) {
+        if (!this.shapeData.points.length > 0) return
+
+        const modelBoundingBox = new THREE.Box3().setFromObject(draggedObject);
+        const modelMin = modelBoundingBox.min;
+        const modelMax = modelBoundingBox.max;
+        const boundary = [
             [modelMin.x, modelMin.z, 0], // Bottom-left
             [modelMax.x, modelMin.z, 0], // Bottom-right
             [modelMin.x, modelMax.z, 0], // Top-left
             [modelMax.x, modelMax.z, 0] // Top-right 
-            ]
-          
-           let distance = 0
-    
-           this.shapeData.points.forEach((point) => {
-                boundary.forEach(([x, y]) => {
-                    distance = new THREE.Vector3(x, draggedObject.position.y, -y).distanceTo(point);
-    
-                    if (distance < 2) {
-                        let offset = new THREE.Vector3().subVectors(point, new THREE.Vector3(x, draggedObject.position.y, -y))
-                        if( point.x <= modelMin.x || point.x >= modelMax.x ||point.z > -modelMin.z ||point.z < -modelMax.z) {
-                            draggedObject.position.add(new THREE.Vector3( offset.x,0,-offset.z))
-                        }
+        ]
+
+        let distance = 0
+
+        this.shapeData.points.forEach((point) => {
+            boundary.forEach(([x, y]) => {
+                distance = new THREE.Vector3(x, draggedObject.position.y, -y).distanceTo(point);
+
+                if (distance < 2) {
+                    let offset = new THREE.Vector3().subVectors(point, new THREE.Vector3(x, draggedObject.position.y, -y))
+                    if (point.x <= modelMin.x || point.x >= modelMax.x || point.z > -modelMin.z || point.z < -modelMax.z) {
+                        draggedObject.position.add(new THREE.Vector3(offset.x, 0, -offset.z))
                     }
-                })
+                }
             })
-    
-        }
-     snapToNearestPoint(draggedMesh) {
-            let threshold = 5; // Adjust as needed
-            let closestSnap = null;
-            let minDistance = Infinity;
-            if (!draggedMesh.children) return
-            draggedMesh.children.forEach(draggedSnapPoint => {
-                let draggedWorldPos = new THREE.Vector3();
-                draggedSnapPoint.getWorldPosition(draggedWorldPos);
-    
-                this.shapeData.snapPoints.forEach(targetSnapPoint => {
-                    if (targetSnapPoint === draggedSnapPoint) return;
-    
-                    let targetWorldPos = new THREE.Vector3();
-                    targetSnapPoint.getWorldPosition(targetWorldPos);
-    
-                    let distance = draggedWorldPos.distanceTo(targetWorldPos);
-    
-                    if (distance < threshold && distance < minDistance) {
-                        minDistance = distance;
-                        closestSnap = {
-                            targetPosition: targetWorldPos.clone(),
-                            draggedPosition: draggedWorldPos.clone()
-                        };
-                    }
-                });
+        })
+    }
+
+    snapToNearestPoint(draggedMesh) {
+        let threshold = 5; // Adjust as needed
+        let closestSnap = null;
+        let minDistance = Infinity;
+        if (!draggedMesh.children) return
+        draggedMesh.children.forEach(draggedSnapPoint => {
+            let draggedWorldPos = new THREE.Vector3();
+            draggedSnapPoint.getWorldPosition(draggedWorldPos);
+
+            this.shapeData.snapPoints.forEach(targetSnapPoint => {
+                if (targetSnapPoint === draggedSnapPoint) return;
+
+                let targetWorldPos = new THREE.Vector3();
+                targetSnapPoint.getWorldPosition(targetWorldPos);
+
+                let distance = draggedWorldPos.distanceTo(targetWorldPos);
+
+                if (distance < threshold && distance < minDistance) {
+                    minDistance = distance;
+                    closestSnap = {
+                        targetPosition: targetWorldPos.clone(),
+                        draggedPosition: draggedWorldPos.clone()
+                    };
+                }
             });
-    
-            if (closestSnap) {
-                let offset = new THREE.Vector3().subVectors(closestSnap.targetPosition, closestSnap.draggedPosition);
-                draggedMesh.position.add(offset);
-            }
+        });
+
+        if (closestSnap) {
+            let offset = new THREE.Vector3().subVectors(closestSnap.targetPosition, closestSnap.draggedPosition);
+            draggedMesh.position.add(offset);
         }
+    }
 
     addSnapPointsTo2Drectangles() {
-        if (! this.shapeData.viewer.scene || ! this.shapeData.innerObjects.length) return;
+        if (!this.shapeData.viewer.scene || !this.shapeData.innerObjects.length) return;
         this.shapeData.innerObjects.forEach(object => {
             object.lineSegments.geometry.computeBoundingBox();
             const bbox = object.lineSegments.geometry.boundingBox;
 
             if (object.snapPoints) {
-                object.snapPoints.forEach(sp =>  this.shapeData.viewer.scene.remove(sp));
+                object.snapPoints.forEach(sp => this.shapeData.viewer.scene.remove(sp));
             }
             object.snapPoints = [];
 
@@ -116,12 +116,12 @@ class SnapPoints {
     }
 
     removeSnapPoints(mode) {
-        if (! this.shapeData.viewer.scene || ! this.shapeData.overallBodies.length) return;
+        if (!this.shapeData.viewer.scene || !this.shapeData.overallBodies.length) return;
         if (mode) {
-             this.shapeData.innerObjects.forEach(object => {
+            this.shapeData.innerObjects.forEach(object => {
                 if (object.snapPoints) {
                     object.snapPoints.forEach(snapPoint => {
-                         this.shapeData.viewer.scene.remove(snapPoint);
+                        this.shapeData.viewer.scene.remove(snapPoint);
                         object.lineSegments.remove(snapPoint); // Also remove from the object
                     });
                     object.snapPoints = []; // Clear snap points from rectangle
@@ -129,17 +129,17 @@ class SnapPoints {
             })
         }
         else {
-             this.shapeData.overallBodies.forEach(rectangle => {
+            this.shapeData.overallBodies.forEach(rectangle => {
                 if (rectangle.mesh.userData.snapPoints) {
                     rectangle.mesh.userData.snapPoints.forEach(snapPoint => {
-                         this.shapeData.viewer.scene.remove(snapPoint);
+                        this.shapeData.viewer.scene.remove(snapPoint);
                         rectangle.mesh.remove(snapPoint); // Also remove from the rectangle.mesh
                     });
                     rectangle.mesh.userData.snapPoints = []; // Clear snap points from rectangle.mesh
                 }
             });
         }
-         this.shapeData.snapPoints = []; // Clear the global snap points array
+        this.shapeData.snapPoints = []; // Clear the global snap points array
     }
 }
 export { SnapPoints }

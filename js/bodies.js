@@ -43,7 +43,7 @@ class Bodies {
     }
 
 
-    addRectangle({ widthBox, heightBox ,depthBox}) {
+    addRectangle({ widthBox, heightBox, depthBox }) {
         if (this.viewer.mode2D) {
             this.create2DShape(widthBox, heightBox, depthBox);
         } else {
@@ -51,14 +51,15 @@ class Bodies {
             this.viewer.animate();
         }
     }
+
     create2DShape(widthBox, heightBox, depthBox) {
         console.log("v", widthBox, heightBox)
         const tri = new THREE.Shape();
-        tri.moveTo(-widthBox/2, heightBox/2);
-        tri.lineTo(widthBox/2, heightBox/2);
-        tri.lineTo(widthBox/2, -heightBox/2);
-        tri.lineTo(-widthBox/2, -heightBox/2)
-        tri.lineTo(-widthBox/2, heightBox/2)
+        tri.moveTo(-widthBox / 2, heightBox / 2);
+        tri.lineTo(widthBox / 2, heightBox / 2);
+        tri.lineTo(widthBox / 2, -heightBox / 2);
+        tri.lineTo(-widthBox / 2, -heightBox / 2)
+        tri.lineTo(-widthBox / 2, heightBox / 2)
         const geometry = new THREE.ShapeGeometry(tri);
         const lineSegments = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ color: "#7F4125" }))
         lineSegments.material.side = THREE.DoubleSide
@@ -66,14 +67,13 @@ class Bodies {
         lineSegments.position.y = 0.3;
         lineSegments.rotation.x = Math.PI / 2
         this.viewer.scene.add(lineSegments);
-        this.innerObjects.push({lineSegments, width : widthBox, height :heightBox , depth :depthBox });
+        this.innerObjects.push({ lineSegments, width: widthBox, height: heightBox, depth: depthBox });
         this.twoDObjects.push(lineSegments)
-        this.createRectangle(widthBox, heightBox, depthBox, false,lineSegments )
+        this.createRectangle(widthBox, heightBox, depthBox, false, lineSegments)
     }
 
-    createRectangle(widthBox, heightBox, depthBox, visible,lineSegments){
+    createRectangle(widthBox, heightBox, depthBox, visible, lineSegments) {
         const material = new THREE.MeshPhysicalMaterial({ color: '#7F4125', clearcoat: 1, clearcoatRoughness: 0 });
-        // material.transparent = true
         material.opacity = 0.6
         const rectangle = new THREE.Mesh(new THREE.BoxGeometry(widthBox, heightBox, depthBox), material);
         rectangle.castShadow = true;
@@ -91,15 +91,15 @@ class Bodies {
         sprite.visible = false;
         rectangle.add(sprite);
 
-        if(visible)this.viewer.scene.add(rectangle);
+        if (visible) this.viewer.scene.add(rectangle);
         rectangle.position.y = 0.1;
-       if(lineSegments) {
-        const object = {lineSegments, width : widthBox, height :heightBox , depth :depthBox}
-        this.overallBodies.push({mesh:rectangle,line:object});
-       } else {
-        this.overallBodies.push({mesh:rectangle});
-       }
-      
+        if (lineSegments) {
+            const object = { lineSegments, width: widthBox, height: heightBox, depth: depthBox }
+            this.overallBodies.push({ mesh: rectangle, line: object });
+        } else {
+            this.overallBodies.push({ mesh: rectangle });
+        }
+
         this.spriteObjects.push(sprite);
         return rectangle
 
@@ -120,10 +120,10 @@ class Bodies {
     generate2DDrawing() {
         if (this.frame) {
             let positions = this.frame.geometry.attributes.position.array
-                const updatedArray = JSON.parse(JSON.stringify(positions))
-                for (let i = 0; i < positions.length; i += 3) {
-                    updatedArray[i + 2] = 0;
-                }
+            const updatedArray = JSON.parse(JSON.stringify(positions))
+            for (let i = 0; i < positions.length; i += 3) {
+                updatedArray[i + 2] = 0;
+            }
 
             function splitPoints(positions) {
                 const uniquePositions = [];
@@ -196,7 +196,7 @@ class Bodies {
 
                 const { width, height, depth } = child.mesh.geometry.parameters;;
 
-            
+
                 this.innerObjects.push({ lineSegments, width, height, depth });
                 lineSegments.scale.copy(child.mesh.scale);
                 lineSegments.rotation.z = -child.mesh.rotation.z;
@@ -252,7 +252,7 @@ class Bodies {
 
     }
 
-    addCornerPoints(frame){
+    addCornerPoints(frame) {
         const boundaryBoundingBox = new THREE.Box3().setFromObject(frame);
         const boundaryMin = boundaryBoundingBox.min;
         const boundaryMax = boundaryBoundingBox.max;
@@ -269,7 +269,7 @@ class Bodies {
                 const baseZ = offset - j * step;
                 const offsetX = step / 2;
                 const offsetZ = step / 2;
-                if (boundaryMin.x <= baseX  && boundaryMax.x >= baseX - offsetX && boundaryMin.y <= baseZ && boundaryMax.y >= baseZ + offsetZ) {
+                if (boundaryMin.x <= baseX && boundaryMax.x >= baseX - offsetX && boundaryMin.y <= baseZ && boundaryMax.y >= baseZ + offsetZ) {
                     this.points.push(new THREE.Vector3(baseX - offsetX, 0.1, baseZ + offsetZ));
                 }
 
@@ -277,8 +277,6 @@ class Bodies {
 
         }
     }
-
-
 
     restrictDoorMovement(intersectedObject,) {
         const modelBoundingBox = new THREE.Box3().setFromObject(intersectedObject);
@@ -304,45 +302,6 @@ class Bodies {
         }
 
     }
-
-    // addSnapPointsTo3DRectangles() {
-
-    //     if (!this.viewer.scene || !this.overallBodies.length) return;
-    //     this.overallBodies.forEach(rectangle => {
-    //         const { width, height, depth } = rectangle.mesh.geometry.parameters;
-    //         rectangle.mesh.userData.snapPoints = [];
-    //         const positions = [
-    //             // Corners
-    //             [-width / 2, -height / 2, depth / 2], // Bottom-left front
-    //             [width / 2, -height / 2, depth / 2], // Bottom-right front
-    //             [-width / 2, height / 2, depth / 2], // Top-left front
-    //             [width / 2, height / 2, depth / 2], // Top-right front
-
-    //             // Midpoints of edges
-    //             [0, -height / 2, depth / 2], // Bottom front edge
-    //             [0, height / 2, depth / 2], // Top front edge
-    //             [-width / 2, 0, depth / 2], // Left front edge
-    //             [width / 2, 0, depth / 2], // Right front edge
-
-    //             // Center points
-    //             [0, 0, depth / 2], // Front center
-    //             [0, 0, -depth / 2], // Back center
-    //         ];
-
-    //         positions.forEach(([x, y, z]) => {
-    //             const geometry = new THREE.BoxGeometry(2, 2, 2); // Small wireframe box as snap point
-    //             const material = new THREE.MeshBasicMaterial({ color: 0xff0000, wireframe: true });
-    //             const snapPoint = new THREE.Mesh(geometry, material);
-
-    //             snapPoint.position.set(
-    //                 x, y, z
-    //             );
-    //             rectangle.mesh.add(snapPoint); // Attach snap point to the rectangle.mesh
-    //             rectangle.mesh.userData.snapPoints.push(snapPoint);
-    //             this.snapPoints.push(snapPoint);
-    //         });
-    //     });
-    // }
     switchSnap() {
         this.snapEnabled = !this.snapEnabled;
         if (this.snapEnabled) {

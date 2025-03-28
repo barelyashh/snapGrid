@@ -240,7 +240,7 @@ class Viewer {
         this.bodies.twoDObjects = [];
         this.bodies.innerObjects = []
 
-        this.renderer.domElement.removeEventListener("mouseenter",(event) => this.bodies.addDragControls(event));
+        this.renderer.domElement.removeEventListener("mouseenter", (event) => this.bodies.addDragControls(event));
     }
 
     //removes circular dependecy of userdata
@@ -268,8 +268,6 @@ class Viewer {
         this.raycaster.setFromCamera(mouse, this.camera);
         const spriteIntersects = this.raycaster.intersectObjects(this.bodies.spriteObjects, true);
         if (spriteIntersects.length > 0 && this.bodies.spriteObjects.includes(spriteIntersects[0].object)) {
-            // spriteIntersects[0].object.userData = {}; // Remove circular references
-            console.log(spriteIntersects[0].object.parent.geometry)
             this.popup = new Popup(spriteIntersects[0].object, this, this.onSave.bind(this), this.onCancel.bind(this));
             return;
         }
@@ -277,10 +275,10 @@ class Viewer {
 
         if (this.bodies.transformEnabled) {
             const objectsToCheck = this.bodies.overallBodies;
-            const items=[]
+            const items = []
             objectsToCheck.forEach((item) => {
                 items.push(item.mesh)
-          });
+            });
             const objectIntersects = this.raycaster.intersectObjects(items, true);
 
             if (objectIntersects.length > 0) {
@@ -347,8 +345,6 @@ class Viewer {
         }
     }
 
-  
-
     onSave() {
         this.bodies.hideAllSprites()
     }
@@ -364,7 +360,7 @@ class Viewer {
         });
 
         this.render();
-        if(!this.mode2D) this.orbitControls.update();
+        if (!this.mode2D) this.orbitControls.update();
     }
 
     render() {

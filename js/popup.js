@@ -46,8 +46,8 @@ class Popup {
         // Left side - Mini viewer container
         this.miniContainer = document.createElement("div");
         this.miniContainer.id = "mini-container";
-        this.miniContainer.style.width = "60%";
-        this.miniContainer.style.height = "100%";
+        this.miniContainer.style.width = "890px";
+        this.miniContainer.style.height = "730px";
         this.miniContainer.style.background = "#ddd";
 
         // Right side - Material Properties

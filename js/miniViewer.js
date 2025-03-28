@@ -9,8 +9,8 @@ class MiniViewer {
         this.miniViewerContainerDiv = container
         this.dimensionLines = []
         this.isMiniViewerEnabled = true
-        this.widthO = 555;
-        this.heightO = 717;
+        this.widthO = 890;
+        this.heightO = 729;
         this.activeAxis = null;
         this.initialMouse = new THREE.Vector2();
         this.deltaMouse = new THREE.Vector2();
@@ -152,7 +152,7 @@ class MiniViewer {
                     this.pivot.remove(this.intersectedObject);
                     this.intersectedObject.applyMatrix4(this.pivot.matrixWorld);
                     //need to work yash find generic logic
-                    this.viewer.popup.selectedRectangle.parent.scale.set(this.pivot.scale.x,this.pivot.scale.y,this.pivot.scale.z);
+                    this.viewer.popup.selectedRectangle.parent.scale.set(this.pivot.scale.x, this.pivot.scale.y, this.pivot.scale.z);
                     this.pivot.position.set(0, 0, 0);
                     this.pivot.scale.set(1, 1, 1);
                     this.pivot.rotation.set(0, 0, 0);

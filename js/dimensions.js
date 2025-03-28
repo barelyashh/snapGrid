@@ -100,7 +100,6 @@ class Dimensions {
         this.viewer.orbitControls.addEventListener('change', updateLabels);
     }
 
-
     removeDimensions() {
         if (this.dimensionLines.length > 0) {
             this.dimensionLines.forEach(line => this.viewer.scene.remove(line));
@@ -112,13 +111,13 @@ class Dimensions {
         // Remove references from userData for each mesh
         if (this.viewer.bodies) {
             this.viewer.bodies.overallBodies.forEach(mesh => {
-                if (mesh.userData.dimensionLines) {
-                    mesh.userData.dimensionLines.forEach(line => this.viewer.scene.remove(line));
-                    delete mesh.userData.dimensionLines;
+                if (mesh.mesh.userData.dimensionLines) {
+                    mesh.mesh.userData.dimensionLines.forEach(line => this.viewer.scene.remove(line));
+                    delete mesh.mesh.userData.dimensionLines;
                 }
-                if (mesh.userData.dimensionLabels) {
-                    mesh.userData.dimensionLabels.forEach(label => label.remove());
-                    delete mesh.userData.dimensionLabels;
+                if (mesh.mesh.userData.dimensionLabels) {
+                    mesh.mesh.userData.dimensionLabels.forEach(label => label.remove());
+                    delete mesh.mesh.userData.dimensionLabels;
                 }
             });
         }
