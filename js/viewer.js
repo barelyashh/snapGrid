@@ -351,11 +351,11 @@ class Viewer {
     }
 
     onSave() {
-        this.bodies.hideAllSprites()
+        this.bodies.showAllSprites()
     }
 
     onCancel() {
-        this.bodies.hideAllSprites()
+        this.bodies.showAllSprites()
     }
 
     animate() {

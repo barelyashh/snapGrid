@@ -28,18 +28,23 @@ class MiniViewer {
         this.setupControls()
         this.setupEventListeners();
         this.setupDimension();
+        this.setupPlane();
         this.animate();
     }
 
     setupRenderer() {
         this.renderer = new THREE.WebGLRenderer({ antialias: true });
+        this.renderer.shadowMap.enabled = true;
+        this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
         this.renderer.setSize(this.widthO, this.heightO);
         this.miniViewerContainer.appendChild(this.renderer.domElement);
     }
 
     setupScene() {
         this.scene = new THREE.Scene();
-        this.scene.background = new THREE.Color(0xe5e5e5);
+        this.scene.background = new THREE.Color("white");
+        this.scene.fog = new THREE.Fog("white", 500, 2000);
     }
 
     setupCamera() {
@@ -50,10 +55,15 @@ class MiniViewer {
     setupLights() {
         this.lights = new THREE.AmbientLight();
         this.scene.add(this.lights);
+
+        const pointLight = new THREE.PointLight("white", 5, 0, 0.1);
+        pointLight.position.set(100, 100, 300);
+        pointLight.castShadow = true;
+        this.scene.add(pointLight);
     }
 
     setupMesh(mesh) {
-        mesh.visible = false
+        this.viewer.bodies.hideAllSprites()
         const clonedRectangle = mesh.parent.clone();
         clonedRectangle.position.set(0, 0, 0); // Center in the mini viewer
         this.pivot = new THREE.Object3D();
@@ -63,6 +73,28 @@ class MiniViewer {
     }
     setupRayCaster() {
         this.raycaster = new THREE.Raycaster();
+    }
+
+    setupPlane() {
+        const planeWidth = 100000;
+        const planeHeight = 100000;
+        const planeGeometry = new THREE.PlaneGeometry(planeWidth, planeHeight);
+        const planeMaterial = new THREE.MeshBasicMaterial({
+            color: "#ffffff",
+        });
+
+        this.plane = new THREE.Mesh(planeGeometry, planeMaterial);
+        this.plane.receiveShadow = true;
+        this.plane.position.y = -100;
+        this.plane.rotation.x = -Math.PI / 2;
+        this.scene.add(this.plane);
+        this.updatePlanePosition()
+    }
+
+    updatePlanePosition() {
+        const boundingBox = new THREE.Box3().setFromObject(this.viewer.bodies.frame);
+        const minY = boundingBox.min.y - 5; // Slight offset to keep it below
+        this.plane.position.y = minY;
     }
 
     setupControls() {
@@ -150,9 +182,15 @@ class MiniViewer {
             if (this.transformControls.mode === 'scale') {
                 if (this.intersectedObject && this.intersectedObject.parent === this.pivot) {
                     this.pivot.remove(this.intersectedObject);
+                    const originalScale = this.intersectedObject.scale.clone();
+                    const newScale = new THREE.Vector3(
+                        this.pivot.scale.x !== 1 ? originalScale.x + this.pivot.scale.x : originalScale.x,
+                        this.pivot.scale.y !== 1 ? originalScale.y + this.pivot.scale.y : originalScale.y,
+                        this.pivot.scale.z !== 1 ? originalScale.z + this.pivot.scale.z : originalScale.z
+                    ); 
+                    this.viewer.popup.selectedRectangle.parent.scale.copy(newScale);
                     this.intersectedObject.applyMatrix4(this.pivot.matrixWorld);
                     //need to work yash find generic logic
-                    this.viewer.popup.selectedRectangle.parent.scale.set(this.pivot.scale.x, this.pivot.scale.y, this.pivot.scale.z);
                     this.pivot.position.set(0, 0, 0);
                     this.pivot.scale.set(1, 1, 1);
                     this.pivot.rotation.set(0, 0, 0);
@@ -165,6 +203,7 @@ class MiniViewer {
         });
         this.transformControls.addEventListener('mouseDown', (event) => {
             if (this.transformControls.mode === 'scale') {
+   
                 const box = new THREE.Box3().setFromObject(this.intersectedObject);
                 this.pivot.position.copy(this.intersectedObject.position)
                 const scaleHandle = this.transformControls.axis;
