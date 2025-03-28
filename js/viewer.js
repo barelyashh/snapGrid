@@ -346,11 +346,11 @@ class Viewer {
     }
 
     onSave() {
-        this.bodies.hideAllSprites()
+        //this.bodies.hideAllSprites()
     }
 
     onCancel() {
-        this.bodies.hideAllSprites()
+       // this.bodies.hideAllSprites()
     }
 
     animate() {
