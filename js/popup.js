@@ -1,12 +1,13 @@
 import { MiniViewer } from './miniViewer.js';
 class Popup {
-    constructor(selectedRectangle, viewer, onSave, onCancel) {
+    constructor(selectedRectangle,mesh, viewer, onSave, onCancel) {
         this.selectedRectangle = selectedRectangle;
         this.onSave = onSave
         this.onCancel = onCancel
         this.viewer = viewer
-        if (this.selectedRectangle?.parent) {
-            const parent = this.selectedRectangle.parent;
+        this.mesh = mesh
+        if (mesh) {
+            const parent = mesh;
             this.initialProperties = {
                 position: parent.position.clone(), // ✅ Deep copy of Vector3
                 color: `#${parent.material.color.getHexString()}`, // ✅ Ensure correct hex format
@@ -64,6 +65,8 @@ class Popup {
         const typeSelect = document.createElement("select")
         typeSelect.style.marginBottom = "15px"
         typeSelect.style.padding = "5px"
+        typeSelect.value = this.mesh?.userData?.type || "";
+        
 
         // Add the four type options
         const types = ["Choose the type!!", "article", "part", "profile", "item master"]
@@ -259,7 +262,7 @@ class Popup {
         document.body.appendChild(this.popupContainer);
 
         // Initialize the mini viewer
-        this.miniViewer = new MiniViewer(this.selectedRectangle, this.viewer, this.popupContainer);
+        this.miniViewer = new MiniViewer(this.mesh, this.viewer, this.popupContainer);
     }
 
     createPositionInput(labelText, axis) {
@@ -272,7 +275,7 @@ class Popup {
 
         const input = document.createElement("input");
         input.type = "number";
-        input.value = Math.round(this.selectedRectangle?.parent?.position[axis]) || 0;
+        input.value = Math.round(this.mesh?.position[axis]) || 0;
         input.step = "0.1"; // Small increments
         input.oninput = () => this.updatePosition(axis, parseFloat(input.value));
 
@@ -282,13 +285,13 @@ class Popup {
     }
 
     updatePosition(axis, value) {
-        if (!this.selectedRectangle || !this.selectedRectangle.parent) return;
-        this.selectedRectangle.parent.position[axis] = value;
+        if (!this.selectedRectangle || !this.mesh) return;
+        this.mesh.position[axis] = value;
     }
 
     updateMaterial(property, value) {
-        if (!this.selectedRectangle || !this.selectedRectangle.parent) return;
-        const material = this.selectedRectangle.parent.material;
+        if (!this.selectedRectangle || !this.mesh) return;
+        const material = this.mesh.material;
         switch (property) {
             case 'color':
                 material.color.set(value);
@@ -361,15 +364,15 @@ class Popup {
     }
 
     saveChanges() {
-        if (!this.selectedRectangle || !this.selectedRectangle.parent) return;
-        this.selectedRectangle.parent.userData.type = this.typeSelect.value;
+        if (!this.selectedRectangle || !this.mesh) return;
+        this.mesh.userData.type = this.typeSelect.value;;
         this.popupContainer.remove();
         if (this.onSave) this.onSave();
     }
 
     cancelButton() {
-        if (this.selectedRectangle?.parent) {
-            const parent = this.selectedRectangle.parent;
+        if (this.mesh) {
+            const parent = this.mesh;
             parent.position.set(
                 this.initialProperties.position.x,
                 this.initialProperties.position.y,

@@ -286,8 +286,15 @@ class Viewer {
         this.raycaster.setFromCamera(mouse, this.camera);
         const spriteIntersects = this.raycaster.intersectObjects(this.bodies.spriteObjects, true);
         if (spriteIntersects.length > 0 && this.bodies.spriteObjects.includes(spriteIntersects[0].object)) {
-            this.popup = new Popup(spriteIntersects[0].object, this, this.onSave.bind(this), this.onCancel.bind(this));
-            return;
+            this.bodies.overallBodies.forEach((object)=>{ {
+                if(object.sprite ===spriteIntersects[0].object) {
+                    this.popup = new Popup(spriteIntersects[0].object,object.mesh, this, this.onSave.bind(this), this.onCancel.bind(this));
+                    return; 
+                }
+                
+            }
+            })
+           
         }
         if (this.mode2D) return;
 
