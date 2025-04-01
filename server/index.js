@@ -10,8 +10,6 @@ app.use(express.json());
 
 app.get('/api', async (req, res) => {
     try {
-        console.log('Requesting data...');
-
         const response = await fetch(`${process.env.VITE_API_URL}/api/configurator/article`, {
             method: 'GET',
             headers: {
