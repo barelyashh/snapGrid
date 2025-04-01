@@ -1,6 +1,6 @@
-
 const express = require('express');
 const cors = require('cors');
+require('dotenv').config();
 const app = express();
 const PORT = 3030;
 
@@ -12,10 +12,10 @@ app.get('/api', async (req, res) => {
     try {
         console.log('Requesting data...');
 
-        const response = await fetch('https://development_dev_enterprise_eos.cadt365.com/api/configurator/article', {
+        const response = await fetch(`${process.env.VITE_API_URL}/api/configurator/article`, {
             method: 'GET',
             headers: {
-                'Authorization': 'Bearer 34DB6D3EEF35530C8B891B30E4E812C2C18B3B94701DB67F941608655D708479',
+                'Authorization': `Bearer ${process.env.VITE_API_BEARER_TOKEN}`,
                 'Accept': 'application/json',
             },
         });
