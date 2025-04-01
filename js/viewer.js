@@ -24,8 +24,8 @@ class Viewer {
         this.renderer = null;
         this.mouse = null;
         this.raycaster = null;
-        this.widthO = 1115;
-        this.heightO = 830;
+        this.widthO = 1820;
+        this.heightO = 900;
         this.raycasterObject = [];
         this.overallWidth = null;
         this.overallHeight = null;
@@ -38,6 +38,11 @@ class Viewer {
         this.plane = null;
         this.objectMaxSize = 0
         this.dimensions = null
+        this.activeAxis = null;
+        this.initialMouse = new THREE.Vector2();
+        this.deltaMouse = new THREE.Vector2();
+        this.size = 0
+        this.division = 50
     }
 
     createViewer() {
@@ -136,8 +141,17 @@ class Viewer {
     setupEventListeners() {
         window.addEventListener('keydown', (event) => this.handleKeyDown(event));
         window.addEventListener('resize', () => this.onWindowResize(), false);
+        window.addEventListener('pointerdown', (event) => this.handlePointerDown(event));
+        window.addEventListener('pointermove', (event) => this.handlePointerMove(event));
         this.renderer.domElement.addEventListener("click", (event) => this.handleClickIfNeeded(event));
-        this.renderer.domElement.addEventListener("mouseover", (event) => this.bodies.addDragControls(event));
+    }
+
+    handlePointerDown(event) {
+        this.initialMouse.set(event.clientX, event.clientY);
+    }
+
+    handlePointerMove(event) {
+        this.deltaMouse.set(event.clientX - this.initialMouse.x, event.clientY - this.initialMouse.y);
     }
 
     handleKeyDown(event) {
@@ -192,25 +206,30 @@ class Viewer {
             this.bodies.frame.geometry.parameters.height
         );
 
-        const size = this.objectMaxSize + 300;
-        const divisions = 10;
+        this.size = this.objectMaxSize * Math.abs(this.objectMaxSize / 20);
         let gridHelper = this.scene.getObjectByName('gridHelper');
 
         if (!gridHelper) {
-            gridHelper = new THREE.GridHelper(size, divisions);
+            gridHelper = new THREE.GridHelper(this.size, this.division);
             gridHelper.name = 'gridHelper';
             this.bodies.addCornerPoints(this.bodies.frame)
+            const ratio = this.size / this.division
+            this.bodies.gridPercentage = (ratio * 5) / 100
+
             this.scene.add(gridHelper);
         }
 
         this.camera.position.set(0, this.objectMaxSize, 0);
         this.camera.lookAt(0, 0, 0);
+        this.orbitControls.maxDistance = this.objectMaxSize + 300
         this.orbitControls.enabled = true;
         this.orbitControls.enableRotate = false;
 
         this.scene.remove(this.bodies.frame);
-        this.bodies.overallBodies.forEach(mesh => this.scene.remove(mesh));
+        this.bodies.overallBodies.forEach(child => this.scene.remove(child.mesh));
         this.bodies.generate2DDrawing();
+
+        this.renderer.domElement.addEventListener("mouseenter", (event) => this.bodies.addDragControls(event));
     }
 
     enable3DMode() {
@@ -221,7 +240,6 @@ class Viewer {
 
         if (gridHelper) this.scene.remove(gridHelper);
         if (lineSegments) this.scene.remove(lineSegments);
-
         this.bodies.twoDObjects.forEach(mesh => {
             if (mesh.name.includes('segments')) {
                 this.scene.remove(mesh);
@@ -238,24 +256,22 @@ class Viewer {
         this.updateOverAllBodies();
 
         this.bodies.twoDObjects = [];
+        this.bodies.innerObjects = []
+
+        this.renderer.domElement.removeEventListener("mouseenter", (event) => this.bodies.addDragControls(event));
     }
 
     //removes circular dependecy of userdata
     updateOverAllBodies() {
-        this.bodies.overallBodies.forEach(mesh => {
-            const lineData = mesh.userData.line;
+        this.bodies.overallBodies.forEach(child => {
+            const lineData = child.line.lineSegments;
             if (lineData) {
                 const { position, scale, rotation } = lineData;
-                mesh.position.set(position.x, -position.z, mesh.position.z);
-                mesh.scale.copy(scale);
-                mesh.rotation.z = -rotation.z;
+                child.mesh.position.set(position.x, -position.z, child.mesh.position.z);
+                child.mesh.scale.copy(scale);
+                child.mesh.rotation.z = -rotation.z;
             }
-            this.scene.add(mesh);
-        });
-
-        this.bodies.overallBodies.forEach(mesh => {
-            mesh.userData = {};
-
+            this.scene.add(child.mesh);
         });
     }
 
@@ -270,15 +286,18 @@ class Viewer {
         this.raycaster.setFromCamera(mouse, this.camera);
         const spriteIntersects = this.raycaster.intersectObjects(this.bodies.spriteObjects, true);
         if (spriteIntersects.length > 0 && this.bodies.spriteObjects.includes(spriteIntersects[0].object)) {
-            spriteIntersects[0].object.userData = {}; // Remove circular references
             this.popup = new Popup(spriteIntersects[0].object, this, this.onSave.bind(this), this.onCancel.bind(this));
             return;
         }
         if (this.mode2D) return;
 
         if (this.bodies.transformEnabled) {
-            const objectsToCheck = this.mode2D ? this.bodies.twoDObjects : this.bodies.overallBodies;
-            const objectIntersects = this.raycaster.intersectObjects(objectsToCheck, true);
+            const objectsToCheck = this.bodies.overallBodies;
+            const items = []
+            objectsToCheck.forEach((item) => {
+                items.push(item.mesh)
+            });
+            const objectIntersects = this.raycaster.intersectObjects(items, true);
 
             if (objectIntersects.length > 0) {
                 this.handleObjectIntersection(objectIntersects[0].object);
@@ -288,25 +307,79 @@ class Viewer {
         }
     }
 
-
     handleObjectIntersection(intersectedObject) {
         this.intersectedObject = intersectedObject;
         this.transformControls.detach();
-        this.transformControls.attach(this.intersectedObject);
+        if (this.transformControls.mode === "scale") {
+            this.transformControls.attach(this.bodies.pivot); // Attach to pivot when scaling
+        } else {
+            this.transformControls.attach(this.intersectedObject); // Attach to intersected object otherwise
+        }
 
+        // Add Gizmo Helper
         const gizmo = this.transformControls.getHelper();
         this.scene.add(gizmo);
-        this.orbitControls.enabled = this.mode2D;
+        this.orbitControls.enabled = false;
 
-        this.transformControls.addEventListener('change', () => this.transformControls.update());
         this.transformControls.addEventListener('objectChange', () => {
             if (this.transformControls.mode === 'scale') {
-                this.dimensions.add3DDimensionsToRectangles(this.intersectedObject)
+                this.dimensions.add3DDimensionsToRectangles(this.intersectedObject);
             }
             this.restrictDoorMovement(this.intersectedObject);
         });
+
+        // Handle mouse up event (finalize scaling)
         this.transformControls.addEventListener('mouseUp', () => {
-            this.dimensions.removeDimensions();
+            if (this.transformControls.mode === 'scale') {
+                if (this.intersectedObject && this.intersectedObject.parent === this.bodies.pivot) {
+                    this.bodies.pivot.remove(this.intersectedObject);
+
+                    const originalScale = this.intersectedObject.scale.clone();
+                    const pivotScale = this.bodies.pivot.scale.clone();
+
+                    // Apply scaling only on changed axes
+                    const newScale = new THREE.Vector3(
+                        pivotScale.x !== 1 ? originalScale.x * pivotScale.x : originalScale.x,
+                        pivotScale.y !== 1 ? originalScale.y * pivotScale.y : originalScale.y,
+                        pivotScale.z !== 1 ? originalScale.z * pivotScale.z : originalScale.z
+                    );
+
+                    // Apply pivot transformations
+                    this.intersectedObject.applyMatrix4(this.bodies.pivot.matrixWorld);
+                    this.intersectedObject.scale.copy(newScale);
+
+                    // Reset pivot
+                    this.bodies.pivot.position.set(0, 0, 0);
+                    this.bodies.pivot.scale.set(1, 1, 1);
+                    this.bodies.pivot.rotation.set(0, 0, 0);
+
+                    this.scene.add(this.intersectedObject);
+                }
+
+                this.transformControls.detach();
+                this.dimensions.removeDimensions();
+            }
+        });
+
+        this.transformControls.addEventListener('mouseDown', () => {
+            if (this.transformControls.mode === 'scale') {
+                const box = new THREE.Box3().setFromObject(this.intersectedObject);
+                this.bodies.pivot.position.set(0, 0, 5); // Ensure correct pivot positioning
+
+                const scaleHandle = this.transformControls.axis;
+                if (scaleHandle === 'Y') {
+                    this.bodies.pivot.position.y = this.deltaMouse.y < 0 ? box.min.y : box.max.y;
+                }
+                if (scaleHandle === 'X') {
+                    this.bodies.pivot.position.x = this.deltaMouse.x > 0 ? box.min.x : box.max.x;
+                }
+
+                this.orbitControls.enabled = false;
+                this.bodies.pivot.attach(this.intersectedObject);
+                this.transformControls.attach(this.bodies.pivot);
+            } else {
+                this.transformControls.attach(this.intersectedObject);
+            }
         });
     }
 
@@ -344,23 +417,12 @@ class Viewer {
         }
     }
 
-    switchSnap() {
-        this.snapEnabled = !this.snapEnabled;
-        if (this.snapEnabled) {
-            //wor on 3d snapping points + for 3d use dragballcontrols or something else for snap
-            //  this.mode2D ? this.bodies.addSnapPointsTo2Drectangles() : this.bodies.addSnapPointsTo3DRectangles();
-            this.bodies.addSnapPointsTo2Drectangles()
-        } else {
-            this.bodies.removeSnapPoints(this.mode2D);
-        }
-    }
-
     onSave() {
-        this.bodies.hideAllSprites()
+        this.bodies.showAllSprites()
     }
 
     onCancel() {
-        this.bodies.hideAllSprites()
+        this.bodies.showAllSprites()
     }
 
     animate() {
@@ -368,9 +430,8 @@ class Viewer {
         this.bodies.spriteObjects.forEach(obj => {
             obj.quaternion.copy(this.camera.quaternion);
         });
-
         this.render();
-        if(!this.mode2D) this.orbitControls.update();
+        if (!this.mode2D) this.orbitControls.update();
     }
 
     render() {
