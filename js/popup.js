@@ -160,7 +160,6 @@ class Popup {
     saveChanges() {
         if (!this.selectedRectangle || !this.selectedRectangle.parent) return;
         this.selectedRectangle.parent.userData.type = this.typeInput.value;
-        console.log( this.selectedRectangle.parent.scale,' this.selectedRectangle.parent')
         this.popupContainer.remove();
         if (this.onSave) this.onSave();
     }

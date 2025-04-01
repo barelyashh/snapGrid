@@ -158,6 +158,7 @@ class MiniViewer {
     }
 
     handleObjectIntersection(intersectedObject) {
+
         this.intersectedObject = intersectedObject;
         this.transformControls.detach();
         this.transformControls.attach(this.pivot);
@@ -165,15 +166,9 @@ class MiniViewer {
         const gizmo = this.transformControls.getHelper();
         this.scene.add(gizmo);
         this.orbitControls.enabled = false;
-        this.transformControls.addEventListener('change', () => {
-            this.transformControls.update()
-            this.scene.needsRender = true
-        }
-        );
 
         this.transformControls.addEventListener('objectChange', () => {
             if (this.transformControls.mode === 'scale') {
-                this.intersectedObject.updateMatrixWorld(true); // Ensure world transformations are applied
                 this.dimensions.add3DDimensionsToRectangles(this.intersectedObject)
             }
         });
@@ -187,7 +182,7 @@ class MiniViewer {
                         this.pivot.scale.x !== 1 ? originalScale.x + this.pivot.scale.x : originalScale.x,
                         this.pivot.scale.y !== 1 ? originalScale.y + this.pivot.scale.y : originalScale.y,
                         this.pivot.scale.z !== 1 ? originalScale.z + this.pivot.scale.z : originalScale.z
-                    ); 
+                    );
                     this.viewer.popup.selectedRectangle.parent.scale.copy(newScale);
                     this.intersectedObject.applyMatrix4(this.pivot.matrixWorld);
                     //need to work yash find generic logic
@@ -203,33 +198,23 @@ class MiniViewer {
         });
         this.transformControls.addEventListener('mouseDown', (event) => {
             if (this.transformControls.mode === 'scale') {
-   
+
                 const box = new THREE.Box3().setFromObject(this.intersectedObject);
                 this.pivot.position.copy(this.intersectedObject.position)
                 const scaleHandle = this.transformControls.axis;
                 if (scaleHandle === 'Y') {
-                    if (this.deltaMouse.x < 0) {
-                        this.pivot.position.y = box.max.y;
-                    } else {
-                        this.pivot.position.y = box.min.y;
-                    }
+                    this.pivot.position.y = this.deltaMouse.y < 0 ? box.min.y : box.max.y;
                 }
                 if (scaleHandle === 'X') {
-                    if (this.deltaMouse.x > 0) {
-                        this.pivot.position.x = box.min.x;
-                    } else {
-                        this.pivot.position.x = box.max.x;
-                    }
+                    this.pivot.position.x = this.deltaMouse.x > 0 ? box.min.x : box.max.x;
                 }
                 this.orbitControls.enabled = false
                 this.pivot.attach(this.intersectedObject);
                 this.transformControls.attach(this.pivot);
             } else {
-
                 this.transformControls.attach(this.intersectedObject);
             }
         });
-
     }
 
     resetTransformControls() {
