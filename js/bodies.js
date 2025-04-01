@@ -40,7 +40,6 @@ class Bodies {
         const objectMaxSize = Math.max(this.frame.geometry.parameters.width, this.frame.geometry.parameters.height)
         this.viewer.position.z = objectMaxSize
         this.viewer.camera.position.set(0, 0, objectMaxSize);
-        this.viewer.setupPlane();
     }
 
 

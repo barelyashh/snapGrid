@@ -35,8 +35,8 @@ class Popup {
         this.popupContainer.style.position = "fixed";
         this.popupContainer.style.top = "10%";
         this.popupContainer.style.left = "10%";
-        this.popupContainer.style.width = "80%";
-        this.popupContainer.style.height = "80%";
+        this.popupContainer.style.width = "60%";
+        this.popupContainer.style.height = "70%";
         this.popupContainer.style.background = "white";
         this.popupContainer.style.boxShadow = "0 0 10px rgba(0,0,0,0.3)";
         this.popupContainer.style.zIndex = "1000";
@@ -47,7 +47,7 @@ class Popup {
         this.miniContainer = document.createElement("div");
         this.miniContainer.id = "mini-container";
         this.miniContainer.style.width = "890px";
-        this.miniContainer.style.height = "730px";
+        this.miniContainer.style.height = "710px";
         this.miniContainer.style.background = "#ddd";
 
         // Right side - Material Properties
@@ -64,9 +64,9 @@ class Popup {
         const typeSelect = document.createElement("select")
         typeSelect.style.marginBottom = "15px"
         typeSelect.style.padding = "5px"
-        
+
         // Add the four type options
-        const types = ["Choose the type!!","article", "part", "profile", "item master"]
+        const types = ["Choose the type!!", "article", "part", "profile", "item master"]
         types.forEach(type => {
             const option = document.createElement("option")
             option.value = type
@@ -78,7 +78,7 @@ class Popup {
         const dataBoxContainer = document.createElement("div")
         dataBoxContainer.style.marginTop = "15px"
         dataBoxContainer.style.marginBottom = "15px"
-        
+
         const dataBox = document.createElement("div")
         dataBox.style.height = "200px"
         dataBox.style.overflowY = "auto"
@@ -92,13 +92,13 @@ class Popup {
         typeSelect.onchange = async () => {
             const selectedType = typeSelect.value
             dataBox.innerHTML = '' // Clear previous content
-            
-            switch(selectedType) {
+
+            switch (selectedType) {
                 case 'Choose the type!!':
                     dataBox.innerHTML = '<div>Please Choose the Type!!</div>'
                     break
                 case 'article':
-                    this.updateMaterial('color', 0x00ff00)
+                    this.updateMaterial('color', 0x8c3118)
                     await this.loadArticleData()
                     if (this.articleData) {
                         this.articleData.data.forEach(article => {
@@ -106,19 +106,19 @@ class Popup {
                             div.style.padding = "5px"
                             div.style.borderBottom = "1px solid #eee"
                             div.textContent = article.name ? article.name : article.id
-                            div.value = article.id 
+                            div.value = article.id
 
                             div.style.cursor = "pointer"
                             div.style.transition = "background-color 0.3s"
 
                             div.onmouseover = () => {
-                                div.style.backgroundColor = "#f0f0f0" 
+                                div.style.backgroundColor = "#f0f0f0"
                             }
                             div.onmouseout = () => {
-                                div.style.backgroundColor = "" 
+                                div.style.backgroundColor = ""
                             }
                             div.onclick = () => {
-                                this.handleItemClick(article.id) 
+                                this.handleItemClick(article.id)
                             }
 
                             dataBox.appendChild(div)
@@ -126,7 +126,7 @@ class Popup {
                     }
                     break
                 case 'part':
-                    this.updateMaterial('color', 0xff00ff)
+                    this.updateMaterial('color', 0x371a75)
                     await this.loadPartData()
                     if (this.partData) {
                         this.partData.data.forEach(part => {
@@ -134,20 +134,20 @@ class Popup {
                             div.style.padding = "5px"
                             div.style.borderBottom = "1px solid #eee"
                             div.textContent = part.name.en ? part.name.en : part.id
-                            div.value = part.id 
-                            
-                            div.style.cursor = "pointer" 
-                            div.style.transition = "background-color 0.3s" 
+                            div.value = part.id
+
+                            div.style.cursor = "pointer"
+                            div.style.transition = "background-color 0.3s"
 
                             div.onmouseover = () => {
-                                div.style.backgroundColor = "#f0f0f0" 
+                                div.style.backgroundColor = "#f0f0f0"
                             }
                             div.onmouseout = () => {
-                                div.style.backgroundColor = "" 
+                                div.style.backgroundColor = ""
                             }
-                           
+
                             div.onclick = () => {
-                                this.handleItemClick(part.id) 
+                                this.handleItemClick(part.id)
                             }
 
                             dataBox.appendChild(div)
@@ -155,28 +155,28 @@ class Popup {
                     }
                     break
                 case 'profile':
-                    this.updateMaterial('color', 0xf0ff0f)
+                    this.updateMaterial('color', 0x0e8499)
                     await this.loadProfileData()
                     if (this.profileData) {
                         this.profileData.data.forEach(profile => {
                             const div = document.createElement("div")
                             div.style.padding = "5px"
                             div.style.borderBottom = "1px solid #eee"
-                            div.textContent = profile.name.en ? profile.name.en :profile.id
-                            div.value = profile.id 
-                            
-                            div.style.cursor = "pointer" 
-                            div.style.transition = "background-color 0.3s" 
+                            div.textContent = profile.name.en ? profile.name.en : profile.id
+                            div.value = profile.id
+
+                            div.style.cursor = "pointer"
+                            div.style.transition = "background-color 0.3s"
 
                             div.onmouseover = () => {
-                                div.style.backgroundColor = "#f0f0f0" 
+                                div.style.backgroundColor = "#f0f0f0"
                             }
                             div.onmouseout = () => {
-                                div.style.backgroundColor = "" 
+                                div.style.backgroundColor = ""
                             }
-                           
+
                             div.onclick = () => {
-                                this.handleItemClick(profile.id) 
+                                this.handleItemClick(profile.id)
                             }
 
                             dataBox.appendChild(div)
@@ -184,7 +184,7 @@ class Popup {
                     }
                     break
                 case 'item master':
-                    this.updateMaterial('color', 0x0000ff)
+                    this.updateMaterial('color', 0x4f9116)
                     await this.loadItemMasterData()
                     if (this.itemMasterData) {
                         this.itemMasterData.data.forEach(itemMaster => {
@@ -192,20 +192,20 @@ class Popup {
                             div.style.padding = "5px"
                             div.style.borderBottom = "1px solid #eee"
                             div.textContent = itemMaster.name.en ? itemMaster.name.en : itemMaster.id
-                            div.value = itemMaster.id 
-                            
-                            div.style.cursor = "pointer" 
-                            div.style.transition = "background-color 0.3s" 
+                            div.value = itemMaster.id
+
+                            div.style.cursor = "pointer"
+                            div.style.transition = "background-color 0.3s"
 
                             div.onmouseover = () => {
-                                div.style.backgroundColor = "#f0f0f0" 
+                                div.style.backgroundColor = "#f0f0f0"
                             }
                             div.onmouseout = () => {
-                                div.style.backgroundColor = "" 
+                                div.style.backgroundColor = ""
                             }
-                           
+
                             div.onclick = () => {
-                                this.handleItemClick(itemMaster.id) 
+                                this.handleItemClick(itemMaster.id)
                             }
 
                             dataBox.appendChild(div)
@@ -396,7 +396,7 @@ class Popup {
         }
     }
 
- 
+
     handleItemClick(itemId) {
         console.log("Selected Item ID:", itemId)
     }

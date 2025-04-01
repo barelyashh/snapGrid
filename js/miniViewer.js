@@ -10,7 +10,7 @@ class MiniViewer {
         this.dimensionLines = []
         this.isMiniViewerEnabled = true
         this.widthO = 890;
-        this.heightO = 729;
+        this.heightO = 710;
         this.activeAxis = null;
         this.initialMouse = new THREE.Vector2();
         this.deltaMouse = new THREE.Vector2();
@@ -28,7 +28,6 @@ class MiniViewer {
         this.setupControls()
         this.setupEventListeners();
         this.setupDimension();
-        this.setupPlane();
         this.animate();
     }
 
