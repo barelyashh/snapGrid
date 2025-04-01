@@ -3,7 +3,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { TransformControls } from 'three/addons/controls/TransformControls.js';
 import { Dimensions } from './dimensions.js';
 class MiniViewer {
-    constructor(mesh, viewer, container) {
+    constructor(mesh, parent, viewer, container) {
         this.viewer = viewer
         this.miniViewerSceneObject = []
         this.miniViewerContainerDiv = container
@@ -14,16 +14,17 @@ class MiniViewer {
         this.activeAxis = null;
         this.initialMouse = new THREE.Vector2();
         this.deltaMouse = new THREE.Vector2();
-        this.init(mesh);
+        this.init(mesh,parent);
+        
     }
 
-    init(mesh) {
+    init(mesh,parent) {
         this.miniViewerContainer = document.getElementById("mini-container");
         this.setupRenderer();
         this.setupScene();
         this.setupLights()
         this.setupCamera()
-        this.setupMesh(mesh)
+        this.setupMesh(mesh,parent)
         this.setupRayCaster()
         this.setupControls()
         this.setupEventListeners();
@@ -62,9 +63,9 @@ class MiniViewer {
         this.scene.add(pointLight);
     }
 
-    setupMesh(mesh) {
+    setupMesh(mesh,parent) {
         this.viewer.bodies.hideAllSprites()
-        const clonedRectangle = mesh.parent.clone();
+        const clonedRectangle = parent.clone();
         clonedRectangle.position.set(0, 0, 0); // Center in the mini viewer
         this.pivot = new THREE.Object3D();
         this.scene.add(clonedRectangle);
