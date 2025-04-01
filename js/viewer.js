@@ -41,6 +41,8 @@ class Viewer {
         this.activeAxis = null;
         this.initialMouse = new THREE.Vector2();
         this.deltaMouse = new THREE.Vector2();
+        this.size = 0
+        this.division = 50
     }
 
     createViewer() {
@@ -204,19 +206,22 @@ class Viewer {
             this.bodies.frame.geometry.parameters.height
         );
 
-        const size = this.objectMaxSize + 300;
-        const divisions = 10;
+        this.size = this.objectMaxSize * Math.abs(this.objectMaxSize / 20);
         let gridHelper = this.scene.getObjectByName('gridHelper');
 
         if (!gridHelper) {
-            gridHelper = new THREE.GridHelper(size, divisions);
+            gridHelper = new THREE.GridHelper(this.size, this.division);
             gridHelper.name = 'gridHelper';
             this.bodies.addCornerPoints(this.bodies.frame)
+            const ratio = this.size / this.division
+            this.bodies.gridPercentage = (ratio * 5) / 100
+
             this.scene.add(gridHelper);
         }
 
         this.camera.position.set(0, this.objectMaxSize, 0);
         this.camera.lookAt(0, 0, 0);
+        this.orbitControls.maxDistance = this.objectMaxSize + 300
         this.orbitControls.enabled = true;
         this.orbitControls.enableRotate = false;
 
