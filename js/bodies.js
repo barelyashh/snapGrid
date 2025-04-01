@@ -54,7 +54,6 @@ class Bodies {
     }
 
     create2DShape(widthBox, heightBox, depthBox) {
-        console.log("v", widthBox, heightBox)
         const tri = new THREE.Shape();
         tri.moveTo(-widthBox / 2, heightBox / 2);
         tri.lineTo(widthBox / 2, heightBox / 2);
@@ -94,10 +93,10 @@ class Bodies {
         sprite.visible = false;
         rectangle.add(sprite);
         this.pivot = new THREE.Object3D();
-        this.viewer.scene.add(this.pivot); 
-        if (visible){
+        this.viewer.scene.add(this.pivot);
+        if (visible) {
             this.viewer.scene.add(rectangle);
-        } 
+        }
         if (lineSegments) {
             const object = { lineSegments, width: widthBox, height: heightBox, depth: depthBox }
             this.overallBodies.push({ mesh: rectangle, line: object });
@@ -227,14 +226,14 @@ class Bodies {
     }
 
     hideAllSprites() {
-         this.spriteObjects.forEach(sprite => {
-                sprite.visible = false;
-        }); 
+        this.spriteObjects.forEach(sprite => {
+            sprite.visible = false;
+        });
     }
 
     showAllSprites() {
-         this.spriteObjects.forEach(sprite => {
-                sprite.visible = true;
+        this.spriteObjects.forEach(sprite => {
+            sprite.visible = true;
         });
     }
 
@@ -265,15 +264,15 @@ class Bodies {
         const boundaryBoundingBox = new THREE.Box3().setFromObject(frame);
         const boundaryMin = boundaryBoundingBox.min;
         const boundaryMax = boundaryBoundingBox.max;
-        const step = (this.viewer.size) / this.viewer.division ;
+        const step = (this.viewer.size) / this.viewer.division;
         const halfSize = (this.viewer.size) / 2;
         const halfStep = step / 2;
         const offset = halfSize - halfStep;
 
 
-        for (let i = 0; i <this.viewer.division; i++) {
+        for (let i = 0; i < this.viewer.division; i++) {
 
-            for (let j = 0; j <this.viewer.division; j++) {
+            for (let j = 0; j < this.viewer.division; j++) {
                 const baseX = offset - i * step;
                 const baseZ = offset - j * step;
                 const offsetX = step / 2;

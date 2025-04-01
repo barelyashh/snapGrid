@@ -310,7 +310,11 @@ class Viewer {
     handleObjectIntersection(intersectedObject) {
         this.intersectedObject = intersectedObject;
         this.transformControls.detach();
-        this.transformControls.attach(this.bodies.pivot);
+        if (this.transformControls.mode === "scale") {
+            this.transformControls.attach(this.bodies.pivot); // Attach to pivot when scaling
+        } else {
+            this.transformControls.attach(this.intersectedObject); // Attach to intersected object otherwise
+        }
 
         // Add Gizmo Helper
         const gizmo = this.transformControls.getHelper();
@@ -358,7 +362,6 @@ class Viewer {
         });
 
         this.transformControls.addEventListener('mouseDown', () => {
-
             if (this.transformControls.mode === 'scale') {
                 const box = new THREE.Box3().setFromObject(this.intersectedObject);
                 this.bodies.pivot.position.set(0, 0, 5); // Ensure correct pivot positioning
