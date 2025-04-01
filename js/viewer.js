@@ -311,52 +311,68 @@ class Viewer {
     handleObjectIntersection(intersectedObject) {
         this.intersectedObject = intersectedObject;
         this.transformControls.detach();
-        this.transformControls.attach(this.intersectedObject);
-
+        this.transformControls.attach(this.bodies.pivot);
+    
+        // Add Gizmo Helper
         const gizmo = this.transformControls.getHelper();
         this.scene.add(gizmo);
-        this.orbitControls.enabled = this.mode2D;
-
+    
+        this.orbitControls.enabled = false;
+    
         this.transformControls.addEventListener('objectChange', () => {
             if (this.transformControls.mode === 'scale') {
-                this.dimensions.add3DDimensionsToRectangles(this.intersectedObject)
+                this.dimensions.add3DDimensionsToRectangles(this.intersectedObject);
             }
             this.restrictDoorMovement(this.intersectedObject);
         });
+    
+        // Handle mouse up event (finalize scaling)
         this.transformControls.addEventListener('mouseUp', () => {
-            if (this.intersectedObject && this.intersectedObject.parent === this.pivot) {
-                this.pivot.remove(this.intersectedObject);
-                this.intersectedObject.applyMatrix4(this.pivot.matrixWorld);
+            if (this.intersectedObject?.parent === this.bodies.pivot) {
+                this.bodies.pivot.remove(this.intersectedObject);
+    
+                const originalScale = this.intersectedObject.scale.clone();
+                const pivotScale = this.bodies.pivot.scale.clone();
+    
+                // Apply scaling only on changed axes
+                const newScale = new THREE.Vector3(
+                    pivotScale.x !== 1 ? originalScale.x * pivotScale.x : originalScale.x,
+                    pivotScale.y !== 1 ? originalScale.y * pivotScale.y : originalScale.y,
+                    pivotScale.z !== 1 ? originalScale.z * pivotScale.z : originalScale.z
+                );
+    
+                // Apply pivot transformations
+                this.intersectedObject.applyMatrix4(this.bodies.pivot.matrixWorld);
+                this.intersectedObject.scale.copy(newScale);
+    
+                // Reset pivot
+                this.bodies.pivot.position.set(0, 0, 0);
+                this.bodies.pivot.scale.set(1, 1, 1);
+                this.bodies.pivot.rotation.set(0, 0, 0);
+    
                 this.scene.add(this.intersectedObject);
             }
-
+    
             this.transformControls.detach();
             this.dimensions.removeDimensions();
         });
-        this.transformControls.addEventListener('mouseDown', (event) => {
+    
+        this.transformControls.addEventListener('mouseDown', () => {
             if (this.transformControls.mode === 'scale') {
-                this.pivot = new THREE.Object3D();
-                this.scene.add(this.pivot);
                 const box = new THREE.Box3().setFromObject(this.intersectedObject);
-                //this.pivot.position.copy(this.intersectedObject.position)
+                this.bodies.pivot.position.set(0, 0, 5); // Ensure correct pivot positioning
+    
                 const scaleHandle = this.transformControls.axis;
                 if (scaleHandle === 'Y') {
-                    if (this.deltaMouse.x < 0) {
-                        this.pivot.position.y = box.max.y;
-                    } else {
-                        this.pivot.position.y = box.min.y;
-                    }
+                    this.bodies.pivot.position.y = this.deltaMouse.x < 0 ? box.max.y : box.min.y;
                 }
                 if (scaleHandle === 'X') {
-                    if (this.deltaMouse.x > 0) {
-                        this.pivot.position.x = box.min.x;
-                    } else {
-                        this.pivot.position.x = box.max.x;
-                    }
+                    this.bodies.pivot.position.x = this.deltaMouse.x > 0 ? box.min.x : box.max.x;
                 }
-                this.orbitControls.enabled = false
-                this.pivot.attach(this.intersectedObject);
-                this.transformControls.attach(this.pivot);
+    
+                this.orbitControls.enabled = false;
+                this.bodies.pivot.attach(this.intersectedObject);
+                this.transformControls.attach(this.bodies.pivot);
             } else {
                 this.transformControls.attach(this.intersectedObject);
             }
@@ -410,7 +426,6 @@ class Viewer {
         this.bodies.spriteObjects.forEach(obj => {
             obj.quaternion.copy(this.camera.quaternion);
         });
-
         this.render();
         if (!this.mode2D) this.orbitControls.update();
     }

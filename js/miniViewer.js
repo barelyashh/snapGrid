@@ -158,6 +158,7 @@ class MiniViewer {
     }
 
     handleObjectIntersection(intersectedObject) {
+      
         this.intersectedObject = intersectedObject;
         this.transformControls.detach();
         this.transformControls.attach(this.pivot);

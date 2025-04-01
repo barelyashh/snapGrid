@@ -93,9 +93,11 @@ class Bodies {
         this.positionSprite(sprite, rectangle);
         sprite.visible = false;
         rectangle.add(sprite);
-
-        if (visible) this.viewer.scene.add(rectangle);
-        rectangle.position.y = 0.1;
+        this.pivot = new THREE.Object3D();
+        this.viewer.scene.add(this.pivot); 
+        if (visible){
+            this.viewer.scene.add(rectangle);
+        } 
         if (lineSegments) {
             const object = { lineSegments, width: widthBox, height: heightBox, depth: depthBox }
             this.overallBodies.push({ mesh: rectangle, line: object });
