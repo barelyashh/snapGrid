@@ -98,14 +98,14 @@ class Popup {
                     dataBox.innerHTML = '<div>Please Choose the Type!!</div>'
                     break
                 case 'article':
+                    this.updateMaterial('color', 0x00ff00)
                     await this.loadArticleData()
                     if (this.articleData) {
-                        console.log("data", this.articleData)
                         this.articleData.data.forEach(article => {
                             const div = document.createElement("div")
                             div.style.padding = "5px"
                             div.style.borderBottom = "1px solid #eee"
-                            div.textContent = article.name
+                            div.textContent = article.name ? article.name : article.id
                             div.value = article.id 
 
                             div.style.cursor = "pointer"
@@ -126,14 +126,14 @@ class Popup {
                     }
                     break
                 case 'part':
+                    this.updateMaterial('color', 0xff00ff)
                     await this.loadPartData()
                     if (this.partData) {
-                        console.log("data", this.partData)
                         this.partData.data.forEach(part => {
                             const div = document.createElement("div")
                             div.style.padding = "5px"
                             div.style.borderBottom = "1px solid #eee"
-                            div.textContent = part.name.en
+                            div.textContent = part.name.en ? part.name.en : part.id
                             div.value = part.id 
                             
                             div.style.cursor = "pointer" 
@@ -155,14 +155,14 @@ class Popup {
                     }
                     break
                 case 'profile':
+                    this.updateMaterial('color', 0xf0ff0f)
                     await this.loadProfileData()
                     if (this.profileData) {
-                        console.log("data", this.profileData)
                         this.profileData.data.forEach(profile => {
                             const div = document.createElement("div")
                             div.style.padding = "5px"
                             div.style.borderBottom = "1px solid #eee"
-                            div.textContent = profile.name.en
+                            div.textContent = profile.name.en ? profile.name.en :profile.id
                             div.value = profile.id 
                             
                             div.style.cursor = "pointer" 
@@ -184,8 +184,33 @@ class Popup {
                     }
                     break
                 case 'item master':
-                    // Add item master data when available
-                    dataBox.innerHTML = '<div>Item master data will be displayed here</div>'
+                    this.updateMaterial('color', 0x0000ff)
+                    await this.loadItemMasterData()
+                    if (this.itemMasterData) {
+                        this.itemMasterData.data.forEach(itemMaster => {
+                            const div = document.createElement("div")
+                            div.style.padding = "5px"
+                            div.style.borderBottom = "1px solid #eee"
+                            div.textContent = itemMaster.name.en ? itemMaster.name.en : itemMaster.id
+                            div.value = itemMaster.id 
+                            
+                            div.style.cursor = "pointer" 
+                            div.style.transition = "background-color 0.3s" 
+
+                            div.onmouseover = () => {
+                                div.style.backgroundColor = "#f0f0f0" 
+                            }
+                            div.onmouseout = () => {
+                                div.style.backgroundColor = "" 
+                            }
+                           
+                            div.onclick = () => {
+                                this.handleItemClick(itemMaster.id) 
+                            }
+
+                            dataBox.appendChild(div)
+                        })
+                    }
                     break
             }
         }
@@ -323,9 +348,21 @@ class Popup {
         }
     }
 
+    async loadItemMasterData() {
+        try {
+            const response = await fetch('http://localhost:3030/api/items')
+            if (!response.ok) {
+                throw new Error('Failed to fetch itemMaster data')
+            }
+            this.itemMasterData = await response.json()
+        } catch (error) {
+            console.error('Error loading itemMaster data:', error)
+        }
+    }
+
     saveChanges() {
         if (!this.selectedRectangle || !this.selectedRectangle.parent) return;
-        this.selectedRectangle.parent.userData.type = this.typeInput.value;
+        this.selectedRectangle.parent.userData.type = this.typeSelect.value;
         this.popupContainer.remove();
         if (this.onSave) this.onSave();
     }
