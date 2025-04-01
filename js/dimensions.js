@@ -23,8 +23,6 @@ class Dimensions {
 
         const width = size.x;
         const height = size.y;
-        console.log('width for dimensions: ',width)
-        console.log('height for dimensions: ',height)
         //need to work find genric solution for it
         const position = (mesh.parent.name === 'scene') ? mesh.position.clone() : new THREE.Vector3(0, 0, 0);
 
