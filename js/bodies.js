@@ -90,17 +90,15 @@ class Bodies {
         sprite.scale.set(5, 5, 1);
         this.positionSprite(sprite, rectangle);
         sprite.visible = false;
-        rectangle.add(sprite);
         this.pivot = new THREE.Object3D();
         this.viewer.scene.add(this.pivot);
-        if (visible) {
-            this.viewer.scene.add(rectangle);
-        }
+        if (visible) this.viewer.scene.add(rectangle);
+        rectangle.position.y = 0.1;
         if (lineSegments) {
             const object = { lineSegments, width: widthBox, height: heightBox, depth: depthBox }
-            this.overallBodies.push({ mesh: rectangle, line: object });
+            this.overallBodies.push({ mesh: rectangle, line: object, sprite : sprite });
         } else {
-            this.overallBodies.push({ mesh: rectangle });
+            this.overallBodies.push({ mesh: rectangle,sprite : sprite });
         }
 
         this.spriteObjects.push(sprite);
@@ -117,7 +115,8 @@ class Bodies {
     positionSprite(sprite, rectangle) {
         if (!this.viewer.overallDepth) return;
         const rectDepth = rectangle.geometry.parameters.depth;
-        sprite.position.set(0, 0, rectDepth / 2 + 3);
+        const boundaryBoundingBox = new THREE.Box3().setFromObject(sprite);
+        sprite.position.set(0, 0, (rectDepth / 2) + boundaryBoundingBox.getSize(new THREE.Vector3()).y + 2);
     }
 
     generate2DDrawing() {
@@ -221,7 +220,12 @@ class Bodies {
             this.viewer.scene.remove(this.viewer.transformControls);
             this.viewer.transformControls.detach();
         }
-        this.spriteObjects.forEach(obj => obj.visible = !this.transformEnabled);
+        this.overallBodies.forEach((obj) => {
+            if(!obj) return
+            obj.sprite.position.set(obj.mesh.position.x, obj.mesh.position.y,  obj.sprite.position.z);
+            obj.sprite.visible = !this.transformEnabled
+            this.viewer.scene.add(obj.sprite)
+        });
     }
 
     hideAllSprites() {
