@@ -30,8 +30,8 @@ header {
     position: absolute;
     top: 50px; /* Adjust as needed */
     left: 0;
-    width: 1115px;
-    height: 830px;
+    width: 1820px;
+    height: 900px;
 }
 .sidebar {
     width: 280px;
@@ -39,7 +39,7 @@ header {
     padding: 10px;
     overflow-y: auto;
     border-left: 1px solid #ddd;
-    margin-left: 1124px;
+    margin-left: 1830px;
 }
 .panel {
     background: #004080;
