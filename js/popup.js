@@ -378,7 +378,7 @@ class Popup {
                 this.initialProperties.position.y,
                 this.initialProperties.position.z
             );
-            parent.material.color.set(`#${this.initialProperties.color}`);
+            parent.material.color.set(`${this.initialProperties.color}`);
             parent.material.opacity = this.initialProperties.opacity;
             parent.material.metalness = this.initialProperties.metalness;
             parent.material.roughness = this.initialProperties.roughness;
