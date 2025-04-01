@@ -81,7 +81,7 @@ class Bodies {
         this.positionRectangle(rectangle);
         const textureLoader = new THREE.TextureLoader();
         const spriteMaterial = new THREE.SpriteMaterial({
-            map: textureLoader.load('./images/sprite.png'),
+            map: textureLoader.load('https://media-hosting.imagekit.io/b856a4f175bf4f98/sprite.png?Expires=1838118552&Key-Pair-Id=K2ZIVPTIP2VGHC&Signature=p21IjJNaJ5N1qf~pedo4XTU-vsLY8raIqieZeDZI9VC8eDxOuGSy8PwDniJtQxmpLjrmQASnSOlZouaDUDE2WemoJKOw2~4T7ODshHJ2Zh2UxvhpgJJt4BtB9VB5lb7qI8JmpbDxP1PD2Nz~7loweKi4MUgwUbBBeNjdIZuyeI9Fh9E-DeLD7W9tmhD~ZgtfldRRKOuTUXu4CfJbI9FNa9ESXQsOGlR7t-RE9YcOQlPcRipYaQg3AyhSAizUMK58dh34l9iCe3AUB8Qe2TKX6pGp22EqPUgYOjuG9jP~fBPz~-Bdyqzbe1fhU3035Qa4K9N8rAxhtyHRRH8VhoMu9w__'),
             transparent: true
         });
 
