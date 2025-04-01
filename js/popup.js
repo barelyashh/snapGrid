@@ -58,14 +58,145 @@ class Popup {
         this.detailsContainer.style.flexDirection = "column";
         this.detailsContainer.style.background = "#f9f9f9";
 
-        const typeLabel = document.createElement("label");
-        typeLabel.innerText = "Type:";
-        const typeInput = document.createElement("input");
-        typeInput.type = "text";
-        typeInput.value = this.selectedRectangle?.parent?.userData?.type || ""; // Load existing type if available
-        this.typeInput = typeInput;
-        this.detailsContainer.appendChild(typeLabel);
-        this.detailsContainer.appendChild(typeInput);
+        // Replace the type text input with dropdown
+        const typeLabel = document.createElement("label")
+        typeLabel.innerText = "Type:"
+        const typeSelect = document.createElement("select")
+        typeSelect.style.marginBottom = "15px"
+        typeSelect.style.padding = "5px"
+        
+        // Add the four type options
+        const types = ["Choose the type!!","article", "part", "profile", "item master"]
+        types.forEach(type => {
+            const option = document.createElement("option")
+            option.value = type
+            option.text = type.charAt(0).toUpperCase() + type.slice(1) // Capitalize first letter
+            typeSelect.appendChild(option)
+        })
+
+        // Create scrollable data box
+        const dataBoxContainer = document.createElement("div")
+        dataBoxContainer.style.marginTop = "15px"
+        dataBoxContainer.style.marginBottom = "15px"
+        
+        const dataBox = document.createElement("div")
+        dataBox.style.height = "200px"
+        dataBox.style.overflowY = "auto"
+        dataBox.style.border = "1px solid #ccc"
+        dataBox.style.padding = "10px"
+        dataBox.style.borderRadius = "4px"
+        dataBox.style.backgroundColor = "#fff"
+        dataBox.innerHTML = '<div>Please Choose the Type!!</div>'
+
+        // Handle type change
+        typeSelect.onchange = async () => {
+            const selectedType = typeSelect.value
+            dataBox.innerHTML = '' // Clear previous content
+            
+            switch(selectedType) {
+                case 'Choose the type!!':
+                    dataBox.innerHTML = '<div>Please Choose the Type!!</div>'
+                    break
+                case 'article':
+                    await this.loadArticleData()
+                    if (this.articleData) {
+                        console.log("data", this.articleData)
+                        this.articleData.data.forEach(article => {
+                            const div = document.createElement("div")
+                            div.style.padding = "5px"
+                            div.style.borderBottom = "1px solid #eee"
+                            div.textContent = article.name
+                            div.value = article.id 
+
+                            div.style.cursor = "pointer"
+                            div.style.transition = "background-color 0.3s"
+
+                            div.onmouseover = () => {
+                                div.style.backgroundColor = "#f0f0f0" 
+                            }
+                            div.onmouseout = () => {
+                                div.style.backgroundColor = "" 
+                            }
+                            div.onclick = () => {
+                                this.handleItemClick(article.id) 
+                            }
+
+                            dataBox.appendChild(div)
+                        })
+                    }
+                    break
+                case 'part':
+                    await this.loadPartData()
+                    if (this.partData) {
+                        console.log("data", this.partData)
+                        this.partData.data.forEach(part => {
+                            const div = document.createElement("div")
+                            div.style.padding = "5px"
+                            div.style.borderBottom = "1px solid #eee"
+                            div.textContent = part.name.en
+                            div.value = part.id 
+                            
+                            div.style.cursor = "pointer" 
+                            div.style.transition = "background-color 0.3s" 
+
+                            div.onmouseover = () => {
+                                div.style.backgroundColor = "#f0f0f0" 
+                            }
+                            div.onmouseout = () => {
+                                div.style.backgroundColor = "" 
+                            }
+                           
+                            div.onclick = () => {
+                                this.handleItemClick(part.id) 
+                            }
+
+                            dataBox.appendChild(div)
+                        })
+                    }
+                    break
+                case 'profile':
+                    await this.loadProfileData()
+                    if (this.profileData) {
+                        console.log("data", this.profileData)
+                        this.profileData.data.forEach(profile => {
+                            const div = document.createElement("div")
+                            div.style.padding = "5px"
+                            div.style.borderBottom = "1px solid #eee"
+                            div.textContent = profile.name.en
+                            div.value = profile.id 
+                            
+                            div.style.cursor = "pointer" 
+                            div.style.transition = "background-color 0.3s" 
+
+                            div.onmouseover = () => {
+                                div.style.backgroundColor = "#f0f0f0" 
+                            }
+                            div.onmouseout = () => {
+                                div.style.backgroundColor = "" 
+                            }
+                           
+                            div.onclick = () => {
+                                this.handleItemClick(profile.id) 
+                            }
+
+                            dataBox.appendChild(div)
+                        })
+                    }
+                    break
+                case 'item master':
+                    // Add item master data when available
+                    dataBox.innerHTML = '<div>Item master data will be displayed here</div>'
+                    break
+            }
+        }
+
+        this.typeSelect = typeSelect
+        dataBoxContainer.appendChild(dataBox)
+
+        this.detailsContainer.appendChild(typeLabel)
+        this.detailsContainer.appendChild(typeSelect)
+        this.detailsContainer.appendChild(dataBoxContainer)
+
         // Title
         const title = document.createElement("h2");
         title.innerText = "Material Properties";
@@ -156,6 +287,41 @@ class Popup {
         material.needsUpdate = true;
     }
 
+    async loadArticleData() {
+        try {
+            const response = await fetch('http://localhost:3030/api/articles')
+            if (!response.ok) {
+                throw new Error('Failed to fetch article data')
+            }
+            this.articleData = await response.json()
+        } catch (error) {
+            console.error('Error loading article data:', error)
+        }
+    }
+
+    async loadPartData() {
+        try {
+            const response = await fetch('http://localhost:3030/api/parts')
+            if (!response.ok) {
+                throw new Error('Failed to fetch part data')
+            }
+            this.partData = await response.json()
+        } catch (error) {
+            console.error('Error loading part data:', error)
+        }
+    }
+
+    async loadProfileData() {
+        try {
+            const response = await fetch('http://localhost:3030/api/profiles')
+            if (!response.ok) {
+                throw new Error('Failed to fetch profile data')
+            }
+            this.profileData = await response.json()
+        } catch (error) {
+            console.error('Error loading profile data:', error)
+        }
+    }
 
     saveChanges() {
         if (!this.selectedRectangle || !this.selectedRectangle.parent) return;
@@ -193,6 +359,10 @@ class Popup {
         }
     }
 
+ 
+    handleItemClick(itemId) {
+        console.log("Selected Item ID:", itemId)
+    }
 }
 
 export { Popup };
