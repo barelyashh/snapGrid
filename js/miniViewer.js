@@ -23,7 +23,7 @@ class MiniViewer {
         this.setupRenderer();
         this.setupScene();
         this.setupLights()
-        this.setupCamera()
+        this.setupCamera(parent)
         this.setupMesh(parent)
         this.setupRayCaster()
         this.setupControls()
@@ -44,12 +44,12 @@ class MiniViewer {
     setupScene() {
         this.scene = new THREE.Scene();
         this.scene.background = new THREE.Color("white");
-        this.scene.fog = new THREE.Fog("white", 500, 2000);
     }
 
-    setupCamera() {
-        this.camera = new THREE.PerspectiveCamera(75, this.widthO / this.heightO, 10, 10000);
-        this.camera.position.set(0, 0, 150);
+    setupCamera(parent) {
+        const cameraPosition = Math.max(parent.geometry.parameters.height,parent.geometry.parameters.width)
+        this.camera = new THREE.PerspectiveCamera(75, this.widthO / this.heightO, 0.1, 10000);
+        this.camera.position.set(0, 0, cameraPosition);
         this.scene.add(this.camera);
     }
     setupLights() {

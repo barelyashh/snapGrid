@@ -37,9 +37,15 @@ class Bodies {
         this.viewer.scene.add(this.frame);
         this.viewer.raycasterObject.push(this.frame);
         this.viewer.currentWall = this.frame;
-        const objectMaxSize = Math.max(this.frame.geometry.parameters.width, this.frame.geometry.parameters.height)
-        this.viewer.position.z = objectMaxSize
-        this.viewer.camera.position.set(0, 0, objectMaxSize);
+
+        geometry.computeBoundingSphere()
+        const radius = geometry.boundingSphere.radius
+        const centerOfGeometry = this.frame.localToWorld(geometry.boundingSphere.center.clone());
+        const fov = this.viewer.camera.fov;
+
+
+        this.viewer.position.z = centerOfGeometry.z + 1.1 * radius / Math.tan(fov * Math.PI / 360)
+        this.viewer.camera.position.set(centerOfGeometry.x, centerOfGeometry.y, (centerOfGeometry.z + 1.1 * radius / Math.tan(fov * Math.PI / 360)));
     }
 
 
@@ -83,12 +89,15 @@ class Bodies {
         const textureLoader = new THREE.TextureLoader();
         const spriteMaterial = new THREE.SpriteMaterial({
             map: textureLoader.load('https://media-hosting.imagekit.io/b856a4f175bf4f98/sprite.png?Expires=1838118552&Key-Pair-Id=K2ZIVPTIP2VGHC&Signature=p21IjJNaJ5N1qf~pedo4XTU-vsLY8raIqieZeDZI9VC8eDxOuGSy8PwDniJtQxmpLjrmQASnSOlZouaDUDE2WemoJKOw2~4T7ODshHJ2Zh2UxvhpgJJt4BtB9VB5lb7qI8JmpbDxP1PD2Nz~7loweKi4MUgwUbBBeNjdIZuyeI9Fh9E-DeLD7W9tmhD~ZgtfldRRKOuTUXu4CfJbI9FNa9ESXQsOGlR7t-RE9YcOQlPcRipYaQg3AyhSAizUMK58dh34l9iCe3AUB8Qe2TKX6pGp22EqPUgYOjuG9jP~fBPz~-Bdyqzbe1fhU3035Qa4K9N8rAxhtyHRRH8VhoMu9w__'),
-            transparent: true
+            transparent: true,
+            sizeAttenuation : false,
+            depthTest:false,
+            depthWrite:false
         });
 
         const sprite = new THREE.Sprite(spriteMaterial);
         //need to add scale dynamic
-        sprite.scale.set(5, 5, 1);
+        sprite.scale.set(0.025, 0.025, 0.025);
         this.positionSprite(sprite, rectangle);
         sprite.visible = false;
         this.pivot = new THREE.Object3D();
@@ -117,7 +126,7 @@ class Bodies {
         if (!this.viewer.overallDepth) return;
         const rectDepth = rectangle.geometry.parameters.depth;
         const boundaryBoundingBox = new THREE.Box3().setFromObject(sprite);
-        sprite.position.set(0, 0, (rectDepth / 2) + boundaryBoundingBox.getSize(new THREE.Vector3()).y + 2);
+        sprite.position.set(0, 0, (rectDepth / 2) + boundaryBoundingBox.getSize(new THREE.Vector3()).y + 7);
     }
 
     generate2DDrawing() {
@@ -264,24 +273,23 @@ class Bodies {
 
     }
 
-    addCornerPoints(frame) {
+    addCornerPoints(frame, division) {
         const boundaryBoundingBox = new THREE.Box3().setFromObject(frame);
         const boundaryMin = boundaryBoundingBox.min;
         const boundaryMax = boundaryBoundingBox.max;
-        const step = (this.viewer.size) / this.viewer.division;
+        const step = (this.viewer.size) / division;
         const halfSize = (this.viewer.size) / 2;
         const halfStep = step / 2;
         const offset = halfSize - halfStep;
 
+        for (let i = 0; i < division; i++) {
 
-        for (let i = 0; i < this.viewer.division; i++) {
-
-            for (let j = 0; j < this.viewer.division; j++) {
+            for (let j = 0; j < division; j++) {
                 const baseX = offset - i * step;
                 const baseZ = offset - j * step;
                 const offsetX = step / 2;
                 const offsetZ = step / 2;
-                if (boundaryMin.x <= baseX && boundaryMax.x >= baseX - offsetX && boundaryMin.y <= baseZ && boundaryMax.y >= baseZ + offsetZ) {
+                if (boundaryMin.x <= baseX && boundaryMax.x >= baseX - offsetX && boundaryMin.y <= baseZ + offsetZ && boundaryMax.y >= baseZ + offsetZ) {
                     this.points.push(new THREE.Vector3(baseX - offsetX, 0.1, baseZ + offsetZ));
                 }
 
