@@ -36,8 +36,8 @@ class Popup {
         this.popupContainer.style.position = "fixed";
         this.popupContainer.style.top = "10%";
         this.popupContainer.style.left = "10%";
-        this.popupContainer.style.width = "60%";
-        this.popupContainer.style.height = "70%";
+        this.popupContainer.style.width = "75%";
+        this.popupContainer.style.height = "80%";
         this.popupContainer.style.background = "white";
         this.popupContainer.style.boxShadow = "0 0 10px rgba(0,0,0,0.3)";
         this.popupContainer.style.zIndex = "1000";
@@ -378,7 +378,7 @@ class Popup {
                 this.initialProperties.position.y,
                 this.initialProperties.position.z
             );
-            parent.material.color.set(`#${this.initialProperties.color}`);
+            parent.material.color.set(`${this.initialProperties.color}`);
             parent.material.opacity = this.initialProperties.opacity;
             parent.material.metalness = this.initialProperties.metalness;
             parent.material.roughness = this.initialProperties.roughness;

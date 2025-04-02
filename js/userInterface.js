@@ -26,8 +26,8 @@ class UserInterface {
         const sidebar = document.createElement('aside');
         sidebar.className = 'sidebar';
 
-        const overallDefaults = { Width: 250, Height: 200, Depth: 20 };
-        const rectangleDefaults = { Width: 10, Height: 100, Depth: 10 };
+        const overallDefaults = { Width: 500, Height: 750, Depth: 500 };
+        const rectangleDefaults = { Width: 19, Height:750, Depth: 500 };
 
         const overallPanel = this.createPanel('OVERALL DIMENSIONS', ['Width', 'Height', 'Depth'], (inputs) => {
             this.handleOverallDimensions(inputs);
@@ -39,10 +39,10 @@ class UserInterface {
         }, rectangleDefaults);
         sidebar.appendChild(rectanglePanel);
 
-        setTimeout(() => {
+         setTimeout(() => {
             overallPanel.querySelector('.add-btn').click();
             setTimeout(() => rectanglePanel.querySelector('.add-btn').click(), 200);
-        }, 200);
+        }, 200); 
 
         sidebar.appendChild(this.createButton('Toggle Transform Control', 'toggle-btn', () => this.completeViewer.bodies.toggleTransformMode()));
         sidebar.appendChild(this.createButton('Switch mode', 'toggle-btn-2d', () => this.completeViewer.switchMode()));
@@ -94,7 +94,7 @@ class UserInterface {
         const height = Number(inputs.Height.value.trim());
         const depth = Number(inputs.Depth.value.trim());
 
-        if (!width || !height || width < 100 || width > 2000 || height < 100 || height > 2000 || depth < 0 || depth > 50) {
+        if (!width || !height || width < 100 || width > 2500 || height < 100 || height > 2500 || depth < 0 || depth > 2500) {
             alert('Enter valid dimensions (100-2000mm for width/height, 0-50mm for depth)');
             return;
         }
@@ -115,8 +115,8 @@ class UserInterface {
             return;
         }
 
-        if (!widthBox || !heightBox || !depthBox || widthBox >= this.completeViewer.overallWidth || heightBox >= this.completeViewer.overallHeight || depthBox > this.completeViewer.overallDepth) {
-            alert('Rectangle dimensions must be less than overall dimensions');
+        if (!widthBox || !heightBox || !depthBox || widthBox > this.completeViewer.overallWidth || heightBox > this.completeViewer.overallHeight || depthBox > this.completeViewer.overallDepth) {
+            alert('Rectangle dimensions must be less than or equals to overall dimensions');
             return;
         }
 
