@@ -96,7 +96,7 @@ class Viewer {
         this.transformControls = new TransformControls(this.camera, this.renderer.domElement);
         this.transformControls.setSpace('world');
         this.transformControls.size = 0.5;
-       // this.transformControls.showZ = false;
+        //this.transformControls.showZ = false;
         this.transformControls.setTranslationSnap(null);
         this.transformControls.setMode('translate');
         this.scene.add(this.transformControls);
@@ -314,79 +314,178 @@ class Viewer {
 
     handleObjectIntersection(intersectedObject) {
         this.intersectedObject = intersectedObject;
+        this.highlightSelectedObject(intersectedObject);
+    
+        // Attach Transform Controls
         this.transformControls.detach();
-        if (this.transformControls.mode === "scale") {
-            this.transformControls.attach(this.bodies.pivot); // Attach to pivot when scaling
-        } else {
-            this.transformControls.attach(this.intersectedObject); // Attach to intersected object otherwise
-        }
-
+        this.transformControls.attach(
+            this.transformControls.mode === "scale" ? this.bodies.pivot : this.intersectedObject
+        );
+    
         // Add Gizmo Helper
         const gizmo = this.transformControls.getHelper();
         this.scene.add(gizmo);
-        this.orbitControls.enabled = false;
-
-        this.transformControls.addEventListener('objectChange', () => {
-            if (this.transformControls.mode === 'scale') {
+    
+        // Ensure event listeners are properly set up
+        this.setupTransformEvents();
+    }
+    
+    setupTransformEvents() {
+        this.transformControls.addEventListener("dragging-changed", (event) => {
+            this.orbitControls.enabled = !event.value;
+        });
+    
+        this.transformControls.addEventListener("objectChange", () => {
+            if (this.transformControls.mode === "scale") {
                 this.dimensions.add3DDimensionsToRectangles(this.intersectedObject);
             }
+            this.updateOutline();
             this.restrictDoorMovement(this.intersectedObject);
         });
-
-        // Handle mouse up event (finalize scaling)
-        this.transformControls.addEventListener('mouseUp', () => {
-            if (this.transformControls.mode === 'scale') {
-                if (this.intersectedObject && this.intersectedObject.parent === this.bodies.pivot) {
-                    this.bodies.pivot.remove(this.intersectedObject);
-
-                    const originalScale = this.intersectedObject.scale.clone();
-                    const pivotScale = this.bodies.pivot.scale.clone();
-
-                    // Apply scaling only on changed axes
-                    const newScale = new THREE.Vector3(
-                        pivotScale.x !== 1 ? originalScale.x * pivotScale.x : originalScale.x,
-                        pivotScale.y !== 1 ? originalScale.y * pivotScale.y : originalScale.y,
-                        pivotScale.z !== 1 ? originalScale.z * pivotScale.z : originalScale.z
-                    );
-
-                    // Apply pivot transformations
-                    this.intersectedObject.applyMatrix4(this.bodies.pivot.matrixWorld);
-                    this.intersectedObject.scale.copy(newScale);
-
-                    // Reset pivot
-                    this.bodies.pivot.position.set(0, 0, 0);
-                    this.bodies.pivot.scale.set(1, 1, 1);
-                    this.bodies.pivot.rotation.set(0, 0, 0);
-
-                    this.scene.add(this.intersectedObject);
-                }
-
-                this.transformControls.detach();
-                this.dimensions.removeDimensions();
-            }
-        });
-
-        this.transformControls.addEventListener('mouseDown', () => {
-            if (this.transformControls.mode === 'scale') {
-                const box = new THREE.Box3().setFromObject(this.intersectedObject);
-                this.bodies.pivot.position.set(0, 0, 5); // Ensure correct pivot positioning
-
-                const scaleHandle = this.transformControls.axis;
-                if (scaleHandle === 'Y') {
-                    this.bodies.pivot.position.y = this.deltaMouse.y < 0 ? box.min.y : box.max.y;
-                }
-                if (scaleHandle === 'X') {
-                    this.bodies.pivot.position.x = this.deltaMouse.x > 0 ? box.min.x : box.max.x;
-                }
-
-                this.orbitControls.enabled = false;
-                this.bodies.pivot.attach(this.intersectedObject);
-                this.transformControls.attach(this.bodies.pivot);
-            } else {
-                this.transformControls.attach(this.intersectedObject);
-            }
-        });
+    
+        this.transformControls.addEventListener("mouseDown", () => this.handleMouseDown());
+        this.transformControls.addEventListener("mouseUp", () => this.handleMouseUp());
     }
+    
+    handleMouseDown() {
+        if (this.transformControls.mode === "scale") {
+            const box = new THREE.Box3().setFromObject(this.intersectedObject);
+            this.bodies.pivot.position.set(0, 0, 5);
+    
+            const scaleHandle = this.transformControls.axis;
+            if (scaleHandle === "Y") {
+                this.bodies.pivot.position.y = this.deltaMouse.y < 0 ? box.min.y : box.max.y;
+            }
+            if (scaleHandle === "X") {
+                this.bodies.pivot.position.x = this.deltaMouse.x > 0 ? box.min.x : box.max.x;
+            }
+    
+            this.orbitControls.enabled = false;
+            this.bodies.pivot.attach(this.intersectedObject);
+            this.transformControls.attach(this.bodies.pivot);
+        } else {
+            this.transformControls.attach(this.intersectedObject);
+        }
+    }
+    
+    handleMouseUp() {
+        this.cleanupOutline();
+    
+        if (this.transformControls.mode === "scale") {
+            this.finalizeScaling();
+            this.transformControls.detach();
+            this.dimensions.removeDimensions();
+        }
+    }
+    
+    finalizeScaling() {
+        if (this.intersectedObject && this.intersectedObject.parent === this.bodies.pivot) {
+            this.bodies.pivot.remove(this.intersectedObject);
+    
+            const originalScale = this.intersectedObject.scale.clone();
+            const pivotScale = this.bodies.pivot.scale.clone();
+    
+            // Apply scaling only on changed axes
+            const newScale = new THREE.Vector3(
+                pivotScale.x !== 1 ? originalScale.x * pivotScale.x : originalScale.x,
+                pivotScale.y !== 1 ? originalScale.y * pivotScale.y : originalScale.y,
+                pivotScale.z !== 1 ? originalScale.z * pivotScale.z : originalScale.z
+            );
+    
+            // Apply pivot transformations
+            this.intersectedObject.applyMatrix4(this.bodies.pivot.matrixWorld);
+            this.intersectedObject.scale.copy(newScale);
+    
+            this.resetPivot();
+            this.scene.add(this.intersectedObject);
+        }
+    }
+    
+    resetPivot() {
+        this.bodies.pivot.position.set(0, 0, 0);
+        this.bodies.pivot.scale.set(1, 1, 1);
+        this.bodies.pivot.rotation.set(0, 0, 0);
+    }
+    
+    updateOutline() {
+        if (this.intersectedObject && this.selectedOutline) {
+            // Update outline position if object moves
+            this.selectedOutline.position.copy(this.intersectedObject.position);
+        }
+    }
+    
+    cleanupOutline() {
+        if (this.selectedOutline) {
+            this.scene.remove(this.selectedOutline);
+            this.selectedOutline.geometry.dispose();
+            this.selectedOutline.material.dispose();
+            this.selectedOutline = null;
+        }
+    }
+    
+    
+    highlightSelectedObject(intersectedObject) {
+        if (this.selectedOutline) {
+            this.scene.remove(this.selectedOutline);
+            this.selectedOutline.geometry.dispose();
+            this.selectedOutline.material.dispose();
+            this.selectedOutline = null;
+        }
+    
+        if (!intersectedObject) return; 
+    
+        // Create a wireframe edges geometry
+        const edgesGeometry = new THREE.EdgesGeometry(intersectedObject.geometry);
+        /* const outlineMaterial = new THREE.LineBasicMaterial({
+            color: 0xffff00, // Yellow
+            linewidth: 3, // Line thickness (might not work in all browsers)
+        }); */
+        const outlineMaterial = new THREE.ShaderMaterial({
+            uniforms: {
+                glowColor: { value: new THREE.Color(0xffff00) }, // Bright yellow
+            },
+            vertexShader: `
+                varying vec3 vNormal;
+                void main() {
+                    vNormal = normal;
+                    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                }
+            `,
+            fragmentShader: `
+                varying vec3 vNormal;
+                uniform vec3 glowColor;
+                void main() {
+                    float intensity = pow(1.2 - dot(vNormal, vec3(0, 0, 1)), 2.0);
+                    gl_FragColor = vec4(glowColor * intensity, 1.0);
+                }
+            `,
+            side: THREE.BackSide,
+            blending: THREE.AdditiveBlending,
+            transparent: true,
+        });
+    
+        this.selectedOutline = new THREE.LineSegments(edgesGeometry, outlineMaterial);
+        this.selectedOutline.position.copy(intersectedObject.position);
+        this.selectedOutline.scale.copy(intersectedObject.scale);
+        this.selectedOutline.rotation.copy(intersectedObject.rotation);
+    
+        this.scene.add(this.selectedOutline);
+    }
+
+    updateOutline() {
+        if (!this.intersectedObject || !this.selectedOutline) return;
+    
+        // Recreate edges based on updated position
+        const edgesGeometry = new THREE.EdgesGeometry(this.intersectedObject.geometry);
+        this.selectedOutline.geometry.dispose(); // Cleanup old geometry
+        this.selectedOutline.geometry = edgesGeometry;
+    
+        // Match position and rotation with the object
+        this.selectedOutline.position.copy(this.intersectedObject.position);
+        this.selectedOutline.rotation.copy(this.intersectedObject.rotation);
+        this.selectedOutline.scale.copy(this.intersectedObject.scale);
+    }
+    
 
     resetTransformControls() {
         this.transformControls.detach();
