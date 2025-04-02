@@ -42,7 +42,6 @@ class Viewer {
         this.initialMouse = new THREE.Vector2();
         this.deltaMouse = new THREE.Vector2();
         this.size = 0
-        this.division = 50
     }
 
     createViewer() {
@@ -75,7 +74,6 @@ class Viewer {
     setupScene() {
         this.scene = new THREE.Scene();
         this.scene.background = new THREE.Color("white");
-        this.scene.fog = new THREE.Fog("white", 500, 2000);
     }
 
     setupCamera() {
@@ -206,20 +204,20 @@ class Viewer {
             this.bodies.frame.geometry.parameters.height
         );
 
-        this.size = this.objectMaxSize * Math.abs(this.objectMaxSize / 20);
+        this.size = this.objectMaxSize * Math.trunc(this.objectMaxSize / 20);
         let gridHelper = this.scene.getObjectByName('gridHelper');
 
         if (!gridHelper) {
-            gridHelper = new THREE.GridHelper(this.size, this.division);
+            const data = Math.trunc(this.size/60)
+            gridHelper = new THREE.GridHelper(this.size, data);
             gridHelper.name = 'gridHelper';
-            this.bodies.addCornerPoints(this.bodies.frame)
-            const ratio = this.size / this.division
-            this.bodies.gridPercentage = (ratio * 5) / 100
-
+            this.bodies.addCornerPoints(this.bodies.frame,data)
+            const ratio = this.size / data
+            this.bodies.gridPercentage = (ratio*5)/100
             this.scene.add(gridHelper);
         }
 
-        this.camera.position.set(0, this.objectMaxSize, 0);
+        this.camera.position.set(0, this.position.z, 0);
         this.camera.lookAt(0, 0, 0);
         this.orbitControls.maxDistance = this.objectMaxSize + 300
         this.orbitControls.enabled = true;
