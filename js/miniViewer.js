@@ -183,7 +183,7 @@ class MiniViewer {
                         this.pivot.scale.y !== 1 ? originalScale.y + this.pivot.scale.y : originalScale.y,
                         this.pivot.scale.z !== 1 ? originalScale.z + this.pivot.scale.z : originalScale.z
                     );
-                    this.viewer.popup.selectedRectangle.parent.scale.copy(newScale);
+                    this.viewer.popup.mesh.scale.copy(newScale);
                     this.intersectedObject.applyMatrix4(this.pivot.matrixWorld);
                     //need to work yash find generic logic
                     this.pivot.position.set(0, 0, 0);
