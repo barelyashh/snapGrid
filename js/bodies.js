@@ -44,8 +44,8 @@ class Bodies {
         const fov = this.viewer.camera.fov;
 
 
-        this.viewer.position.z = centerOfGeometry.z + 1.1 * radius / Math.tan(fov * Math.PI / 360)
-        this.viewer.camera.position.set(centerOfGeometry.x, centerOfGeometry.y, (centerOfGeometry.z + 1.1 * radius / Math.tan(fov * Math.PI / 360)));
+        this.viewer.position.z = centerOfGeometry.z + 1.3 * radius / Math.tan(fov * Math.PI / 360)
+        this.viewer.camera.position.set(centerOfGeometry.x, centerOfGeometry.y, (centerOfGeometry.z + 1.3 * radius / Math.tan(fov * Math.PI / 360)));
     }
 
 

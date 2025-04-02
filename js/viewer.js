@@ -189,6 +189,7 @@ class Viewer {
     }
 
     enable2DMode() {
+        const {width, height, depth} = this.bodies.frame.geometry.parameters
         if (this.plane) {
             this.scene.remove(this.plane);
         }
@@ -199,10 +200,7 @@ class Viewer {
             this.transformControls.detach();
         }
 
-        this.objectMaxSize = Math.max(
-            this.bodies.frame.geometry.parameters.width,
-            this.bodies.frame.geometry.parameters.height
-        );
+        this.objectMaxSize = Math.max(width,height);
 
         this.size = this.objectMaxSize * Math.trunc(this.objectMaxSize / 20);
         let gridHelper = this.scene.getObjectByName('gridHelper');
@@ -217,7 +215,7 @@ class Viewer {
             this.scene.add(gridHelper);
         }
 
-        this.camera.position.set(0, this.position.z, 0);
+        this.camera.position.set(0, this.position.z - (depth/2), 0);
         this.camera.lookAt(0, 0, 0);
         this.orbitControls.maxDistance = this.objectMaxSize + 300
         this.orbitControls.enabled = true;
