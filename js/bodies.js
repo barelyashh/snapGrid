@@ -73,6 +73,7 @@ class Bodies {
 
     createRectangle(widthBox, heightBox, depthBox, visible, lineSegments) {
         const material = new THREE.MeshPhysicalMaterial({ color: '#7F4125', clearcoat: 1, clearcoatRoughness: 0 });
+        material.transparent = true
         material.opacity = 0.6
         const rectangle = new THREE.Mesh(new THREE.BoxGeometry(widthBox, heightBox, depthBox), material);
         rectangle.castShadow = true;
