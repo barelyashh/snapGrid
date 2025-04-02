@@ -98,7 +98,7 @@ class Viewer {
         this.transformControls = new TransformControls(this.camera, this.renderer.domElement);
         this.transformControls.setSpace('world');
         this.transformControls.size = 0.5;
-        this.transformControls.showZ = false;
+       // this.transformControls.showZ = false;
         this.transformControls.setTranslationSnap(null);
         this.transformControls.setMode('translate');
         this.scene.add(this.transformControls);
