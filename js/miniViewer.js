@@ -22,7 +22,7 @@ class MiniViewer {
         this.miniViewerContainer = document.getElementById("mini-container");
         this.setupRenderer();
         this.setupScene();
-        this.setupLights()
+        this.setupLights(parent)
         this.setupCamera(parent)
         this.setupMesh(parent)
         this.setupRayCaster()
@@ -52,14 +52,27 @@ class MiniViewer {
         this.camera.position.set(0, 0, cameraPosition);
         this.scene.add(this.camera);
     }
-    setupLights() {
-        this.lights = new THREE.AmbientLight();
+    setupLights(object) {
+        this.lights = new THREE.AmbientLight(0xffffff,2);
         this.scene.add(this.lights);
+        const cameraPosition = Math.max(object.geometry.parameters.height, object.geometry.parameters.width)
+        const spotLight = new THREE.SpotLight(0xffffff, 3);
+        spotLight.position.set(0, 0, cameraPosition);
+        spotLight.castShadow = true;
+        spotLight.shadow.mapSize.width = 1024;
+        spotLight.shadow.mapSize.height = 1024;
+        spotLight.angle = Math.PI / 2;
+        spotLight.penumbra = 1;
+        spotLight.decay = 0;
+        spotLight.shadow.focus = 1;
+        spotLight.shadow.camera.near = 1;
+        spotLight.shadow.camera.far = cameraPosition + object.geometry.parameters.depth;
+        spotLight.shadow.camera.fov = 75;
+        spotLight.distance = cameraPosition + object.geometry.parameters.depth;
 
-        const pointLight = new THREE.PointLight("white", 5, 0, 0.1);
-        pointLight.position.set(100, 100, 300);
-        pointLight.castShadow = true;
-        this.scene.add(pointLight);
+        this.scene.add(spotLight);
+
+
     }
 
     setupMesh(parent) {

@@ -49,7 +49,6 @@ class Viewer {
         this.setupRenderer();
         this.setupScene();
         this.setupCamera();
-        this.setupLights();
         this.setupControls();
         this.setupRayCaster();
         this.setupBodies();
@@ -81,14 +80,25 @@ class Viewer {
         this.scene.add(this.camera);
     }
 
-    setupLights() {
-        this.lights = new THREE.AmbientLight();
+    setupLights(x, z, depth) {
+        this.lights = new THREE.AmbientLight(0xffffff,2);
         this.scene.add(this.lights);
 
-        const pointLight = new THREE.PointLight("white", 5, 0, 0.1);
-        pointLight.position.set(100, 100, 300);
-        pointLight.castShadow = true;
-        this.scene.add(pointLight);
+        const spotLight = new THREE.SpotLight(0xffffff, 3);
+        spotLight.position.set(x, z / 2, z);
+        spotLight.castShadow = true;
+        spotLight.shadow.mapSize.width = 1024;
+        spotLight.shadow.mapSize.height = 1024;
+        spotLight.angle = Math.PI / 2;
+        spotLight.penumbra = 1;
+        spotLight.decay = 0;
+        spotLight.shadow.focus = 1;
+        spotLight.shadow.camera.near = 1;
+        spotLight.shadow.camera.far = z + depth;
+        spotLight.shadow.camera.fov = 75;
+        spotLight.distance = z + depth;
+
+        this.scene.add(spotLight);
     }
 
     setupControls() {
@@ -189,6 +199,7 @@ class Viewer {
     }
 
     enable2DMode() {
+        const {width, height, depth} = this.bodies.frame.geometry.parameters
         if (this.plane) {
             this.scene.remove(this.plane);
         }
@@ -199,10 +210,7 @@ class Viewer {
             this.transformControls.detach();
         }
 
-        this.objectMaxSize = Math.max(
-            this.bodies.frame.geometry.parameters.width,
-            this.bodies.frame.geometry.parameters.height
-        );
+        this.objectMaxSize = Math.max(width,height);
 
         this.size = this.objectMaxSize * Math.trunc(this.objectMaxSize / 20);
         let gridHelper = this.scene.getObjectByName('gridHelper');
@@ -217,7 +225,7 @@ class Viewer {
             this.scene.add(gridHelper);
         }
 
-        this.camera.position.set(0, this.position.z, 0);
+        this.camera.position.set(0, this.position.z - (depth/2), 0);
         this.camera.lookAt(0, 0, 0);
         this.orbitControls.maxDistance = this.objectMaxSize + 300
         this.orbitControls.enabled = true;
@@ -282,19 +290,24 @@ class Viewer {
         );
 
         this.raycaster.setFromCamera(mouse, this.camera);
-        const spriteIntersects = this.raycaster.intersectObjects(this.bodies.spriteObjects, true);
-        if (spriteIntersects.length > 0 && this.bodies.spriteObjects.includes(spriteIntersects[0].object)) {
-            this.bodies.overallBodies.forEach((object) => {
-                {
-                    if (object.sprite === spriteIntersects[0].object) {
-                        this.popup = new Popup(spriteIntersects[0].object, object.mesh, this, this.onSave.bind(this), this.onCancel.bind(this));
-                        return;
-                    }
+        if (!this.bodies.transformEnabled) {
+            const spriteIntersects = this.raycaster.intersectObjects(this.bodies.spriteObjects, true);
+            const intersectedSprite = spriteIntersects[0].object;
+            if (spriteIntersects.length > 0 && this.bodies.spriteObjects.includes(intersectedSprite)) {
+                this.bodies.overallBodies.forEach((object) => {
+                    {
+                        if (object.sprite === spriteIntersects[0].object && object.sprite.visible) {
+                            this.popup = new Popup(intersectedSprite, object.mesh, this, this.onSave.bind(this), this.onCancel.bind(this));
+                            return;
+                        }
 
-                }
-            })
+                    }
+                })
+
+            }
 
         }
+       
         if (this.mode2D) return;
 
         if (this.bodies.transformEnabled) {
@@ -484,7 +497,10 @@ class Viewer {
             boundaryBoundingBox.max.x < modelBoundingBox.max.x ||
             boundaryBoundingBox.min.x > modelBoundingBox.min.x ||
             boundaryBoundingBox.min.y > modelBoundingBox.min.y ||
-            boundaryBoundingBox.max.y < modelBoundingBox.max.y
+            boundaryBoundingBox.max.y < modelBoundingBox.max.y ||
+            boundaryBoundingBox.max.z < modelBoundingBox.max.z || 
+            boundaryBoundingBox.min.z > modelBoundingBox.min.z
+
         ) {
             intersectedObject.position.x = restrictPosition(
                 intersectedObject.position.x,
@@ -496,8 +512,13 @@ class Viewer {
                 boundaryBoundingBox.min.y + modelBoundingBox.getSize(new THREE.Vector3()).y / 2,
                 boundaryBoundingBox.max.y - modelBoundingBox.getSize(new THREE.Vector3()).y / 2
             );
-            intersectedObject.position.z = this.overallDimensionValues.depth / 2;
+            intersectedObject.position.z = restrictPosition(
+                intersectedObject.position.z,
+                boundaryBoundingBox.min.z + modelBoundingBox.getSize(new THREE.Vector3()).z / 2,
+                boundaryBoundingBox.max.z - modelBoundingBox.getSize(new THREE.Vector3()).z / 2
+            );
         }
+       
     }
 
     onSave() {
