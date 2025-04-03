@@ -30,7 +30,6 @@ class Bodies {
         material.transparent = true
         material.opacity = 0.6
         material.depthTest = false
-        console.log(material,'materialoverall')
         this.frame = new THREE.Mesh(geometry, material);
         this.frame.castShadow = true;
         this.frame.receiveShadow = true;
@@ -83,7 +82,6 @@ class Bodies {
         const material = new THREE.MeshStandardMaterial({ color: '#7F4125', clearcoat: 1, clearcoatRoughness: 0 });
  //
         material.opacity = 0.6
-        console.log(material,'materialrectangle')
         const rectangle = new THREE.Mesh(new THREE.BoxGeometry(widthBox, heightBox, depthBox), material);
         rectangle.castShadow = true;
         rectangle.receiveShadow = true;

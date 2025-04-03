@@ -404,7 +404,10 @@ class Viewer {
             boundaryBoundingBox.max.x < modelBoundingBox.max.x ||
             boundaryBoundingBox.min.x > modelBoundingBox.min.x ||
             boundaryBoundingBox.min.y > modelBoundingBox.min.y ||
-            boundaryBoundingBox.max.y < modelBoundingBox.max.y
+            boundaryBoundingBox.max.y < modelBoundingBox.max.y ||
+            boundaryBoundingBox.max.z < modelBoundingBox.max.z || 
+            boundaryBoundingBox.min.z > modelBoundingBox.min.z
+
         ) {
             intersectedObject.position.x = restrictPosition(
                 intersectedObject.position.x,
@@ -416,8 +419,13 @@ class Viewer {
                 boundaryBoundingBox.min.y + modelBoundingBox.getSize(new THREE.Vector3()).y / 2,
                 boundaryBoundingBox.max.y - modelBoundingBox.getSize(new THREE.Vector3()).y / 2
             );
-            intersectedObject.position.z = this.overallDimensionValues.depth / 2;
+            intersectedObject.position.z = restrictPosition(
+                intersectedObject.position.z,
+                boundaryBoundingBox.min.z + modelBoundingBox.getSize(new THREE.Vector3()).z / 2,
+                boundaryBoundingBox.max.z - modelBoundingBox.getSize(new THREE.Vector3()).z / 2
+            );
         }
+       
     }
 
     onSave() {
