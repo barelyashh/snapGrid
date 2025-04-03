@@ -363,6 +363,7 @@ class Viewer {
     handleMouseDown() {
         if (this.transformControls.mode === "scale") {
             const box = new THREE.Box3().setFromObject(this.intersectedObject);
+            //fix position of trnacfromcontrols when model is translated //yash
             this.bodies.pivot.position.set(0, 0, 5);
 
             const scaleHandle = this.transformControls.axis;
@@ -382,7 +383,8 @@ class Viewer {
     }
 
     handleMouseUp() {
-        this.cleanupOutline();
+        this.cleanupOutline();//yash need to wrok
+        
         if (this.transformControls.mode === "scale") {
             this.finalizeScaling();
             this.transformControls.detach();
