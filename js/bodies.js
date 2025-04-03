@@ -19,37 +19,50 @@ class Bodies {
     }
 
     addOverallDimension(width, height, depth) {
-        if (this.currentWall) {
-            this.scene.remove(this.currentWall);
-            this.raycasterObject = this.raycasterObject.filter(obj => obj !== this.currentWall);
+        let { scene, raycasterObject, currentWall} = this.viewer;
+        if (currentWall) {
+            scene.remove(currentWall);
+            raycasterObject = raycasterObject.filter(obj => obj !== currentWall);
         }
 
         this.viewer.overallDimensionValues = { width, height, depth };
         const geometry = new THREE.BoxGeometry(width, height, depth);
-        const material = new THREE.MeshStandardMaterial({ color: '#82807C', clearcoat: 1, clearcoatRoughness: 0.3, });
-        material.transparent = true
-        material.opacity = 0.6
-        material.depthTest = false
+        const material = new THREE.MeshStandardMaterial({
+            color: '#82807C',
+            clearcoat: 1,
+            clearcoatRoughness: 0.3,
+            transparent: true,
+            opacity: 0.6,
+            depthTest: false
+        });
+
         this.frame = new THREE.Mesh(geometry, material);
         this.frame.castShadow = true;
         this.frame.receiveShadow = true;
         this.frame.name = 'frame'
         this.frame.position.z = -0.1;
-        this.viewer.scene.add(this.frame);
-        this.viewer.raycasterObject.push(this.frame);
-        this.viewer.currentWall = this.frame;
+
+        scene.add(this.frame);
+        raycasterObject.push(this.frame);
+        currentWall = this.frame;
 
         geometry.computeBoundingSphere()
-        const radius = geometry.boundingSphere.radius
-        const centerOfGeometry = this.frame.localToWorld(geometry.boundingSphere.center.clone());
-        const fov = this.viewer.camera.fov;
-
-
-        this.viewer.position.z = centerOfGeometry.z + 1.3 * radius / Math.tan(fov * Math.PI / 360)
-        this.viewer.camera.position.set(centerOfGeometry.x, centerOfGeometry.y, (centerOfGeometry.z + 1.3 * radius / Math.tan(fov * Math.PI / 360)));
+        this.initializeWithFrame(geometry)
     }
 
+    initializeWithFrame(geometry) {
+        const boundingSphere = geometry.boundingSphere;
+        const radius = boundingSphere.radius
+        const centerOfGeometry = this.frame.localToWorld(boundingSphere.center.clone());
+        const fov = this.viewer.camera.fov;
+        const zOffset = 1.3 * radius / Math.tan(fov * Math.PI / 360)
+        const [x, y, z] = [centerOfGeometry.x, centerOfGeometry.y, (centerOfGeometry.z + zOffset)]
 
+        this.viewer.position.z = z
+        this.viewer.camera.position.set(x, y, z);
+        this.viewer.setupLights(x, z, geometry.parameters.depth)
+
+    }
     addRectangle({ widthBox, heightBox, depthBox }) {
         if (this.viewer.mode2D) {
             this.create2DShape(widthBox, heightBox, depthBox);
@@ -67,7 +80,7 @@ class Bodies {
         tri.lineTo(-widthBox / 2, -heightBox / 2)
         tri.lineTo(-widthBox / 2, heightBox / 2)
         const geometry = new THREE.ShapeGeometry(tri);
-        const lineSegments = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ color: "#7F4125" }))
+        const lineSegments = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({ color: "#7F4125" }))
         lineSegments.material.side = THREE.DoubleSide
         lineSegments.name = 'segments'
         lineSegments.position.y = 0.3;
@@ -99,7 +112,6 @@ class Bodies {
         const sprite = new THREE.Sprite(spriteMaterial);
         //need to add scale dynamic
         sprite.scale.set(0.025, 0.025, 0.025);
-        this.positionSprite(sprite, rectangle);
         sprite.visible = false;
         this.pivot = new THREE.Object3D();
         this.viewer.scene.add(this.pivot);
@@ -121,13 +133,6 @@ class Bodies {
         if (!this.viewer.overallDepth) return;
         const rectDepth = rectangle.geometry.parameters.depth;
         rectangle.position.z = this.viewer.overallDepth / 2 - rectDepth / 2;
-    }
-
-    positionSprite(sprite, rectangle) {
-        if (!this.viewer.overallDepth) return;
-        const rectDepth = rectangle.geometry.parameters.depth;
-        const boundaryBoundingBox = new THREE.Box3().setFromObject(sprite);
-        sprite.position.set(0, 0, (rectDepth / 2) + boundaryBoundingBox.getSize(new THREE.Vector3()).y + 7);
     }
 
     generate2DDrawing() {
@@ -227,14 +232,19 @@ class Bodies {
 
         if (this.transformEnabled) {
             this.viewer.scene.add(this.viewer.transformControls);
+            this.enableSprite(true)
         } else {
             this.viewer.scene.remove(this.viewer.transformControls);
             this.viewer.transformControls.detach();
+            this.enableSprite(false)
         }
+       
+    }
+    enableSprite(enabled) {
         this.overallBodies.forEach((obj) => {
-            if(!obj) return
-            obj.sprite.position.set(obj.mesh.position.x, obj.mesh.position.y,  obj.sprite.position.z);
-            obj.sprite.visible = !this.transformEnabled
+            if (!obj) return
+            obj.sprite.position.set(obj.mesh.position.x, obj.mesh.position.y, obj.mesh.position.z);
+            obj.sprite.visible = !enabled
             this.viewer.scene.add(obj.sprite)
         });
     }
