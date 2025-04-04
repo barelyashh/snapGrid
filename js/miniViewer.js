@@ -3,7 +3,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { TransformControls } from 'three/addons/controls/TransformControls.js';
 import { Dimensions } from './dimensions.js';
 class MiniViewer {
-    constructor( parent, viewer, container) {
+    constructor(parent, viewer, container) {
         this.viewer = viewer
         this.miniViewerSceneObject = []
         this.miniViewerContainerDiv = container
@@ -15,7 +15,7 @@ class MiniViewer {
         this.initialMouse = new THREE.Vector2();
         this.deltaMouse = new THREE.Vector2();
         this.init(parent);
-        
+
     }
 
     init(parent) {
@@ -47,13 +47,13 @@ class MiniViewer {
     }
 
     setupCamera(parent) {
-        const cameraPosition = Math.max(parent.geometry.parameters.height,parent.geometry.parameters.width)
+        const cameraPosition = Math.max(parent.geometry.parameters.height, parent.geometry.parameters.width)
         this.camera = new THREE.PerspectiveCamera(75, this.widthO / this.heightO, 0.1, 10000);
         this.camera.position.set(0, 0, cameraPosition);
         this.scene.add(this.camera);
     }
     setupLights(object) {
-        this.lights = new THREE.AmbientLight(0xffffff,2);
+        this.lights = new THREE.AmbientLight(0xffffff, 2);
         this.scene.add(this.lights);
         const cameraPosition = Math.max(object.geometry.parameters.height, object.geometry.parameters.width)
         const spotLight = new THREE.SpotLight(0xffffff, 3);
@@ -183,7 +183,7 @@ class MiniViewer {
         this.scene.add(gizmo);
 
         this.setupTransformEvents();
-        
+
     }
 
     setupTransformEvents() {
@@ -219,10 +219,10 @@ class MiniViewer {
         } else {
             this.transformControls.attach(this.intersectedObject);
         }
-        }
+    }
 
     handleMouseUp() {
-        
+
         if (this.transformControls.mode === "scale") {
             this.finalizeScaling();
             this.transformControls.detach();
@@ -230,7 +230,7 @@ class MiniViewer {
         }
     }
 
-      finalizeScaling() {
+    finalizeScaling() {
         if (this.intersectedObject && this.intersectedObject.parent === this.pivot) {
             this.pivot.remove(this.intersectedObject);
             const originalScale = this.intersectedObject.scale.clone();
@@ -267,30 +267,30 @@ class MiniViewer {
     }
 
     highlightSelectedObject(intersectedObject) {
-            if (this.selectedOutline) {
-                intersectedObject.children = []
-                this.scene.remove(this.selectedOutline);
-                this.selectedOutline.geometry.dispose();
-                this.selectedOutline.material.dispose();
-                this.selectedOutline = null;
-            }
-    
-            if (!intersectedObject) return;
-    
-            // Create a wireframe edges geometry
-            const edgesGeometry = new THREE.EdgesGeometry(intersectedObject.geometry);
-            const outlineMaterial = new THREE.ShaderMaterial({
-                uniforms: {
-                    glowColor: { value: new THREE.Color(0xffff00) }, // Bright yellow
-                },
-                vertexShader: `
+        if (this.selectedOutline) {
+            intersectedObject.children = []
+            this.scene.remove(this.selectedOutline);
+            this.selectedOutline.geometry.dispose();
+            this.selectedOutline.material.dispose();
+            this.selectedOutline = null;
+        }
+
+        if (!intersectedObject) return;
+
+        // Create a wireframe edges geometry
+        const edgesGeometry = new THREE.EdgesGeometry(intersectedObject.geometry);
+        const outlineMaterial = new THREE.ShaderMaterial({
+            uniforms: {
+                glowColor: { value: new THREE.Color(0xffff00) }, // Bright yellow
+            },
+            vertexShader: `
                     varying vec3 vNormal;
                     void main() {
                         vNormal = normal;
                         gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
                     }
                 `,
-                fragmentShader: `
+            fragmentShader: `
                     varying vec3 vNormal;
                     uniform vec3 glowColor;
                     void main() {
@@ -298,14 +298,14 @@ class MiniViewer {
                         gl_FragColor = vec4(glowColor * intensity, 1.0);
                     }
                 `,
-                side: THREE.BackSide,
-                blending: THREE.AdditiveBlending,
-                transparent: true,
-            });
-    
-            this.selectedOutline = new THREE.LineSegments(edgesGeometry, outlineMaterial);
-            intersectedObject.add(this.selectedOutline)
-        }
+            side: THREE.BackSide,
+            blending: THREE.AdditiveBlending,
+            transparent: true,
+        });
+
+        this.selectedOutline = new THREE.LineSegments(edgesGeometry, outlineMaterial);
+        intersectedObject.add(this.selectedOutline)
+    }
 
     resetTransformControls() {
         this.transformControls.detach();

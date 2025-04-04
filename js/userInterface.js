@@ -26,8 +26,8 @@ class UserInterface {
         const sidebar = document.createElement('aside');
         sidebar.className = 'sidebar';
 
-        const overallDefaults = { Width: 250, Height: 200, Depth: 20 };
-        const rectangleDefaults = { Width: 10, Height: 100, Depth: 10 };
+        const overallDefaults = { Width: 500, Height: 750, Depth: 500 };
+        const rectangleDefaults = { Width: 19, Height: 750, Depth: 500 };
 
         const overallPanel = this.createPanel('OVERALL DIMENSIONS', ['Width', 'Height', 'Depth'], (inputs) => {
             this.handleOverallDimensions(inputs);

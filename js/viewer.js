@@ -81,7 +81,7 @@ class Viewer {
     }
 
     setupLights(x, z, depth) {
-        this.lights = new THREE.AmbientLight(0xffffff,2);
+        this.lights = new THREE.AmbientLight(0xffffff, 2);
         this.scene.add(this.lights);
 
         const spotLight = new THREE.SpotLight(0xffffff, 3);
@@ -199,7 +199,7 @@ class Viewer {
     }
 
     enable2DMode() {
-        const {width, height, depth} = this.bodies.frame.geometry.parameters
+        const { width, height, depth } = this.bodies.frame.geometry.parameters
         if (this.plane) {
             this.scene.remove(this.plane);
         }
@@ -210,7 +210,7 @@ class Viewer {
             this.transformControls.detach();
         }
 
-        this.objectMaxSize = Math.max(width,height);
+        this.objectMaxSize = Math.max(width, height);
 
         this.size = this.objectMaxSize * Math.trunc(this.objectMaxSize / 20);
         let gridHelper = this.scene.getObjectByName('gridHelper');
@@ -225,7 +225,7 @@ class Viewer {
             this.scene.add(gridHelper);
         }
 
-        this.camera.position.set(0, this.position.z - (depth/2), 0);
+        this.camera.position.set(0, this.position.z - (depth / 2), 0);
         this.camera.lookAt(0, 0, 0);
         this.orbitControls.maxDistance = this.objectMaxSize + 300
         this.orbitControls.enabled = true;
@@ -283,7 +283,7 @@ class Viewer {
 
 
     handleClick(event) {
-       // this.cleanupOutline();//yash need to wrok
+
         const rect = this.renderer.domElement.getBoundingClientRect();
         const mouse = new THREE.Vector2(
             ((event.clientX - rect.left) / rect.width) * 2 - 1,
@@ -293,25 +293,29 @@ class Viewer {
         this.raycaster.setFromCamera(mouse, this.camera);
         if (!this.bodies.transformEnabled) {
             const spriteIntersects = this.raycaster.intersectObjects(this.bodies.spriteObjects, true);
-            const intersectedSprite = spriteIntersects[0].object;
-            if (spriteIntersects.length > 0 && this.bodies.spriteObjects.includes(intersectedSprite)) {
-                this.bodies.overallBodies.forEach((object) => {
-                    {
-                        if (object.sprite === spriteIntersects[0].object && object.sprite.visible) {
-                            this.popup = new Popup(intersectedSprite, object.mesh, this, this.onSave.bind(this), this.onCancel.bind(this));
-                            return;
+            if (spriteIntersects[0] && spriteIntersects[0].object) {
+                const intersectedSprite = spriteIntersects[0].object;
+                if (spriteIntersects.length > 0 && this.bodies.spriteObjects.includes(intersectedSprite)) {
+                    this.bodies.overallBodies.forEach((object) => {
+                        {
+                            if (object.sprite === spriteIntersects[0].object && object.sprite.visible) {
+                                this.popup = new Popup(intersectedSprite, object.mesh, this, this.onSave.bind(this), this.onCancel.bind(this));
+                                return;
+                            }
+
                         }
+                    })
 
-                    }
-                })
-
+                }
             }
 
+
         }
-       
+
         if (this.mode2D) return;
 
         if (this.bodies.transformEnabled) {
+            this.cleanupOutline();//yash need to wrok
             const objectsToCheck = this.bodies.overallBodies;
             const items = []
             objectsToCheck.forEach((item) => {
@@ -320,6 +324,7 @@ class Viewer {
             const objectIntersects = this.raycaster.intersectObjects(items, true);
 
             if (objectIntersects.length > 0) {
+
                 this.handleObjectIntersection(objectIntersects[0].object);
             } else {
                 this.resetTransformControls();
@@ -387,6 +392,7 @@ class Viewer {
         this.cleanupOutline()
         if (this.transformControls.mode === "scale") {
             this.finalizeScaling();
+            this.bodies.transformEnabled = true
             this.transformControls.detach();
             this.dimensions.removeDimensions();
         }
@@ -428,6 +434,7 @@ class Viewer {
             this.selectedOutline.geometry.dispose();
             this.selectedOutline.material.dispose();
             if (this.intersectedObject) {
+                console.log('yash')
                 this.intersectedObject.remove(this.selectedOutline);
             }
             this.selectedOutline = null;
@@ -500,7 +507,7 @@ class Viewer {
             boundaryBoundingBox.min.x > modelBoundingBox.min.x ||
             boundaryBoundingBox.min.y > modelBoundingBox.min.y ||
             boundaryBoundingBox.max.y < modelBoundingBox.max.y ||
-            boundaryBoundingBox.max.z < modelBoundingBox.max.z || 
+            boundaryBoundingBox.max.z < modelBoundingBox.max.z ||
             boundaryBoundingBox.min.z > modelBoundingBox.min.z
 
         ) {
@@ -520,7 +527,7 @@ class Viewer {
                 boundaryBoundingBox.max.z - modelBoundingBox.getSize(new THREE.Vector3()).z / 2
             );
         }
-       
+
     }
 
     onSave() {
