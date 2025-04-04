@@ -81,7 +81,7 @@ class Viewer {
     }
 
     setupLights(x, z, depth) {
-        this.lights = new THREE.AmbientLight(0xffffff,2);
+        this.lights = new THREE.AmbientLight(0xffffff, 2);
         this.scene.add(this.lights);
 
         const spotLight = new THREE.SpotLight(0xffffff, 3);
@@ -106,7 +106,7 @@ class Viewer {
         this.transformControls = new TransformControls(this.camera, this.renderer.domElement);
         this.transformControls.setSpace('world');
         this.transformControls.size = 0.5;
-       // this.transformControls.showZ = false;
+        //this.transformControls.showZ = false;
         this.transformControls.setTranslationSnap(null);
         this.transformControls.setMode('translate');
         this.scene.add(this.transformControls);
@@ -164,7 +164,7 @@ class Viewer {
 
     handleKeyDown(event) {
         switch (event.code) {
-            case 'KeyG':
+            case 'KeyT':
                 this.transformControls.setMode('translate');
                 break;
             case 'KeyR':
@@ -199,7 +199,7 @@ class Viewer {
     }
 
     enable2DMode() {
-        const {width, height, depth} = this.bodies.frame.geometry.parameters
+        const { width, height, depth } = this.bodies.frame.geometry.parameters
         if (this.plane) {
             this.scene.remove(this.plane);
         }
@@ -210,22 +210,22 @@ class Viewer {
             this.transformControls.detach();
         }
 
-        this.objectMaxSize = Math.max(width,height);
+        this.objectMaxSize = Math.max(width, height);
 
         this.size = this.objectMaxSize * Math.trunc(this.objectMaxSize / 20);
         let gridHelper = this.scene.getObjectByName('gridHelper');
 
         if (!gridHelper) {
-            const data = Math.trunc(this.size/60)
+            const data = Math.trunc(this.size / 60)
             gridHelper = new THREE.GridHelper(this.size, data);
             gridHelper.name = 'gridHelper';
-            this.bodies.addCornerPoints(this.bodies.frame,data)
+            this.bodies.addCornerPoints(this.bodies.frame, data)
             const ratio = this.size / data
-            this.bodies.gridPercentage = (ratio*5)/100
+            this.bodies.gridPercentage = (ratio * 5) / 100
             this.scene.add(gridHelper);
         }
 
-        this.camera.position.set(0, this.position.z - (depth/2), 0);
+        this.camera.position.set(0, this.position.z - (depth / 2), 0);
         this.camera.lookAt(0, 0, 0);
         this.orbitControls.maxDistance = this.objectMaxSize + 300
         this.orbitControls.enabled = true;
@@ -283,6 +283,7 @@ class Viewer {
 
 
     handleClick(event) {
+
         const rect = this.renderer.domElement.getBoundingClientRect();
         const mouse = new THREE.Vector2(
             ((event.clientX - rect.left) / rect.width) * 2 - 1,
@@ -292,25 +293,29 @@ class Viewer {
         this.raycaster.setFromCamera(mouse, this.camera);
         if (!this.bodies.transformEnabled) {
             const spriteIntersects = this.raycaster.intersectObjects(this.bodies.spriteObjects, true);
-            const intersectedSprite = spriteIntersects[0].object;
-            if (spriteIntersects.length > 0 && this.bodies.spriteObjects.includes(intersectedSprite)) {
-                this.bodies.overallBodies.forEach((object) => {
-                    {
-                        if (object.sprite === spriteIntersects[0].object && object.sprite.visible) {
-                            this.popup = new Popup(intersectedSprite, object.mesh, this, this.onSave.bind(this), this.onCancel.bind(this));
-                            return;
+            if (spriteIntersects[0] && spriteIntersects[0].object) {
+                const intersectedSprite = spriteIntersects[0].object;
+                if (spriteIntersects.length > 0 && this.bodies.spriteObjects.includes(intersectedSprite)) {
+                    this.bodies.overallBodies.forEach((object) => {
+                        {
+                            if (object.sprite === spriteIntersects[0].object && object.sprite.visible) {
+                                this.popup = new Popup(intersectedSprite, object.mesh, this, this.onSave.bind(this), this.onCancel.bind(this));
+                                return;
+                            }
+
                         }
+                    })
 
-                    }
-                })
-
+                }
             }
 
+
         }
-       
+
         if (this.mode2D) return;
 
         if (this.bodies.transformEnabled) {
+            this.cleanupOutline();//yash need to wrok
             const objectsToCheck = this.bodies.overallBodies;
             const items = []
             objectsToCheck.forEach((item) => {
@@ -319,6 +324,7 @@ class Viewer {
             const objectIntersects = this.raycaster.intersectObjects(items, true);
 
             if (objectIntersects.length > 0) {
+
                 this.handleObjectIntersection(objectIntersects[0].object);
             } else {
                 this.resetTransformControls();
@@ -328,79 +334,159 @@ class Viewer {
 
     handleObjectIntersection(intersectedObject) {
         this.intersectedObject = intersectedObject;
+        this.highlightSelectedObject(intersectedObject);
+
+        // Attach Transform Controls
         this.transformControls.detach();
-        if (this.transformControls.mode === "scale") {
-            this.transformControls.attach(this.bodies.pivot); // Attach to pivot when scaling
-        } else {
-            this.transformControls.attach(this.intersectedObject); // Attach to intersected object otherwise
-        }
+        this.transformControls.attach(
+            this.transformControls.mode === "scale" ? this.bodies.pivot : this.intersectedObject
+        );
 
         // Add Gizmo Helper
         const gizmo = this.transformControls.getHelper();
         this.scene.add(gizmo);
-        this.orbitControls.enabled = false;
 
-        this.transformControls.addEventListener('objectChange', () => {
-            if (this.transformControls.mode === 'scale') {
+        // Ensure event listeners are properly set up
+        this.setupTransformEvents();
+    }
+
+    setupTransformEvents() {
+        this.transformControls.addEventListener("dragging-changed", (event) => {
+            this.orbitControls.enabled = !event.value;
+        });
+
+        this.transformControls.addEventListener("objectChange", () => {
+            if (this.transformControls.mode === "scale") {
                 this.dimensions.add3DDimensionsToRectangles(this.intersectedObject);
             }
             this.restrictDoorMovement(this.intersectedObject);
         });
 
-        // Handle mouse up event (finalize scaling)
-        this.transformControls.addEventListener('mouseUp', () => {
-            if (this.transformControls.mode === 'scale') {
-                if (this.intersectedObject && this.intersectedObject.parent === this.bodies.pivot) {
-                    this.bodies.pivot.remove(this.intersectedObject);
-
-                    const originalScale = this.intersectedObject.scale.clone();
-                    const pivotScale = this.bodies.pivot.scale.clone();
-
-                    // Apply scaling only on changed axes
-                    const newScale = new THREE.Vector3(
-                        pivotScale.x !== 1 ? originalScale.x * pivotScale.x : originalScale.x,
-                        pivotScale.y !== 1 ? originalScale.y * pivotScale.y : originalScale.y,
-                        pivotScale.z !== 1 ? originalScale.z * pivotScale.z : originalScale.z
-                    );
-
-                    // Apply pivot transformations
-                    this.intersectedObject.applyMatrix4(this.bodies.pivot.matrixWorld);
-                    this.intersectedObject.scale.copy(newScale);
-
-                    // Reset pivot
-                    this.bodies.pivot.position.set(0, 0, 0);
-                    this.bodies.pivot.scale.set(1, 1, 1);
-                    this.bodies.pivot.rotation.set(0, 0, 0);
-
-                    this.scene.add(this.intersectedObject);
-                }
-
-                this.transformControls.detach();
-                this.dimensions.removeDimensions();
-            }
-        });
-
-        this.transformControls.addEventListener('mouseDown', () => {
-            if (this.transformControls.mode === 'scale') {
-                const box = new THREE.Box3().setFromObject(this.intersectedObject);
-                this.bodies.pivot.position.set(0, 0, 5); // Ensure correct pivot positioning
-
-                const scaleHandle = this.transformControls.axis;
-                if (scaleHandle === 'Y') {
-                    this.bodies.pivot.position.y = this.deltaMouse.y < 0 ? box.min.y : box.max.y;
-                }
-                if (scaleHandle === 'X') {
-                    this.bodies.pivot.position.x = this.deltaMouse.x > 0 ? box.min.x : box.max.x;
-                }
-
-                this.orbitControls.enabled = false;
-                this.bodies.pivot.attach(this.intersectedObject);
-                this.transformControls.attach(this.bodies.pivot);
-            } else {
-                this.transformControls.attach(this.intersectedObject);
-            }
-        });
+        this.transformControls.addEventListener("mouseDown", () => this.handleMouseDown());
+        this.transformControls.addEventListener("mouseUp", () => this.handleMouseUp());
     }
+
+    handleMouseDown() {
+        if (this.transformControls.mode === "scale") {
+            const box = new THREE.Box3().setFromObject(this.intersectedObject);
+            //fix position of trnacfromcontrols when model is translated //yash
+            this.bodies.pivot.position.set(0, 0, 5);
+
+            const scaleHandle = this.transformControls.axis;
+            if (scaleHandle === "Y") {
+                this.bodies.pivot.position.y = this.deltaMouse.y < 0 ? box.min.y : box.max.y;
+            }
+            if (scaleHandle === "X") {
+                this.bodies.pivot.position.x = this.deltaMouse.x > 0 ? box.min.x : box.max.x;
+            }
+
+            this.orbitControls.enabled = false;
+            this.bodies.pivot.attach(this.intersectedObject);
+            this.transformControls.attach(this.bodies.pivot);
+        } else {
+            this.transformControls.attach(this.intersectedObject);
+        }
+    }
+
+    handleMouseUp() {
+        this.cleanupOutline()
+        if (this.transformControls.mode === "scale") {
+            this.finalizeScaling();
+            this.bodies.transformEnabled = true
+            this.transformControls.detach();
+            this.dimensions.removeDimensions();
+        }
+    }
+
+    finalizeScaling() {
+        if (this.intersectedObject && this.intersectedObject.parent === this.bodies.pivot) {
+            this.bodies.pivot.remove(this.intersectedObject);
+
+            const originalScale = this.intersectedObject.scale.clone();
+            const pivotScale = this.bodies.pivot.scale.clone();
+
+            // Apply scaling only on changed axes
+            const newScale = new THREE.Vector3(
+                pivotScale.x !== 1 ? originalScale.x * pivotScale.x : originalScale.x,
+                pivotScale.y !== 1 ? originalScale.y * pivotScale.y : originalScale.y,
+                pivotScale.z !== 1 ? originalScale.z * pivotScale.z : originalScale.z
+            );
+
+            // Apply pivot transformations
+            this.intersectedObject.applyMatrix4(this.bodies.pivot.matrixWorld);
+            this.intersectedObject.scale.copy(newScale);
+
+            this.resetPivot();
+            this.scene.add(this.intersectedObject);
+        }
+    }
+
+    resetPivot() {
+        this.bodies.pivot.position.set(0, 0, 0);
+        this.bodies.pivot.scale.set(1, 1, 1);
+        this.bodies.pivot.rotation.set(0, 0, 0);
+    }
+
+
+
+    cleanupOutline() {
+        if (this.selectedOutline) {
+            this.selectedOutline.geometry.dispose();
+            this.selectedOutline.material.dispose();
+            if (this.intersectedObject) {
+                console.log('yash')
+                this.intersectedObject.remove(this.selectedOutline);
+            }
+            this.selectedOutline = null;
+        }
+    }
+
+
+    highlightSelectedObject(intersectedObject) {
+        if (this.selectedOutline) {
+            intersectedObject.children = []
+            this.scene.remove(this.selectedOutline);
+            this.selectedOutline.geometry.dispose();
+            this.selectedOutline.material.dispose();
+            this.selectedOutline = null;
+        }
+
+        if (!intersectedObject) return;
+
+        // Create a wireframe edges geometry
+        const edgesGeometry = new THREE.EdgesGeometry(intersectedObject.geometry);
+        /* const outlineMaterial = new THREE.LineBasicMaterial({
+            color: 0xffff00, // Yellow
+            linewidth: 3, // Line thickness (might not work in all browsers)
+        }); */
+        const outlineMaterial = new THREE.ShaderMaterial({
+            uniforms: {
+                glowColor: { value: new THREE.Color(0xffff00) }, // Bright yellow
+            },
+            vertexShader: `
+                varying vec3 vNormal;
+                void main() {
+                    vNormal = normal;
+                    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                }
+            `,
+            fragmentShader: `
+                varying vec3 vNormal;
+                uniform vec3 glowColor;
+                void main() {
+                    float intensity = pow(1.2 - dot(vNormal, vec3(0, 0, 1)), 2.0);
+                    gl_FragColor = vec4(glowColor * intensity, 1.0);
+                }
+            `,
+            side: THREE.BackSide,
+            blending: THREE.AdditiveBlending,
+            transparent: true,
+        });
+
+        this.selectedOutline = new THREE.LineSegments(edgesGeometry, outlineMaterial);
+        intersectedObject.add(this.selectedOutline)
+    }
+
 
     resetTransformControls() {
         this.transformControls.detach();
@@ -421,7 +507,7 @@ class Viewer {
             boundaryBoundingBox.min.x > modelBoundingBox.min.x ||
             boundaryBoundingBox.min.y > modelBoundingBox.min.y ||
             boundaryBoundingBox.max.y < modelBoundingBox.max.y ||
-            boundaryBoundingBox.max.z < modelBoundingBox.max.z || 
+            boundaryBoundingBox.max.z < modelBoundingBox.max.z ||
             boundaryBoundingBox.min.z > modelBoundingBox.min.z
 
         ) {
@@ -441,7 +527,7 @@ class Viewer {
                 boundaryBoundingBox.max.z - modelBoundingBox.getSize(new THREE.Vector3()).z / 2
             );
         }
-       
+
     }
 
     onSave() {

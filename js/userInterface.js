@@ -27,7 +27,7 @@ class UserInterface {
         sidebar.className = 'sidebar';
 
         const overallDefaults = { Width: 500, Height: 750, Depth: 500 };
-        const rectangleDefaults = { Width: 19, Height:550, Depth: 200 };
+        const rectangleDefaults = { Width: 19, Height: 750, Depth: 500 };
 
         const overallPanel = this.createPanel('OVERALL DIMENSIONS', ['Width', 'Height', 'Depth'], (inputs) => {
             this.handleOverallDimensions(inputs);
@@ -39,10 +39,10 @@ class UserInterface {
         }, rectangleDefaults);
         sidebar.appendChild(rectanglePanel);
 
-         setTimeout(() => {
+        setTimeout(() => {
             overallPanel.querySelector('.add-btn').click();
             setTimeout(() => rectanglePanel.querySelector('.add-btn').click(), 200);
-        }, 200); 
+        }, 200);
 
         sidebar.appendChild(this.createButton('Toggle Transform Control', 'toggle-btn', () => this.completeViewer.bodies.toggleTransformMode()));
         sidebar.appendChild(this.createButton('Switch mode', 'toggle-btn-2d', () => this.completeViewer.switchMode()));
