@@ -283,7 +283,7 @@ class Viewer {
 
 
     handleClick(event) {
-        this.cleanupOutline();//yash need to wrok
+       // this.cleanupOutline();//yash need to wrok
         const rect = this.renderer.domElement.getBoundingClientRect();
         const mouse = new THREE.Vector2(
             ((event.clientX - rect.left) / rect.width) * 2 - 1,
@@ -384,7 +384,7 @@ class Viewer {
     }
 
     handleMouseUp() {
-        
+        this.cleanupOutline()
         if (this.transformControls.mode === "scale") {
             this.finalizeScaling();
             this.transformControls.detach();
