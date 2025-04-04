@@ -29,8 +29,6 @@ class Bodies {
         const geometry = new THREE.BoxGeometry(width, height, depth);
         const material = new THREE.MeshStandardMaterial({
             color: '#82807C',
-            clearcoat: 1,
-            clearcoatRoughness: 0.3,
             transparent: true,
             opacity: 0.6,
             depthTest: false
@@ -92,8 +90,8 @@ class Bodies {
     }
 
     createRectangle(widthBox, heightBox, depthBox, visible, lineSegments) {
-        const material = new THREE.MeshStandardMaterial({ color: '#7F4125', clearcoat: 1, clearcoatRoughness: 0 });
- //
+        const material = new THREE.MeshStandardMaterial({ color: '#7F4125'});
+ 
         material.opacity = 0.6
         const rectangle = new THREE.Mesh(new THREE.BoxGeometry(widthBox, heightBox, depthBox), material);
         rectangle.castShadow = true;
