@@ -1,6 +1,6 @@
 import { MiniViewer } from './miniViewer.js';
 class Popup {
-    constructor(selectedRectangle,mesh, viewer, onSave, onCancel) {
+    constructor(selectedRectangle, mesh, viewer, onSave, onCancel) {
         this.selectedRectangle = selectedRectangle;
         this.onSave = onSave
         this.onCancel = onCancel
@@ -66,7 +66,7 @@ class Popup {
         typeSelect.style.marginBottom = "15px"
         typeSelect.style.padding = "5px"
         typeSelect.value = this.mesh?.userData?.type || "";
-        
+
 
         // Add the four type options
         const types = ["Choose the type!!", "article", "part", "profile", "item master"]

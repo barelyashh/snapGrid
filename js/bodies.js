@@ -19,30 +19,48 @@ class Bodies {
     }
 
     addOverallDimension(width, height, depth) {
-        if (this.currentWall) {
-            this.scene.remove(this.currentWall);
-            this.raycasterObject = this.raycasterObject.filter(obj => obj !== this.currentWall);
+        let { scene, raycasterObject, currentWall} = this.viewer;
+        if (currentWall) {
+            scene.remove(currentWall);
+            raycasterObject = raycasterObject.filter(obj => obj !== currentWall);
         }
 
         this.viewer.overallDimensionValues = { width, height, depth };
         const geometry = new THREE.BoxGeometry(width, height, depth);
-        const material = new THREE.MeshPhysicalMaterial({ color: '#82807C', clearcoat: 1, clearcoatRoughness: 0.3, });
-        material.transparent = true
-        material.opacity = 0.6
+        const material = new THREE.MeshStandardMaterial({
+            color: '#82807C',
+            transparent: true,
+            opacity: 0.6,
+            depthTest: false
+        });
+
         this.frame = new THREE.Mesh(geometry, material);
         this.frame.castShadow = true;
         this.frame.receiveShadow = true;
         this.frame.name = 'frame'
         this.frame.position.z = -0.1;
-        this.viewer.scene.add(this.frame);
-        this.viewer.raycasterObject.push(this.frame);
-        this.viewer.currentWall = this.frame;
-        const objectMaxSize = Math.max(this.frame.geometry.parameters.width, this.frame.geometry.parameters.height)
-        this.viewer.position.z = objectMaxSize
-        this.viewer.camera.position.set(0, 0, objectMaxSize);
+
+        scene.add(this.frame);
+        raycasterObject.push(this.frame);
+        currentWall = this.frame;
+
+        geometry.computeBoundingSphere()
+        this.initializeWithFrame(geometry)
     }
 
+    initializeWithFrame(geometry) {
+        const boundingSphere = geometry.boundingSphere;
+        const radius = boundingSphere.radius
+        const centerOfGeometry = this.frame.localToWorld(boundingSphere.center.clone());
+        const fov = this.viewer.camera.fov;
+        const zOffset = 1.3 * radius / Math.tan(fov * Math.PI / 360)
+        const [x, y, z] = [centerOfGeometry.x, centerOfGeometry.y, (centerOfGeometry.z + zOffset)]
 
+        this.viewer.position.z = z
+        this.viewer.camera.position.set(x, y, z);
+        this.viewer.setupLights(x, z, geometry.parameters.depth)
+
+    }
     addRectangle({ widthBox, heightBox, depthBox }) {
         if (this.viewer.mode2D) {
             this.create2DShape(widthBox, heightBox, depthBox);
@@ -60,7 +78,7 @@ class Bodies {
         tri.lineTo(-widthBox / 2, -heightBox / 2)
         tri.lineTo(-widthBox / 2, heightBox / 2)
         const geometry = new THREE.ShapeGeometry(tri);
-        const lineSegments = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ color: "#7F4125" }))
+        const lineSegments = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({ color: "#7F4125" }))
         lineSegments.material.side = THREE.DoubleSide
         lineSegments.name = 'segments'
         lineSegments.position.y = 0.3;
@@ -72,8 +90,8 @@ class Bodies {
     }
 
     createRectangle(widthBox, heightBox, depthBox, visible, lineSegments) {
-        const material = new THREE.MeshPhysicalMaterial({ color: '#7F4125', clearcoat: 1, clearcoatRoughness: 0 });
-        material.transparent = true
+        const material = new THREE.MeshStandardMaterial({ color: '#7F4125'});
+ 
         material.opacity = 0.6
         const rectangle = new THREE.Mesh(new THREE.BoxGeometry(widthBox, heightBox, depthBox), material);
         rectangle.castShadow = true;
@@ -83,13 +101,15 @@ class Bodies {
         const textureLoader = new THREE.TextureLoader();
         const spriteMaterial = new THREE.SpriteMaterial({
             map: textureLoader.load('https://media-hosting.imagekit.io/b856a4f175bf4f98/sprite.png?Expires=1838118552&Key-Pair-Id=K2ZIVPTIP2VGHC&Signature=p21IjJNaJ5N1qf~pedo4XTU-vsLY8raIqieZeDZI9VC8eDxOuGSy8PwDniJtQxmpLjrmQASnSOlZouaDUDE2WemoJKOw2~4T7ODshHJ2Zh2UxvhpgJJt4BtB9VB5lb7qI8JmpbDxP1PD2Nz~7loweKi4MUgwUbBBeNjdIZuyeI9Fh9E-DeLD7W9tmhD~ZgtfldRRKOuTUXu4CfJbI9FNa9ESXQsOGlR7t-RE9YcOQlPcRipYaQg3AyhSAizUMK58dh34l9iCe3AUB8Qe2TKX6pGp22EqPUgYOjuG9jP~fBPz~-Bdyqzbe1fhU3035Qa4K9N8rAxhtyHRRH8VhoMu9w__'),
-            transparent: true
+            transparent: true,
+            sizeAttenuation : false,
+            depthTest:false,
+            depthWrite:false
         });
 
         const sprite = new THREE.Sprite(spriteMaterial);
         //need to add scale dynamic
-        sprite.scale.set(5, 5, 1);
-        this.positionSprite(sprite, rectangle);
+        sprite.scale.set(0.025, 0.025, 0.025);
         sprite.visible = false;
         this.pivot = new THREE.Object3D();
         this.viewer.scene.add(this.pivot);
@@ -111,13 +131,6 @@ class Bodies {
         if (!this.viewer.overallDepth) return;
         const rectDepth = rectangle.geometry.parameters.depth;
         rectangle.position.z = this.viewer.overallDepth / 2 - rectDepth / 2;
-    }
-
-    positionSprite(sprite, rectangle) {
-        if (!this.viewer.overallDepth) return;
-        const rectDepth = rectangle.geometry.parameters.depth;
-        const boundaryBoundingBox = new THREE.Box3().setFromObject(sprite);
-        sprite.position.set(0, 0, (rectDepth / 2) + boundaryBoundingBox.getSize(new THREE.Vector3()).y + 2);
     }
 
     generate2DDrawing() {
@@ -217,14 +230,19 @@ class Bodies {
 
         if (this.transformEnabled) {
             this.viewer.scene.add(this.viewer.transformControls);
+            this.enableSprite(true)
         } else {
             this.viewer.scene.remove(this.viewer.transformControls);
             this.viewer.transformControls.detach();
+            this.enableSprite(false)
         }
+       
+    }
+    enableSprite(enabled) {
         this.overallBodies.forEach((obj) => {
-            if(!obj) return
-            obj.sprite.position.set(obj.mesh.position.x, obj.mesh.position.y,  obj.sprite.position.z);
-            obj.sprite.visible = !this.transformEnabled
+            if (!obj) return
+            obj.sprite.position.set(obj.mesh.position.x, obj.mesh.position.y, obj.mesh.position.z);
+            obj.sprite.visible = !enabled
             this.viewer.scene.add(obj.sprite)
         });
     }
@@ -264,24 +282,23 @@ class Bodies {
 
     }
 
-    addCornerPoints(frame) {
+    addCornerPoints(frame, division) {
         const boundaryBoundingBox = new THREE.Box3().setFromObject(frame);
         const boundaryMin = boundaryBoundingBox.min;
         const boundaryMax = boundaryBoundingBox.max;
-        const step = (this.viewer.size) / this.viewer.division;
+        const step = (this.viewer.size) / division;
         const halfSize = (this.viewer.size) / 2;
         const halfStep = step / 2;
         const offset = halfSize - halfStep;
 
+        for (let i = 0; i < division; i++) {
 
-        for (let i = 0; i < this.viewer.division; i++) {
-
-            for (let j = 0; j < this.viewer.division; j++) {
+            for (let j = 0; j < division; j++) {
                 const baseX = offset - i * step;
                 const baseZ = offset - j * step;
                 const offsetX = step / 2;
                 const offsetZ = step / 2;
-                if (boundaryMin.x <= baseX && boundaryMax.x >= baseX - offsetX && boundaryMin.y <= baseZ && boundaryMax.y >= baseZ + offsetZ) {
+                if (boundaryMin.x <= baseX && boundaryMax.x >= baseX - offsetX && boundaryMin.y <= baseZ + offsetZ && boundaryMax.y >= baseZ + offsetZ) {
                     this.points.push(new THREE.Vector3(baseX - offsetX, 0.1, baseZ + offsetZ));
                 }
 
