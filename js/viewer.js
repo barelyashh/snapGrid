@@ -313,7 +313,7 @@ class Viewer {
             // Check for sprite click first
             const spriteIntersects = this.raycaster.intersectObjects(this.bodies.spriteObjects, true);
             if (spriteIntersects.length > 0) {
-                if (this.selectedMeshes.length > 0) {
+                if (this.selectedMeshes.length > 1) {
                     this.viewSelectedMeshes();
                 } else {
                     this.bodies.overallBodies.forEach((object)=>{ {
