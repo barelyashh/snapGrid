@@ -41,7 +41,14 @@ class Viewer {
         this.activeAxis = null;
         this.initialMouse = new THREE.Vector2();
         this.deltaMouse = new THREE.Vector2();
-        this.size = 0
+        this.size = 0;
+        this.isCtrlPressed = false;
+        this.selectedSnap = {
+            source: null,
+            sourceObject: null,
+            target: null,
+            targetObject: null
+        };
     }
 
     createViewer() {
@@ -156,10 +163,105 @@ class Viewer {
 
     handlePointerDown(event) {
         this.initialMouse.set(event.clientX, event.clientY);
+        if (!event.ctrlKey || !this.bodies.snapEnabled) return;
+
+        const rect = this.renderer.domElement.getBoundingClientRect();
+        const mouse = new THREE.Vector2(
+            ((event.clientX - rect.left) / rect.width) * 2 - 1,
+            -((event.clientY - rect.top) / rect.height) * 2 + 1
+        );
+
+        this.raycaster.setFromCamera(mouse, this.camera);
+        const intersects = this.raycaster.intersectObjects(this.bodies.snap.snapMarkers, true);
+
+        if (intersects.length > 0) {
+            const clickedMarker = intersects[0].object;
+            const point = clickedMarker.position;
+            const parentObject = clickedMarker.userData.owner;
+
+            if (!this.selectedSnap.source) {
+
+                this.selectedSnap.source = point.clone();
+                this.selectedSnap.sourceObject = parentObject;
+            } else {
+
+                const source = this.selectedSnap.source;
+                const sourceObject = this.selectedSnap.sourceObject;
+                const target = point;
+                const targetObject = parentObject;
+
+                const isSourceFrame = sourceObject === this.bodies.frame;
+                const isTargetFrame = targetObject === this.bodies.frame;
+
+                const isValidSnap = !isSourceFrame && isTargetFrame; // Only mesh → frame
+
+                if (!isValidSnap) {
+                    console.warn(" Invalid snap: Only mesh → frame is allowed.");
+                    this.selectedSnap = {};
+                    this.bodies.snap.snapHoverHelper.visible = false;
+                    return;
+                }
+                this.bodies.snap.snapHoverHelper.visible = false;
+                // ✅ Perform the snap
+                const offset = new THREE.Vector3().subVectors(target, source);
+                const originalPosition = sourceObject.position.clone();
+
+                sourceObject.position.add(offset);
+                const meshBox = new THREE.Box3().setFromObject(sourceObject);
+                const overallBox = new THREE.Box3().setFromObject(this.bodies.frame);
+                const isInside = overallBox.containsBox(meshBox);
+
+                if (!isInside) {
+                    console.warn(" Snap rejected: Mesh would move outside the overall frame.");
+                    sourceObject.position.copy(originalPosition); // Revert move
+                } else {
+                    console.log("Snap successful.");
+                }
+                this.bodies.snap.rebuildSnapMarkers()
+                this.selectedSnap.source = null;
+                this.selectedSnap.sourceObject = null;
+            }
+        }
     }
+
+  
 
     handlePointerMove(event) {
         this.deltaMouse.set(event.clientX - this.initialMouse.x, event.clientY - this.initialMouse.y);
+        if (this.bodies.snapEnabled && this.isCtrlPressed) {
+            const rect = this.renderer.domElement.getBoundingClientRect();
+            const mouse = new THREE.Vector2(
+                ((event.clientX - rect.left) / rect.width) * 2 - 1,
+                -((event.clientY - rect.top) / rect.height) * 2 + 1
+            );
+    
+            this.raycaster.setFromCamera(mouse, this.camera);
+            const snapIntersects = this.raycaster.intersectObjects(this.bodies.snap.snapMarkers, true);
+    
+            if (snapIntersects.length > 0) {
+                const intersectedSnap = snapIntersects[0].object;
+                if (this.bodies.snap.snapMarkers.includes(intersectedSnap)) {
+                    const point = intersectedSnap.position;
+                    this.bodies.snap.snapHoverHelper.visible = true;
+                    this.bodies.snap.snapHoverHelper.position.copy(point);
+                    return; 
+                }
+            }
+        }
+    
+        // Hide if not hovering or Ctrl not pressed
+        if (this.bodies.snap?.snapHoverHelper) {
+            this.bodies.snap.snapHoverHelper.visible = false;
+        }
+    }
+    
+    handleKeyUp(event) {
+        if (event.code === 'ControlLeft' || event.code === 'ControlRight') {
+            this.isCtrlPressed = false;
+            if (this.bodies.snap?.snapHoverHelper) {
+                this.bodies.snap.snapHoverHelper.visible = false;
+            }
+        }
     }
 
     handleKeyDown(event) {
@@ -172,6 +274,10 @@ class Viewer {
                 break;
             case 'KeyS':
                 this.transformControls.setMode('scale');
+                break;
+            case 'ControlLeft':
+            case 'ControlRight':
+                this.isCtrlPressed = true;
                 break;
         }
     }
@@ -192,10 +298,22 @@ class Viewer {
         this.mode2D = !this.mode2D;
 
         if (this.mode2D) {
+            this.bodies.snap.clearSnapGridData()
             this.enable2DMode();
         } else {
             this.enable3DMode();
         }
+    }
+
+    snapSourceToTarget() {
+        const source = this.selectedSnap.source;
+        const target = this.selectedSnap.target;
+        const object = this.selectedSnap.sourceObject;
+    
+        if (!source || !target || !object) return;
+    
+        const offset = new THREE.Vector3().subVectors(target, source);
+        object.position.add(offset); // Move the entire mesh
     }
 
     enable2DMode() {
@@ -434,7 +552,6 @@ class Viewer {
             this.selectedOutline.geometry.dispose();
             this.selectedOutline.material.dispose();
             if (this.intersectedObject) {
-                console.log('yash')
                 this.intersectedObject.remove(this.selectedOutline);
             }
             this.selectedOutline = null;

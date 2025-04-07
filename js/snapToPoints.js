@@ -1,7 +1,9 @@
 import * as THREE from 'three';
 class SnapPoints {
     constructor(shapeData) {
-        this.shapeData = shapeData
+        this.shapeData = shapeData,
+        this.snapMarkers = []
+        this.snapGridLines = []
     }
     snapTogrid(draggedObject) {
         if (!this.shapeData.points.length > 0) return
@@ -112,6 +114,226 @@ class SnapPoints {
                 this.shapeData.snapPoints.push(snapPoint);
             });
         });
+    }
+
+    addSnapPointsTo3D() {
+        if (!this.shapeData.viewer.scene) return;
+
+        this.snapHoverHelper = this.createPlusHelper();
+        this.shapeData.viewer.scene.add(this.snapHoverHelper)
+        if (this.shapeData.frame) {
+            this.addSnapPointsToOverallBody()
+        }
+
+        this.addSnapPointsToIndividualBodies()
+    }
+
+    addSnapPointsToOverallBody() {
+        var body = this.shapeData.frame
+        const snapPoints = this.generateGridPointsOnBox(body);
+        snapPoints.forEach(point => {
+            const marker = this.createSnapMarker(point, body);
+            this.shapeData.viewer.scene.add(marker);
+            this.snapMarkers.push(marker);
+        });
+        this.drawGridLinesOnBox(body, 4, this.shapeData.viewer.scene);
+    }
+
+    addSnapPointsToIndividualBodies() {
+        const overAllBodies = []
+        this.shapeData.overallBodies.map(body => {
+            overAllBodies.push(body.mesh)
+        })
+        overAllBodies.forEach(object => {
+            const snapPoints = this.getSnapPoints(object);
+            snapPoints.forEach(point => {
+                const marker = this.createSnapMarker(point, object);
+                this.shapeData.viewer.scene.add(marker);
+                this.snapMarkers.push(marker);
+            });
+        });
+    }
+
+    createSnapMarker(position, parentObject) {
+        const geometry = new THREE.SphereGeometry(3, 3, 3);
+        //const material = new THREE.MeshBasicMaterial({ color:'#82807C', visible: true});
+        const material = new THREE.MeshBasicMaterial({ visible: false });
+        const marker = new THREE.Mesh(geometry, material);
+        marker.position.copy(position);
+        marker.userData.isSnapPoint = true;
+        marker.userData.owner = parentObject;
+        return marker;
+    }
+
+    generateGridPointsOnBox(object, segments = 4) {
+        const box = new THREE.Box3().setFromObject(object);
+        const min = box.min;
+        const max = box.max;
+
+        const stepX = (max.x - min.x) / segments;
+        const stepY = (max.y - min.y) / segments;
+        const stepZ = (max.z - min.z) / segments;
+
+        const points = [];
+
+        // XY planes (front and back)
+        for (let i = 0; i <= segments; i++) {
+            for (let j = 0; j <= segments; j++) {
+                points.push(new THREE.Vector3(min.x + i * stepX, min.y + j * stepY, min.z)); // front
+                points.push(new THREE.Vector3(min.x + i * stepX, min.y + j * stepY, max.z)); // back
+            }
+        }
+
+        // YZ planes (left and right)
+        for (let i = 0; i <= segments; i++) {
+            for (let j = 0; j <= segments; j++) {
+                points.push(new THREE.Vector3(min.x, min.y + i * stepY, min.z + j * stepZ)); // left
+                points.push(new THREE.Vector3(max.x, min.y + i * stepY, min.z + j * stepZ)); // right
+            }
+        }
+
+        // XZ planes (top and bottom)
+        for (let i = 0; i <= segments; i++) {
+            for (let j = 0; j <= segments; j++) {
+                points.push(new THREE.Vector3(min.x + i * stepX, min.y, min.z + j * stepZ)); // bottom
+                points.push(new THREE.Vector3(min.x + i * stepX, max.y, min.z + j * stepZ)); // top
+            }
+        }
+
+        return points;
+    }
+
+    drawGridLinesOnBox(object, segments = 4, scene) {
+        const box = new THREE.Box3().setFromObject(object);
+        const min = box.min;
+        const max = box.max;
+
+        const stepX = (max.x - min.x) / segments;
+        const stepY = (max.y - min.y) / segments;
+        const stepZ = (max.z - min.z) / segments;
+
+        const material = new THREE.LineBasicMaterial({ color: 0x00ffff }); // light blue
+
+        const addLine = (start, end) => {
+            const geometry = new THREE.BufferGeometry().setFromPoints([start, end]);
+            const line = new THREE.Line(geometry, material);
+            this.snapGridLines.push(line); // store reference
+            scene.add(line);
+        };
+
+        // ===== XY planes (front and back) =====
+        for (let i = 0; i <= segments; i++) {
+            const x = min.x + i * stepX;
+
+            // Vertical lines (Y)
+            addLine(new THREE.Vector3(x, min.y, min.z), new THREE.Vector3(x, max.y, min.z)); // front
+            addLine(new THREE.Vector3(x, min.y, max.z), new THREE.Vector3(x, max.y, max.z)); // back
+        }
+
+        for (let j = 0; j <= segments; j++) {
+            const y = min.y + j * stepY;
+
+            // Horizontal lines (X)
+            addLine(new THREE.Vector3(min.x, y, min.z), new THREE.Vector3(max.x, y, min.z)); // front
+            addLine(new THREE.Vector3(min.x, y, max.z), new THREE.Vector3(max.x, y, max.z)); // back
+        }
+
+        // ===== YZ planes (left and right) =====
+        for (let i = 0; i <= segments; i++) {
+            const y = min.y + i * stepY;
+
+            // Vertical lines (Z)
+            addLine(new THREE.Vector3(min.x, y, min.z), new THREE.Vector3(min.x, y, max.z)); // left
+            addLine(new THREE.Vector3(max.x, y, min.z), new THREE.Vector3(max.x, y, max.z)); // right
+        }
+
+        for (let j = 0; j <= segments; j++) {
+            const z = min.z + j * stepZ;
+
+            // Horizontal lines (Y)
+            addLine(new THREE.Vector3(min.x, min.y, z), new THREE.Vector3(min.x, max.y, z)); // left
+            addLine(new THREE.Vector3(max.x, min.y, z), new THREE.Vector3(max.x, max.y, z)); // right
+        }
+
+        // ===== XZ planes (top and bottom) =====
+        for (let i = 0; i <= segments; i++) {
+            const x = min.x + i * stepX;
+
+            // Vertical lines (Z)
+            addLine(new THREE.Vector3(x, min.y, min.z), new THREE.Vector3(x, min.y, max.z)); // bottom
+            addLine(new THREE.Vector3(x, max.y, min.z), new THREE.Vector3(x, max.y, max.z)); // top
+        }
+
+        for (let j = 0; j <= segments; j++) {
+            const z = min.z + j * stepZ;
+
+            // Horizontal lines (X)
+            addLine(new THREE.Vector3(min.x, min.y, z), new THREE.Vector3(max.x, min.y, z)); // bottom
+            addLine(new THREE.Vector3(min.x, max.y, z), new THREE.Vector3(max.x, max.y, z)); // top
+        }
+    }
+
+
+    getSnapPoints(object) {
+        const box = new THREE.Box3().setFromObject(object);
+        const min = box.min;
+        const max = box.max;
+
+        // Generate all 8 corners of the box
+        //wrk on midpoints and update the visuals for snappoints for mesh yash
+        return [
+            new THREE.Vector3(min.x, min.y, min.z),
+            new THREE.Vector3(max.x, min.y, min.z),
+            new THREE.Vector3(max.x, max.y, min.z),
+            new THREE.Vector3(min.x, max.y, min.z),
+
+            new THREE.Vector3(min.x, min.y, max.z),
+            new THREE.Vector3(max.x, min.y, max.z),
+            new THREE.Vector3(max.x, max.y, max.z),
+            new THREE.Vector3(min.x, max.y, max.z),
+        ];
+    }
+
+    createPlusHelper(size = 30, thickness = 1) {
+        const material = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+        const boxX = new THREE.BoxGeometry(size, thickness, thickness);
+        const boxY = new THREE.BoxGeometry(thickness, size, thickness);
+
+        const meshX = new THREE.Mesh(boxX, material);
+        const meshY = new THREE.Mesh(boxY, material);
+
+        const group = new THREE.Group();
+        group.add(meshX);
+        group.add(meshY);
+        group.visible = false;
+
+        return group;
+    }
+
+    clearSnapGridData() {
+        if (!this.snapGridLines) return;
+        this.snapGridLines.forEach(line => this.shapeData.viewer.scene.remove(line));
+        this.snapGridLines = [];
+
+        if (this.snapMarkers) {
+            this.snapMarkers.forEach(marker => this.shapeData.viewer.scene.remove(marker));
+            this.snapMarkers = [];
+        }
+
+        if (this.snapHoverHelper) {
+            this.shapeData.viewer.scene.remove(this.snapHoverHelper);
+            this.snapHoverHelper = null;
+        }
+    }
+
+    rebuildSnapMarkers() {
+        if (this.shapeData.viewer.bodies.snapEnabled) {
+            this.snapMarkers.forEach(marker => {
+                this.shapeData.viewer.scene.remove(marker);
+            });
+            this.snapMarkers = [];
+            this.addSnapPointsTo3D();
+        }
     }
 
     removeSnapPoints(mode) {
