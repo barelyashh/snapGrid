@@ -44,10 +44,40 @@ class UserInterface {
             setTimeout(() => rectanglePanel.querySelector('.add-btn').click(), 200);
         }, 200); 
 
-        sidebar.appendChild(this.createButton('Toggle Transform Control', 'toggle-btn', () => this.completeViewer.bodies.toggleTransformMode()));
+       
+        //Switch Mode
         sidebar.appendChild(this.createButton('Switch mode', 'toggle-btn-2d', () => this.completeViewer.switchMode()));
+
+        //Switch Snap
         sidebar.appendChild(this.createButton('Switch Snap', 'toggle-btn-2d', () => this.completeViewer.bodies.switchSnap()));
 
+        //Transform Control
+        const transformControlContainer = document.createElement('div');
+        transformControlContainer.className = 'transform-control-container';
+
+        const toggleSwitch = document.createElement('label');
+        toggleSwitch.className = 'toggle-switch';
+
+        const toggleInput = document.createElement('input');
+        toggleInput.type = 'checkbox';
+
+        const toggleSlider = document.createElement('span');
+        toggleSlider.className = 'toggle-slider';
+
+        const toggleLabel = document.createElement('span');
+        toggleLabel.className = 'toggle-label';
+        toggleLabel.textContent = 'Access Point';
+
+        toggleInput.addEventListener('change', () => {
+            this.completeViewer.bodies.toggleTransformMode();
+        });
+
+        toggleSwitch.appendChild(toggleInput);
+        toggleSwitch.appendChild(toggleSlider);
+        transformControlContainer.appendChild(toggleSwitch);
+        transformControlContainer.appendChild(toggleLabel);
+        sidebar.appendChild(transformControlContainer);
+       
         sideBarContainer.appendChild(sidebar);
     }
 

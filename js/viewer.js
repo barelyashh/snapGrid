@@ -42,6 +42,7 @@ class Viewer {
         this.initialMouse = new THREE.Vector2();
         this.deltaMouse = new THREE.Vector2();
         this.size = 0
+        this.selectedMeshes = [];
     }
 
     createViewer() {
@@ -173,6 +174,9 @@ class Viewer {
             case 'KeyS':
                 this.transformControls.setMode('scale');
                 break;
+            case 'Delete' :
+                this.deleteSelectedMeshes()
+                break
         }
     }
 
@@ -202,6 +206,10 @@ class Viewer {
         const {width, height, depth} = this.bodies.frame.geometry.parameters
         if (this.plane) {
             this.scene.remove(this.plane);
+        }
+
+        if (!this.bodies.transformEnabled) {
+            this.bodies.hideAllSprites()
         }
 
         this.orbitControls.reset();
@@ -252,6 +260,10 @@ class Viewer {
             }
         });
 
+        if (!this.bodies.transformEnabled) {
+            this.bodies.showAllSprites()
+        }
+
         this.orbitControls.reset();
         this.orbitControls.enableRotate = true;
         this.scene.add(this.transformControls);
@@ -290,22 +302,39 @@ class Viewer {
         );
 
         this.raycaster.setFromCamera(mouse, this.camera);
+
         if (!this.bodies.transformEnabled) {
+            // Check for sprite click first
             const spriteIntersects = this.raycaster.intersectObjects(this.bodies.spriteObjects, true);
-            const intersectedSprite = spriteIntersects[0].object;
-            if (spriteIntersects.length > 0 && this.bodies.spriteObjects.includes(intersectedSprite)) {
-                this.bodies.overallBodies.forEach((object) => {
-                    {
-                        if (object.sprite === spriteIntersects[0].object && object.sprite.visible) {
-                            this.popup = new Popup(intersectedSprite, object.mesh, this, this.onSave.bind(this), this.onCancel.bind(this));
-                            return;
-                        }
-
-                    }
-                })
-
+            if (spriteIntersects.length > 0) {
+                const intersectedSprite = spriteIntersects[0].object;
+                if (this.bodies.spriteObjects.includes(intersectedSprite)) {
+                    this.viewSelectedMeshes();
+                    return; // Exit early to prevent any mesh interaction
+                }
             }
 
+            // Handle mesh selection only if no sprite was clicked
+            const objectsToCheck = this.bodies.overallBodies;
+            const items = []
+            objectsToCheck.forEach((item) => {
+                items.push(item.mesh)
+            });
+            const objectIntersects = this.raycaster.intersectObjects(items, true);
+            
+            if (objectIntersects.length > 0) {
+                const intersectedObject = objectIntersects[0].object;
+                const isAlreadySelected = this.selectedMeshes.includes(intersectedObject);
+
+                if (isAlreadySelected) {
+                    const index = this.selectedMeshes.indexOf(intersectedObject);
+                    this.selectedMeshes.splice(index, 1);
+                    this.removeEdgeHighlight(intersectedObject);
+                } else {
+                    this.selectedMeshes.push(intersectedObject);
+                    this.addEdgeHighlight(intersectedObject);
+                }
+            }
         }
        
         if (this.mode2D) return;
@@ -324,6 +353,64 @@ class Viewer {
                 this.resetTransformControls();
             }
         }
+    }
+
+    addEdgeHighlight(mesh) {
+        const edgeLines = new THREE.EdgesGeometry(mesh.geometry)
+        const edgeLineSegments = new THREE.LineSegments(edgeLines, new THREE.LineBasicMaterial({ color: 0xffff00, linewidth: 20 }))
+        edgeLineSegments.name = 'selected-part'
+        edgeLineSegments.position.copy(mesh.position)
+        edgeLineSegments.rotation.copy(mesh.rotation)
+        edgeLineSegments.scale.copy(mesh.scale)
+        this.scene.add(edgeLineSegments)
+    }
+
+    removeEdgeHighlight(mesh) {
+        const selectedParts = this.scene.children.filter(child => 
+            child.name === 'selected-part' && 
+            child.position.equals(mesh.position) &&
+            child.rotation.equals(mesh.rotation) &&
+            child.scale.equals(mesh.scale)
+        )
+        
+        selectedParts.forEach(part => {
+            this.scene.remove(part)
+            part.geometry.dispose()
+            part.material.dispose()
+        })
+    }
+
+    viewSelectedMeshes() {
+        if (this.selectedMeshes.length > 0) {
+            const tempSprite = new THREE.Sprite()
+            this.popup = new Popup(tempSprite, this.selectedMeshes, this, 
+                () => this.onSave(), 
+                () => this.onCancel()
+            )
+        } else {
+            alert('No meshes selected. Click on meshes to select them, then click the Sprite')
+        }
+    }
+
+    deleteSelectedMeshes() {
+        this.removeSelectedPartsEdge();
+        this.selectedMeshes.forEach(mesh => {
+            const index = this.bodies.overallBodies.findIndex(body => body.mesh === mesh);
+            if (index !== -1) {
+                this.scene.remove(mesh);
+                this.bodies.overallBodies.splice(index, 1);
+            }
+        });
+        this.selectedMeshes = [];
+    }
+
+    removeSelectedPartsEdge(){
+        const selectedPartsEdge = this.scene.children.filter(child => child.name === 'selected-part')
+        selectedPartsEdge.forEach(part => {
+            this.scene.remove(part)
+            part.geometry.dispose()
+            part.material.dispose()
+        })
     }
 
     handleObjectIntersection(intersectedObject) {
@@ -445,11 +532,17 @@ class Viewer {
     }
 
     onSave() {
-        this.bodies.showAllSprites()
+        this.selectedMeshes.forEach(mesh => {
+            this.removeEdgeHighlight(mesh);
+        });
+        this.selectedMeshes = [];
     }
 
     onCancel() {
-        this.bodies.showAllSprites()
+        this.selectedMeshes.forEach(mesh => {
+            this.removeEdgeHighlight(mesh);
+        });
+        this.selectedMeshes = [];
     }
 
     animate() {
