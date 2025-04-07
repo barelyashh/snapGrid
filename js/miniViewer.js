@@ -47,7 +47,14 @@ class MiniViewer {
     }
 
     setupCamera(parent) {
-        const cameraPosition = Math.max(parent.geometry.parameters.height, parent.geometry.parameters.width)
+        let cameraPosition = 0;
+        
+        parent.forEach(mesh => {
+            const height = mesh.geometry.parameters.height;
+            const width = mesh.geometry.parameters.width;
+            cameraPosition = Math.max(height, width);
+        });
+        
         this.camera = new THREE.PerspectiveCamera(75, this.widthO / this.heightO, 0.1, 10000);
         this.camera.position.set(0, 0, cameraPosition);
         this.scene.add(this.camera);
@@ -55,7 +62,7 @@ class MiniViewer {
     setupLights(object) {
         this.lights = new THREE.AmbientLight(0xffffff, 2);
         this.scene.add(this.lights);
-        const cameraPosition = Math.max(object.geometry.parameters.height, object.geometry.parameters.width)
+        const cameraPosition = Math.max(object[0].geometry.parameters.height, object[0].geometry.parameters.width)
         const spotLight = new THREE.SpotLight(0xffffff, 3);
         spotLight.position.set(0, 0, cameraPosition);
         spotLight.castShadow = true;
@@ -66,9 +73,9 @@ class MiniViewer {
         spotLight.decay = 0;
         spotLight.shadow.focus = 1;
         spotLight.shadow.camera.near = 1;
-        spotLight.shadow.camera.far = cameraPosition + object.geometry.parameters.depth;
+        spotLight.shadow.camera.far = cameraPosition + object[0].geometry.parameters.depth;
         spotLight.shadow.camera.fov = 75;
-        spotLight.distance = cameraPosition + object.geometry.parameters.depth;
+        spotLight.distance = cameraPosition + object[0].geometry.parameters.depth;
 
         this.scene.add(spotLight);
 
@@ -76,13 +83,23 @@ class MiniViewer {
     }
 
     setupMesh(parent) {
-        this.viewer.bodies.hideAllSprites()
-        const clonedRectangle = parent.clone();
-        clonedRectangle.position.set(0, 0, 0); // Center in the mini viewer
+     
         this.pivot = new THREE.Object3D();
-        this.scene.add(clonedRectangle);
+        parent.length > 1 
+        ?   parent.forEach(mesh => {
+                const clonedRectangle = mesh.clone();
+                // clonedRectangle.position.set(0, 0, 0); // Center in the mini viewer
+                this.scene.add(clonedRectangle);
+                this.miniViewerSceneObject.push(clonedRectangle);
+            })
+        : parent.forEach(mesh => {
+            const clonedRectangle = mesh.clone();
+            clonedRectangle.position.set(0, 0, 0); // Center in the mini viewer
+            this.scene.add(clonedRectangle);
+            this.miniViewerSceneObject.push(clonedRectangle);
+        })
+        
         this.scene.add(this.pivot);
-        this.miniViewerSceneObject.push(clonedRectangle)
     }
     setupRayCaster() {
         this.raycaster = new THREE.Raycaster();
@@ -174,7 +191,8 @@ class MiniViewer {
     handleObjectIntersection(intersectedObject) {
 
         this.intersectedObject = intersectedObject;
-        this.highlightSelectedObject(intersectedObject);
+        // this.viewer.addEdgeHighlight(intersectedObject)
+        // this.highlightSelectedObject(intersectedObject);
 
         this.transformControls.detach();
         this.transformControls.attach(this.pivot);
@@ -239,7 +257,9 @@ class MiniViewer {
                 this.pivot.scale.y !== 1 ? originalScale.y + this.pivot.scale.y : originalScale.y,
                 this.pivot.scale.z !== 1 ? originalScale.z + this.pivot.scale.z : originalScale.z
             );
-            this.viewer.popup.mesh.scale.copy(newScale);
+            this.viewer.popup.meshes.forEach(mesh => {
+                mesh.scale.copy(newScale);
+            });
             this.intersectedObject.applyMatrix4(this.pivot.matrixWorld);
             this.resetPivot();
             this.scene.add(this.intersectedObject);
