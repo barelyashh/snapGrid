@@ -403,10 +403,6 @@ class Popup {
             });
         }
         this.popupContainer.remove();
-
-
-        // this.bodies = new Bodies()
-        // this.bodies.showAllSprites()
         if (this.onCancel) this.onCancel();
     }
 
@@ -427,8 +423,6 @@ class Popup {
             throw new Error('Failed to fetch part data')
         }
         const partData = await response.json()
-        console.log('Raw Part Data:', partData)
-        console.log('Vertices Data:', partData.vertices)
         this.miniViewer.loadPartData(partData)
     }
 }

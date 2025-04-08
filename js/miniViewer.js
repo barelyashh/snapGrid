@@ -258,8 +258,7 @@ class MiniViewer {
     handleObjectIntersection(intersectedObject) {
 
         this.intersectedObject = intersectedObject;
-        // this.viewer.addEdgeHighlight(intersectedObject)
-        // this.highlightSelectedObject(intersectedObject);
+        this.highlightSelectedObject(intersectedObject);
 
         this.transformControls.detach();
         this.transformControls.attach(this.pivot);

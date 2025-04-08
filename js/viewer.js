@@ -340,7 +340,7 @@ class Viewer {
             const isAlreadySelected = this.selectedMeshes.includes(intersectedObject);
 
             if (event.ctrlKey) {
-               if (!this.bodies.transformEnabled) {
+            //    if (!this.bodies.transformEnabled) {
                 if (isAlreadySelected) {
                     const index = this.selectedMeshes.indexOf(intersectedObject);
                     this.selectedMeshes.splice(index, 1);
@@ -349,7 +349,7 @@ class Viewer {
                     this.selectedMeshes.push(intersectedObject);
                     this.addEdgeHighlight(intersectedObject);
                 }
-               }
+            //    }
             } else {
                 if (!isAlreadySelected) {
                     this.selectedMeshes.forEach(mesh => {
