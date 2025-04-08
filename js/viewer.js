@@ -318,6 +318,7 @@ class Viewer {
                 } else {
                     this.bodies.overallBodies.forEach((object)=>{ {
                         if(object.sprite ===spriteIntersects[0].object) {
+                            this.removeEdgeHighlight(object.mesh)
                             this.popup = new Popup(spriteIntersects[0].object,[object.mesh], this, this.onSave.bind(this), this.onCancel.bind(this));
                             return; 
                         }

@@ -101,6 +101,73 @@ class MiniViewer {
         
         this.scene.add(this.pivot);
     }
+
+    loadPartData(partData) {
+        console.log("Part Data:", partData);
+
+        if (!partData || !partData.vertices || !Array.isArray(partData.vertices)) {
+            console.error('Invalid part data structure');
+            return;
+        }
+
+        const points = [];
+        partData.vertices.forEach(vertex => {
+            if (vertex.pointX !== undefined && vertex.pointY !== undefined) {
+                points.push(new THREE.Vector2(vertex.pointX, vertex.pointY));
+            }
+        });
+
+        if (points.length < 3) {
+            console.error('Not enough valid vertices to create a shape');
+            return;
+        }
+
+        const shape = new THREE.Shape(points);
+        const extrudeSettings = {
+            steps: 1,
+            depth: 100, 
+            bevelEnabled: false
+        };
+
+        const geometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
+        const material = new THREE.MeshStandardMaterial({
+            color: 0x371a75,
+            side: THREE.DoubleSide,
+            flatShading: true
+        });
+        const mesh = new THREE.Mesh(geometry, material);
+
+        // mesh.rotation.x = Math.PI / 2;
+
+        // this.miniViewerSceneObject.forEach(obj => {
+        //     this.scene.remove(obj);
+        // });
+        // this.miniViewerSceneObject = [];
+        
+        this.scene.add(mesh);
+        this.miniViewerSceneObject.push(mesh);
+        
+        // this.updateCameraToFit(mesh);
+    }
+
+    updateCameraToFit(mesh) {
+        const box = new THREE.Box3().setFromObject(mesh);
+        const center = box.getCenter(new THREE.Vector3());
+        const size = box.getSize(new THREE.Vector3());
+        
+        const maxDim = Math.max(size.x, size.y, size.z);
+        const fov = this.camera.fov * (Math.PI / 180);
+        let cameraZ = Math.abs(maxDim / Math.tan(fov / 2));
+        
+        cameraZ *= 1.5;
+        
+        this.camera.position.set(center.x, center.y + cameraZ, center.z);
+        this.camera.lookAt(center);
+
+        this.orbitControls.target.copy(center);
+        this.orbitControls.update();
+    }
+
     setupRayCaster() {
         this.raycaster = new THREE.Raycaster();
     }

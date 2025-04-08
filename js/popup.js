@@ -1,4 +1,3 @@
-import { Bodies } from './bodies.js';
 import { MiniViewer } from './miniViewer.js';
 
 class Popup {
@@ -422,8 +421,15 @@ class Popup {
     }
 
 
-    handleItemClick(itemId) {
-        console.log("Selected Item ID:", itemId)
+    async handleItemClick(itemId) {
+        const response = await fetch(`http://localhost:3030/api/parts/${itemId}`)
+        if (!response.ok) {
+            throw new Error('Failed to fetch part data')
+        }
+        const partData = await response.json()
+        console.log('Raw Part Data:', partData)
+        console.log('Vertices Data:', partData.vertices)
+        this.miniViewer.loadPartData(partData)
     }
 }
 
