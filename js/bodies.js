@@ -58,7 +58,7 @@ class Bodies {
 
         this.viewer.position.z = z
         this.viewer.camera.position.set(x, y, z);
-        this.viewer.setupLights(x, z, geometry.parameters.depth)
+        this.viewer.setupLights( z, geometry.parameters.depth)
 
     }
     addRectangle({ widthBox, heightBox, depthBox }) {

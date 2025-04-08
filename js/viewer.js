@@ -87,26 +87,62 @@ class Viewer {
         this.scene.add(this.camera);
     }
 
-    setupLights(x, z, depth) {
-        this.lights = new THREE.AmbientLight(0xffffff, 2);
-        this.scene.add(this.lights);
+    setupLights(z, depth) {
+        const ambient = new THREE.AmbientLight(0xffffff, 2);
+        this.scene.add(ambient);
 
-        const spotLight = new THREE.SpotLight(0xffffff, 3);
-        spotLight.position.set(x, z / 2, z);
-        spotLight.castShadow = true;
-        spotLight.shadow.mapSize.width = 1024;
-        spotLight.shadow.mapSize.height = 1024;
-        spotLight.angle = Math.PI / 2;
-        spotLight.penumbra = 1;
-        spotLight.decay = 0;
-        spotLight.shadow.focus = 1;
-        spotLight.shadow.camera.near = 1;
-        spotLight.shadow.camera.far = z + depth;
-        spotLight.shadow.camera.fov = 75;
-        spotLight.distance = z + depth;
+        const frameBox = new THREE.Box3().setFromObject(this.bodies.frame);
+        const frameSize = new THREE.Vector3();
+        frameBox.getSize(frameSize);
 
-        this.scene.add(spotLight);
+        const maxHorizontal = Math.max(frameSize.z, frameSize.y);
+        console.log(maxHorizontal)
+        const distance = maxHorizontal;
+        const height = frameSize.y;
+
+        const frameCenter = new THREE.Vector3();
+        new THREE.Box3().setFromObject(this.bodies.frame).getCenter(frameCenter);
+
+        const directions = [
+            new THREE.Vector3(0, 0, -1),
+            new THREE.Vector3(0, 0, 1),
+            new THREE.Vector3(1, 0, 0),
+            new THREE.Vector3(-1, 0, 0)
+        ];
+
+        directions.forEach(dir => {
+            const spotLight = new THREE.SpotLight(0xffffff, 3);
+
+            const lightPos = frameCenter.clone().add(dir.clone().multiplyScalar(distance));
+            lightPos.y += height;
+            spotLight.position.copy(lightPos);
+
+            const target = frameCenter.clone();
+            spotLight.target.position.copy(target);
+            this.scene.add(spotLight.target);
+
+            // Shadow settings
+            spotLight.castShadow = true;
+            spotLight.shadow.mapSize.width = 1024;
+            spotLight.shadow.mapSize.height = 1024;
+            spotLight.angle = Math.PI / 4;
+            spotLight.penumbra = 0.5;
+            spotLight.decay = 0;
+            spotLight.shadow.focus = 1;
+            spotLight.shadow.camera.near = 1;
+            spotLight.shadow.camera.far = z + depth;
+            spotLight.shadow.camera.fov = 75;
+            const frameDiagonal = frameSize.length();
+            spotLight.distance = frameDiagonal * 2;
+
+            // Add to scene
+            this.scene.add(spotLight);
+
+            /*     const spotLightHelper = new THREE.SpotLightHelper(spotLight, 0xff00ff);
+                this.scene.add(spotLightHelper); */
+        });
     }
+
 
     setupControls() {
         this.orbitControls = new OrbitControls(this.camera, this.renderer.domElement);
@@ -180,11 +216,13 @@ class Viewer {
             const parentObject = clickedMarker.userData.owner;
 
             if (!this.selectedSnap.source) {
-
                 this.selectedSnap.source = point.clone();
                 this.selectedSnap.sourceObject = parentObject;
+                const isSourceFrame = parentObject === this.bodies.frame;
+                if (!isSourceFrame) {
+                    this.createSelectionCircle(point); // Show pulse only for mesh point
+                }
             } else {
-
                 const source = this.selectedSnap.source;
                 const sourceObject = this.selectedSnap.sourceObject;
                 const target = point;
@@ -224,7 +262,62 @@ class Viewer {
         }
     }
 
-  
+    createSelectionCircle(position) {
+        const size = 128;
+        const canvas = document.createElement('canvas');
+        canvas.width = size;
+        canvas.height = size;
+
+        const ctx = canvas.getContext('2d');
+
+        // Create a radial gradient circle
+        const gradient = ctx.createRadialGradient(size / 2, size / 2, 10, size / 2, size / 2, size / 2);
+        gradient.addColorStop(0, 'rgba(255, 0, 0, 0.99)');
+        gradient.addColorStop(1, 'rgba(255, 0, 0, 0)');
+
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
+        ctx.fill();
+
+        const texture = new THREE.CanvasTexture(canvas);
+        texture.needsUpdate = true;
+
+        const material = new THREE.SpriteMaterial({
+            map: texture,
+            transparent: true,
+            depthTest: false, // Important: Always visible
+        });
+
+        const sprite = new THREE.Sprite(material);
+        sprite.position.copy(position.clone().add(new THREE.Vector3(0, 0, 0.1))); // Slightly in front
+        sprite.scale.set(25, 25, 1); // Large enough to see
+
+        this.scene.add(sprite);
+
+        const start = performance.now();
+        const duration = 800;
+
+        const animate = (time) => {
+            const elapsed = time - start;
+            const t = Math.min(1, elapsed / duration);
+
+            const scale = 15 + t * 15;
+            sprite.scale.set(scale, scale, 1);
+            sprite.material.opacity = 1 - t;
+
+            if (t < 1) {
+                requestAnimationFrame(animate);
+            } else {
+                this.scene.remove(sprite);
+                sprite.material.dispose();
+                sprite.geometry?.dispose?.();
+            }
+        };
+
+        requestAnimationFrame(animate);
+    }
+
 
     handlePointerMove(event) {
         this.deltaMouse.set(event.clientX - this.initialMouse.x, event.clientY - this.initialMouse.y);
@@ -234,27 +327,23 @@ class Viewer {
                 ((event.clientX - rect.left) / rect.width) * 2 - 1,
                 -((event.clientY - rect.top) / rect.height) * 2 + 1
             );
-    
             this.raycaster.setFromCamera(mouse, this.camera);
             const snapIntersects = this.raycaster.intersectObjects(this.bodies.snap.snapMarkers, true);
-    
             if (snapIntersects.length > 0) {
                 const intersectedSnap = snapIntersects[0].object;
                 if (this.bodies.snap.snapMarkers.includes(intersectedSnap)) {
                     const point = intersectedSnap.position;
                     this.bodies.snap.snapHoverHelper.visible = true;
                     this.bodies.snap.snapHoverHelper.position.copy(point);
-                    return; 
+                    return;
                 }
             }
         }
-    
         // Hide if not hovering or Ctrl not pressed
         if (this.bodies.snap?.snapHoverHelper) {
             this.bodies.snap.snapHoverHelper.visible = false;
         }
     }
-    
     handleKeyUp(event) {
         if (event.code === 'ControlLeft' || event.code === 'ControlRight') {
             this.isCtrlPressed = false;
@@ -309,9 +398,7 @@ class Viewer {
         const source = this.selectedSnap.source;
         const target = this.selectedSnap.target;
         const object = this.selectedSnap.sourceObject;
-    
         if (!source || !target || !object) return;
-    
         const offset = new THREE.Vector3().subVectors(target, source);
         object.position.add(offset); // Move the entire mesh
     }
