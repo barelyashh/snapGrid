@@ -118,9 +118,10 @@ class SnapPoints {
 
     addSnapPointsTo3D() {
         if (!this.shapeData.viewer.scene) return;
-
-        this.snapHoverHelper = this.createPlusHelper();
-        this.shapeData.viewer.scene.add(this.snapHoverHelper)
+        this.snapHoverHelperForFrame = this.createPlusHelper(3, 0.3, 0xff0000);
+        this.snapHoverHelperForMesh = this.createPlusHelper(3, 0.3, 0x5dad47);
+        this.shapeData.viewer.scene.add(this.snapHoverHelperForFrame)
+        this.shapeData.viewer.scene.add(this.snapHoverHelperForMesh)
         if (this.shapeData.frame) {
             this.addSnapPointsToOverallBody()
         }
@@ -305,12 +306,12 @@ class SnapPoints {
         ];
     }
 
-    createPlusHelper(baseSize = 2, thickness = 0.1) {
+    createPlusHelper(baseSize = 5, thickness = 0.1,  color = 0xff0000) {
        const scaleFactor = this.getFrameScale()
 
         const size = baseSize * scaleFactor;
         const thick = thickness * scaleFactor;
-        const material = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+        const material = new THREE.MeshBasicMaterial({ color: color });
         const boxX = new THREE.BoxGeometry(size, thick, thick);
         const boxY = new THREE.BoxGeometry(thick, size, thick);
 
@@ -335,9 +336,13 @@ class SnapPoints {
             this.snapMarkers = [];
         }
 
-        if (this.snapHoverHelper) {
-            this.shapeData.viewer.scene.remove(this.snapHoverHelper);
-            this.snapHoverHelper = null;
+        if (this.snapHoverHelperForFrame) {
+            this.shapeData.viewer.scene.remove(this.snapHoverHelperForFrame);
+            this.snapHoverHelperForFrame = null;
+        }
+        if (this.snapHoverHelperForMesh) {
+            this.shapeData.viewer.scene.remove(this.snapHoverHelperForMesh);
+            this.snapHoverHelperForMesh = null;
         }
     }
 

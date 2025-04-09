@@ -244,13 +244,15 @@ class Viewer {
                 if (isSourceFrame) {
                     console.warn("❌ Invalid snap: Frame cannot be the source.");
                     this.selectedSnap = {};
-                    this.bodies.snap.snapHoverHelper.visible = false;
+                    this.bodies.snap.snapHoverHelperForFrame.visible = false;
+                    this.bodies.snap.snapHoverHelperForMesh.visible = false;
                     return;
                 }
 
                 // ✅ Allow mesh → frame and mesh → mesh
 
-                this.bodies.snap.snapHoverHelper.visible = false;
+                this.bodies.snap.snapHoverHelperForFrame.visible = false;
+                this.bodies.snap.snapHoverHelperForMesh.visible = false;
 
                 const offset = new THREE.Vector3().subVectors(target, source);
                 const originalPosition = sourceObject.position.clone();
@@ -347,22 +349,42 @@ class Viewer {
                 const intersectedSnap = snapIntersects[0].object;
                 if (this.bodies.snap.snapMarkers.includes(intersectedSnap)) {
                     const point = intersectedSnap.position;
-                    this.bodies.snap.snapHoverHelper.visible = true;
-                    this.bodies.snap.snapHoverHelper.position.copy(point);
+                    const parentObject = intersectedSnap.userData.owner;
+                
+                    // Hide both first
+                    this.bodies.snap.snapHoverHelperForFrame.visible = false;
+                    this.bodies.snap.snapHoverHelperForMesh.visible = false;
+                
+                    if (parentObject === this.bodies.frame) {
+                        // Show red plus for frame
+                        this.bodies.snap.snapHoverHelperForFrame.visible = true;
+                        this.bodies.snap.snapHoverHelperForFrame.position.copy(point);
+                    } else {
+                        // Show yellow plus for mesh
+                        this.bodies.snap.snapHoverHelperForMesh.visible = true;
+                        this.bodies.snap.snapHoverHelperForMesh.position.copy(point);
+                    }
+                
                     return;
                 }
             }
         }
         // Hide if not hovering or Ctrl not pressed
-        if (this.bodies.snap?.snapHoverHelper) {
-            this.bodies.snap.snapHoverHelper.visible = false;
+        if (this.bodies.snap?.snapHoverHelperForFrame) {
+            this.bodies.snap.snapHoverHelperForFrame.visible = false;
+        }
+        if (this.bodies.snap?.snapHoverHelperForMesh) {
+            this.bodies.snap.snapHoverHelperForMesh.visible = false;
         }
     }
     handleKeyUp(event) {
         if (event.code === 'ControlLeft' || event.code === 'ControlRight') {
             this.isCtrlPressed = false;
-            if (this.bodies.snap?.snapHoverHelper) {
-                this.bodies.snap.snapHoverHelper.visible = false;
+            if (this.bodies.snap?.snapHoverHelperForFrame) {
+                this.bodies.snap.snapHoverHelperForFrame.visible = false;
+            }
+            if (this.bodies.snap?.snapHoverHelperForMesh) {
+                this.bodies.snap.snapHoverHelperForMesh.visible = false;
             }
         }
     }
