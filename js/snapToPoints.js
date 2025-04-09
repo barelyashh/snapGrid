@@ -306,7 +306,7 @@ class SnapPoints {
     }
 
     createPlusHelper(baseSize = 2, thickness = 0.1) {
-        const scaleFactor = this.getFrameScale()
+       const scaleFactor = this.getFrameScale()
 
         const size = baseSize * scaleFactor;
         const thick = thickness * scaleFactor;

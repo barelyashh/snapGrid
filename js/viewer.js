@@ -211,7 +211,18 @@ class Viewer {
         const intersects = this.raycaster.intersectObjects(this.bodies.snap.snapMarkers, true);
 
         if (intersects.length > 0) {
-            const clickedMarker = intersects[0].object;
+          let intersected = null
+          for (const hit of intersects) {
+              if (hit.object.userData.owner?.name === "shape") {
+                  intersected = hit.object;
+                  break; 
+              }
+          }
+
+          if (!intersected) {
+              intersected = intersects[0].object;
+          }
+            const clickedMarker = intersected;
             const point = clickedMarker.position;
             const parentObject = clickedMarker.userData.owner;
 
