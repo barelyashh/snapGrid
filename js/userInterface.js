@@ -49,13 +49,10 @@ class UserInterface {
 
         //Switch Snap (only in 2D mode)
         const snapButton = this.createButton('Switch Snap', 'toggle-btn-2d', () => this.completeViewer.bodies.switchSnap());
-        snapButton.style.display = this.completeViewer.mode2D ? 'block' : 'none';
-        sidebar.appendChild(snapButton);
 
         //Transform Control (only in 3D mode)
         const transformControlContainer = document.createElement('div');
         transformControlContainer.className = 'transform-control-container';
-        transformControlContainer.style.display = this.completeViewer.mode2D ? 'none' : 'block';
 
         const toggleSwitch = document.createElement('label');
         toggleSwitch.className = 'toggle-switch';
@@ -79,14 +76,8 @@ class UserInterface {
         transformControlContainer.appendChild(toggleSwitch);
         transformControlContainer.appendChild(toggleLabel);
         sidebar.appendChild(transformControlContainer);
-       
+        sidebar.appendChild(snapButton);
         sideBarContainer.appendChild(sidebar);
-
-        // Add event listener to update button visibility when mode changes
-        this.completeViewer.onModeChange = () => {
-            snapButton.style.display = this.completeViewer.mode2D ? 'block' : 'none';
-            transformControlContainer.style.display = this.completeViewer.mode2D ? 'none' : 'block';
-        };
     }
 
     createPanel(title, fields, onAdd, defaultValues = {}) {

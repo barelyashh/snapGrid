@@ -200,10 +200,6 @@ class Viewer {
         } else {
             this.enable3DMode();
         }
-
-        if (this.ui && this.ui.completeViewer.onModeChange) {
-            this.ui.completeViewer.onModeChange();
-        }
     }
 
     enable2DMode() {
