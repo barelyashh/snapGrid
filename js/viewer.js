@@ -229,36 +229,39 @@ class Viewer {
                 const targetObject = parentObject;
 
                 const isSourceFrame = sourceObject === this.bodies.frame;
-                const isTargetFrame = targetObject === this.bodies.frame;
 
-                const isValidSnap = !isSourceFrame && isTargetFrame; // Only mesh → frame
-
-                if (!isValidSnap) {
-                    console.warn(" Invalid snap: Only mesh → frame is allowed.");
+                if (isSourceFrame) {
+                    console.warn("❌ Invalid snap: Frame cannot be the source.");
                     this.selectedSnap = {};
                     this.bodies.snap.snapHoverHelper.visible = false;
                     return;
                 }
+
+                // ✅ Allow mesh → frame and mesh → mesh
+
                 this.bodies.snap.snapHoverHelper.visible = false;
-                // ✅ Perform the snap
+
                 const offset = new THREE.Vector3().subVectors(target, source);
                 const originalPosition = sourceObject.position.clone();
 
                 sourceObject.position.add(offset);
+
                 const meshBox = new THREE.Box3().setFromObject(sourceObject);
                 const overallBox = new THREE.Box3().setFromObject(this.bodies.frame);
                 const isInside = overallBox.containsBox(meshBox);
 
                 if (!isInside) {
-                    console.warn(" Snap rejected: Mesh would move outside the overall frame.");
+                    console.warn("❌ Snap rejected: Mesh would move outside the overall frame.");
                     sourceObject.position.copy(originalPosition); // Revert move
                 } else {
-                    console.log("Snap successful.");
+                    console.log("✅ Snap successful.");
                 }
-                this.bodies.snap.rebuildSnapMarkers()
+
+                this.bodies.snap.rebuildSnapMarkers();
                 this.selectedSnap.source = null;
                 this.selectedSnap.sourceObject = null;
             }
+
         }
     }
 

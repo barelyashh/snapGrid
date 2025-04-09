@@ -26,19 +26,19 @@ class UserInterface {
         const sidebar = document.createElement('aside');
         sidebar.className = 'sidebar';
 
-        /* const overallDefaults = { Width: 500, Height: 750, Depth: 500 };
+     /*    const overallDefaults = { Width: 500, Height: 750, Depth: 500 };
         const rectangleDefaults = { Width: 19, Height: 500, Depth: 500 }; */
-        const overallDefaults = { Width: 250, Height: 200, Depth: 20 };
-        const rectangleDefaults = { Width: 10, Height: 100, Depth: 10 };
+          const overallDefaults = { Width: 3000, Height: 2200, Depth: 300 };
+            const rectangleDefaults = { Width: 200, Height: 2200, Depth: 200 };  
 
         const overallPanel = this.createPanel('OVERALL DIMENSIONS', ['Width', 'Height', 'Depth'], (inputs) => {
             this.handleOverallDimensions(inputs);
-        }, overallDefaults);
+        },overallDefaults);
         sidebar.appendChild(overallPanel);
 
         const rectanglePanel = this.createPanel('ADD RECTANGLE', ['Width', 'Height', 'Depth'], (inputs) => {
             this.handleRectangleAddition(inputs);
-        }, rectangleDefaults);
+        },rectangleDefaults);
         sidebar.appendChild(rectanglePanel);
 
         setTimeout(() => {
@@ -96,7 +96,7 @@ class UserInterface {
         const height = Number(inputs.Height.value.trim());
         const depth = Number(inputs.Depth.value.trim());
 
-        if (!width || !height || width < 100 || width > 2500 || height < 100 || height > 2500 || depth < 0 || depth > 2500) {
+        if (!width || !height || width < 100 || width > 3500 || height < 100 || height > 3500 || depth < 0 || depth > 3500) {
             alert('Enter valid dimensions (100-2000mm for width/height, 0-50mm for depth)');
             return;
         }

@@ -91,7 +91,8 @@ class Bodies {
 
     createRectangle(widthBox, heightBox, depthBox, visible, lineSegments) {
         const material = new THREE.MeshStandardMaterial({ color: '#7F4125' });
-        material.opacity = 0.6
+        material.transparent = true
+        material.opacity = 0.8
         const rectangle = new THREE.Mesh(new THREE.BoxGeometry(widthBox, heightBox, depthBox), material);
         rectangle.castShadow = true;
         rectangle.receiveShadow = true;
@@ -333,7 +334,7 @@ class Bodies {
     switchSnap() {
         this.snapEnabled = !this.snapEnabled;
         if (this.snapEnabled) {
-            this.mode2D ? this.snap.addSnapPointsTo2Drectangles() : this.snap.addSnapPointsTo3D();
+            this.viewer.mode2D ? this.snap.addSnapPointsTo2Drectangles() : this.snap.addSnapPointsTo3D();
         } else {
             this.snap.clearSnapGridData()
             this.snap.removeSnapPoints(this.viewer.mode2D);

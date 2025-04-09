@@ -154,9 +154,20 @@ class SnapPoints {
         });
     }
 
+    getFrameScale(){
+        const frameBox = new THREE.Box3().setFromObject(this.shapeData.viewer.bodies.frame);
+        const frameSize = new THREE.Vector3();
+        frameBox.getSize(frameSize);
+
+        // Scale factor could be a small fraction of the largest side
+        const scaleFactor = Math.max(frameSize.x, frameSize.y, frameSize.z) * 0.015;  
+        return scaleFactor
+    }
+
     createSnapMarker(position, parentObject) {
-        const geometry = new THREE.SphereGeometry(3, 3, 3);
-        //const material = new THREE.MeshBasicMaterial({ color:'#82807C', visible: true});
+        const scaleFactor = this.getFrameScale()
+        const geometry = new THREE.SphereGeometry(scaleFactor, 16, 16);
+        // const material = new THREE.MeshBasicMaterial({ color:'#82807C', visible: true});
         const material = new THREE.MeshBasicMaterial({ visible: false });
         const marker = new THREE.Mesh(geometry, material);
         marker.position.copy(position);
@@ -294,10 +305,14 @@ class SnapPoints {
         ];
     }
 
-    createPlusHelper(size = 30, thickness = 1) {
+    createPlusHelper(baseSize = 2, thickness = 0.1) {
+        const scaleFactor = this.getFrameScale()
+
+        const size = baseSize * scaleFactor;
+        const thick = thickness * scaleFactor;
         const material = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-        const boxX = new THREE.BoxGeometry(size, thickness, thickness);
-        const boxY = new THREE.BoxGeometry(thickness, size, thickness);
+        const boxX = new THREE.BoxGeometry(size, thick, thick);
+        const boxY = new THREE.BoxGeometry(thick, size, thick);
 
         const meshX = new THREE.Mesh(boxX, material);
         const meshY = new THREE.Mesh(boxY, material);
