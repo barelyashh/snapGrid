@@ -141,9 +141,6 @@ class Viewer {
 
             // Add to scene
             this.scene.add(spotLight);
-
-            /*     const spotLightHelper = new THREE.SpotLightHelper(spotLight, 0xff00ff);
-                this.scene.add(spotLightHelper); */
         });
     }
 
