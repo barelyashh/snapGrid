@@ -41,8 +41,19 @@ class Viewer {
         this.activeAxis = null;
         this.initialMouse = new THREE.Vector2();
         this.deltaMouse = new THREE.Vector2();
+
+        this.size = 0;
+        this.isCtrlPressed = false;
+        this.selectedSnap = {
+            source: null,
+            sourceObject: null,
+            target: null,
+            targetObject: null
+        };
+
         this.size = 0
         this.selectedMeshes = [];
+
     }
 
     createViewer() {
@@ -81,26 +92,58 @@ class Viewer {
         this.scene.add(this.camera);
     }
 
-    setupLights(x, z, depth) {
-        this.lights = new THREE.AmbientLight(0xffffff, 2);
-        this.scene.add(this.lights);
+    setupLights(z, depth) {
+        const ambient = new THREE.AmbientLight(0xffffff, 2);
+        this.scene.add(ambient);
 
-        const spotLight = new THREE.SpotLight(0xffffff, 3);
-        spotLight.position.set(x, z / 2, z);
-        spotLight.castShadow = true;
-        spotLight.shadow.mapSize.width = 1024;
-        spotLight.shadow.mapSize.height = 1024;
-        spotLight.angle = Math.PI / 2;
-        spotLight.penumbra = 1;
-        spotLight.decay = 0;
-        spotLight.shadow.focus = 1;
-        spotLight.shadow.camera.near = 1;
-        spotLight.shadow.camera.far = z + depth;
-        spotLight.shadow.camera.fov = 75;
-        spotLight.distance = z + depth;
+        const frameBox = new THREE.Box3().setFromObject(this.bodies.frame);
+        const frameSize = new THREE.Vector3();
+        frameBox.getSize(frameSize);
 
-        this.scene.add(spotLight);
+        const maxHorizontal = Math.max(frameSize.z, frameSize.y);
+        const distance = maxHorizontal;
+        const height = frameSize.y;
+
+        const frameCenter = new THREE.Vector3();
+        new THREE.Box3().setFromObject(this.bodies.frame).getCenter(frameCenter);
+
+        const directions = [
+            new THREE.Vector3(0, 0, -1),
+            new THREE.Vector3(0, 0, 1),
+            new THREE.Vector3(1, 0, 0),
+            new THREE.Vector3(-1, 0, 0)
+        ];
+
+        directions.forEach(dir => {
+            const spotLight = new THREE.SpotLight(0xffffff, 3);
+
+            const lightPos = frameCenter.clone().add(dir.clone().multiplyScalar(distance));
+            lightPos.y += height;
+            spotLight.position.copy(lightPos);
+
+            const target = frameCenter.clone();
+            spotLight.target.position.copy(target);
+            this.scene.add(spotLight.target);
+
+            // Shadow settings
+            spotLight.castShadow = true;
+            spotLight.shadow.mapSize.width = 1024;
+            spotLight.shadow.mapSize.height = 1024;
+            spotLight.angle = Math.PI / 4;
+            spotLight.penumbra = 0.5;
+            spotLight.decay = 0;
+            spotLight.shadow.focus = 1;
+            spotLight.shadow.camera.near = 1;
+            spotLight.shadow.camera.far = z + depth;
+            spotLight.shadow.camera.fov = 75;
+            const frameDiagonal = frameSize.length();
+            spotLight.distance = frameDiagonal * 2;
+
+            // Add to scene
+            this.scene.add(spotLight);
+        });
     }
+
 
     setupControls() {
         this.orbitControls = new OrbitControls(this.camera, this.renderer.domElement);
@@ -157,10 +200,195 @@ class Viewer {
 
     handlePointerDown(event) {
         this.initialMouse.set(event.clientX, event.clientY);
+        if (!event.ctrlKey || !this.bodies.snapEnabled) return;
+
+        const rect = this.renderer.domElement.getBoundingClientRect();
+        const mouse = new THREE.Vector2(
+            ((event.clientX - rect.left) / rect.width) * 2 - 1,
+            -((event.clientY - rect.top) / rect.height) * 2 + 1
+        );
+
+        this.raycaster.setFromCamera(mouse, this.camera);
+        const intersects = this.raycaster.intersectObjects(this.bodies.snap.snapMarkers, true);
+
+        if (intersects.length > 0) {
+            let intersected = null
+            for (const hit of intersects) {
+                if (hit.object.userData.owner?.name === "shape") {
+                    intersected = hit.object;
+                    break;
+                }
+            }
+
+            if (!intersected) {
+                intersected = intersects[0].object;
+            }
+            const clickedMarker = intersected;
+            const point = clickedMarker.position;
+            const parentObject = clickedMarker.userData.owner;
+
+            if (!this.selectedSnap.source) {
+                this.selectedSnap.source = point.clone();
+                this.selectedSnap.sourceObject = parentObject;
+                const isSourceFrame = parentObject === this.bodies.frame;
+                if (!isSourceFrame) {
+                    this.createSelectionCircle(point); // Show pulse only for mesh point
+                }
+            } else {
+                const source = this.selectedSnap.source;
+                const sourceObject = this.selectedSnap.sourceObject;
+                const target = point;
+                const targetObject = parentObject;
+
+                const isSourceFrame = sourceObject === this.bodies.frame;
+
+                if (isSourceFrame) {
+                    this.showSnapWarning('❌ Invalid snap: Frame cannot be the source.')
+                    this.selectedSnap = {};
+                    this.bodies.snap.snapHoverHelperForFrame.visible = false;
+                    this.bodies.snap.snapHoverHelperForMesh.visible = false;
+                    return;
+                }
+
+                // ✅ Allow mesh → frame and mesh → mesh
+
+                this.bodies.snap.snapHoverHelperForFrame.visible = false;
+                this.bodies.snap.snapHoverHelperForMesh.visible = false;
+
+                const offset = new THREE.Vector3().subVectors(target, source);
+                const originalPosition = sourceObject.position.clone();
+
+                sourceObject.position.add(offset);
+
+                const meshBox = new THREE.Box3().setFromObject(sourceObject);
+                const overallBox = new THREE.Box3().setFromObject(this.bodies.frame);
+                const isInside = overallBox.containsBox(meshBox);
+
+                if (!isInside) {
+                    this.showSnapWarning('❌ Snap rejected: Mesh would move outside the overall frame')
+                    sourceObject.position.copy(originalPosition); // Revert move
+                } else {
+                    console.log("✅ Snap successful.");
+                }
+
+                this.bodies.snap.rebuildSnapMarkers();
+                this.selectedSnap.source = null;
+                this.selectedSnap.sourceObject = null;
+            }
+
+        }
     }
+
+    createSelectionCircle(position) {
+        const size = 128;
+        const canvas = document.createElement('canvas');
+        canvas.width = size;
+        canvas.height = size;
+
+        const ctx = canvas.getContext('2d');
+
+        // Create a radial gradient circle
+        const gradient = ctx.createRadialGradient(size / 2, size / 2, 10, size / 2, size / 2, size / 2);
+        gradient.addColorStop(0, 'rgba(255, 0, 0, 0.99)');
+        gradient.addColorStop(1, 'rgba(255, 0, 0, 0)');
+
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
+        ctx.fill();
+
+        const texture = new THREE.CanvasTexture(canvas);
+        texture.needsUpdate = true;
+
+        const material = new THREE.SpriteMaterial({
+            map: texture,
+            transparent: true,
+            depthTest: false, // Important: Always visible
+        });
+
+        const sprite = new THREE.Sprite(material);
+        sprite.position.copy(position.clone().add(new THREE.Vector3(0, 0, 0.1))); // Slightly in front
+        const scaleFactor = this.bodies.snap.getFrameScale(); // Inverse of frame scale
+        sprite.scale.set(scaleFactor, scaleFactor, 1);
+
+        this.scene.add(sprite);
+
+        const start = performance.now();
+        const duration = 800;
+
+        const animate = (time) => {
+            const elapsed = time - start;
+            const t = Math.min(1, elapsed / duration);
+
+            const scale = scaleFactor * (1 + t); // Grows over time
+            sprite.scale.set(scale, scale, 1);
+            sprite.material.opacity = 1 - t;
+
+            if (t < 1) {
+                requestAnimationFrame(animate);
+            } else {
+                this.scene.remove(sprite);
+                sprite.material.dispose();
+                sprite.geometry?.dispose?.();
+            }
+        };
+
+        requestAnimationFrame(animate);
+    }
+
 
     handlePointerMove(event) {
         this.deltaMouse.set(event.clientX - this.initialMouse.x, event.clientY - this.initialMouse.y);
+        if (this.bodies.snapEnabled && this.isCtrlPressed) {
+            const rect = this.renderer.domElement.getBoundingClientRect();
+            const mouse = new THREE.Vector2(
+                ((event.clientX - rect.left) / rect.width) * 2 - 1,
+                -((event.clientY - rect.top) / rect.height) * 2 + 1
+            );
+            this.raycaster.setFromCamera(mouse, this.camera);
+            const snapIntersects = this.raycaster.intersectObjects(this.bodies.snap.snapMarkers, true);
+            if (snapIntersects.length > 0) {
+                const intersectedSnap = snapIntersects[0].object;
+                if (this.bodies.snap.snapMarkers.includes(intersectedSnap)) {
+                    const point = intersectedSnap.position;
+                    const parentObject = intersectedSnap.userData.owner;
+
+                    // Hide both first
+                    this.bodies.snap.snapHoverHelperForFrame.visible = false;
+                    this.bodies.snap.snapHoverHelperForMesh.visible = false;
+
+                    if (parentObject === this.bodies.frame) {
+                        // Show red plus for frame
+                        this.bodies.snap.snapHoverHelperForFrame.visible = true;
+                        this.bodies.snap.snapHoverHelperForFrame.position.copy(point);
+                    } else {
+                        // Show yellow plus for mesh
+                        this.bodies.snap.snapHoverHelperForMesh.visible = true;
+                        this.bodies.snap.snapHoverHelperForMesh.position.copy(point);
+                    }
+
+                    return;
+                }
+            }
+        }
+        // Hide if not hovering or Ctrl not pressed
+        if (this.bodies.snap?.snapHoverHelperForFrame) {
+            this.bodies.snap.snapHoverHelperForFrame.visible = false;
+        }
+        if (this.bodies.snap?.snapHoverHelperForMesh) {
+            this.bodies.snap.snapHoverHelperForMesh.visible = false;
+        }
+    }
+    handleKeyUp(event) {
+        if (event.code === 'ControlLeft' || event.code === 'ControlRight') {
+            this.isCtrlPressed = false;
+            if (this.bodies.snap?.snapHoverHelperForFrame) {
+                this.bodies.snap.snapHoverHelperForFrame.visible = false;
+            }
+            if (this.bodies.snap?.snapHoverHelperForMesh) {
+                this.bodies.snap.snapHoverHelperForMesh.visible = false;
+            }
+        }
     }
 
     handleKeyDown(event) {
@@ -174,9 +402,16 @@ class Viewer {
             case 'KeyS':
                 this.transformControls.setMode('scale');
                 break;
-            case 'Delete' :
+
+            case 'ControlLeft':
+            case 'ControlRight':
+                this.isCtrlPressed = true;
+                break;
+
+            case 'Delete':
                 this.deleteSelectedMeshes()
                 break
+
         }
     }
 
@@ -196,10 +431,20 @@ class Viewer {
         this.mode2D = !this.mode2D;
 
         if (this.mode2D) {
+            this.bodies.snap.clearSnapGridData()
             this.enable2DMode();
         } else {
             this.enable3DMode();
         }
+    }
+
+    snapSourceToTarget() {
+        const source = this.selectedSnap.source;
+        const target = this.selectedSnap.target;
+        const object = this.selectedSnap.sourceObject;
+        if (!source || !target || !object) return;
+        const offset = new THREE.Vector3().subVectors(target, source);
+        object.position.add(offset); // Move the entire mesh
     }
 
     enable2DMode() {
@@ -312,13 +557,14 @@ class Viewer {
                 if (this.selectedMeshes.length > 1) {
                     this.viewSelectedMeshes();
                 } else {
-                    this.bodies.overallBodies.forEach((object)=>{ {
-                        if(object.sprite ===spriteIntersects[0].object) {
-                            this.removeEdgeHighlight(object.mesh)
-                            this.popup = new Popup(spriteIntersects[0].object,[object.mesh], this, this.onSave.bind(this), this.onCancel.bind(this));
-                            return; 
+                    this.bodies.overallBodies.forEach((object) => {
+                        {
+                            if (object.sprite === spriteIntersects[0].object) {
+                                this.removeEdgeHighlight(object.mesh)
+                                this.popup = new Popup(spriteIntersects[0].object, [object.mesh], this, this.onSave.bind(this), this.onCancel.bind(this));
+                                return;
+                            }
                         }
-                    }
                     })
                 }
             }
@@ -330,13 +576,13 @@ class Viewer {
             items.push(item.mesh)
         });
         const objectIntersects = this.raycaster.intersectObjects(items, true);
-        
+
         if (objectIntersects.length > 0) {
             const intersectedObject = objectIntersects[0].object;
             const isAlreadySelected = this.selectedMeshes.includes(intersectedObject);
 
             if (event.ctrlKey) {
-            //    if (!this.bodies.transformEnabled) {
+                //    if (!this.bodies.transformEnabled) {
                 if (isAlreadySelected) {
                     const index = this.selectedMeshes.indexOf(intersectedObject);
                     this.selectedMeshes.splice(index, 1);
@@ -345,14 +591,14 @@ class Viewer {
                     this.selectedMeshes.push(intersectedObject);
                     this.addEdgeHighlight(intersectedObject);
                 }
-            //    }
+                //    }
             } else {
                 if (!isAlreadySelected) {
                     this.selectedMeshes.forEach(mesh => {
                         this.removeEdgeHighlight(mesh);
                     });
                     this.selectedMeshes = [];
-                    
+
                     this.selectedMeshes.push(intersectedObject);
                     this.addEdgeHighlight(intersectedObject);
                 }
@@ -406,7 +652,7 @@ class Viewer {
 
     removeEdgeHighlight(mesh) {
         const selectedParts = mesh.children.filter(child => child.name === 'selected-part')
-        
+
         selectedParts.forEach(part => {
             mesh.remove(part)
             part.geometry.dispose()
@@ -420,8 +666,8 @@ class Viewer {
             this.selectedMeshes.forEach(mesh => {
                 this.removeEdgeHighlight(mesh)
             })
-            this.popup = new Popup(tempSprite, this.selectedMeshes, this, 
-                () => this.onSave(), 
+            this.popup = new Popup(tempSprite, this.selectedMeshes, this,
+                () => this.onSave(),
                 () => this.onCancel()
             )
         } else {
@@ -436,7 +682,7 @@ class Viewer {
             if (index !== -1) {
                 this.scene.remove(mesh);
                 this.removeEdgeHighlight(mesh);
-                
+
                 const sprite = this.bodies.overallBodies[index].sprite;
                 if (sprite) {
                     this.scene.remove(sprite);
@@ -448,7 +694,7 @@ class Viewer {
         this.resetTransformControls();
     }
 
-    removeSelectedPartsEdge(){
+    removeSelectedPartsEdge() {
         const selectedPartsEdge = this.scene.children.filter(child => child.name === 'selected-part')
         selectedPartsEdge.forEach(part => {
             this.scene.remove(part)
@@ -650,6 +896,18 @@ class Viewer {
             );
         }
 
+    }
+
+    showSnapWarning(message, duration = 2000) {
+        const el = document.getElementById("snap-warning");
+        if (!el) return;
+        el.textContent = message;
+        el.style.display = "block";
+
+        clearTimeout(this._snapWarningTimeout);
+        this._snapWarningTimeout = setTimeout(() => {
+            el.style.display = "none";
+        }, duration);
     }
 
     onSave() {

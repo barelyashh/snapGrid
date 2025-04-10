@@ -48,13 +48,13 @@ class MiniViewer {
 
     setupCamera(parent) {
         let cameraPosition = 0;
-        
+
         parent.forEach(mesh => {
             const height = mesh.geometry.parameters.height;
             const width = mesh.geometry.parameters.width;
             cameraPosition = Math.max(height, width);
         });
-        
+
         this.camera = new THREE.PerspectiveCamera(75, this.widthO / this.heightO, 0.1, 10000);
         this.camera.position.set(0, 0, cameraPosition);
         this.scene.add(this.camera);
@@ -83,27 +83,26 @@ class MiniViewer {
     }
 
     setupMesh(parent) {
-     
+
         this.pivot = new THREE.Object3D();
-        parent.length > 1 
-        ?   parent.forEach(mesh => {
+        parent.length > 1
+            ? parent.forEach(mesh => {
                 const clonedRectangle = mesh.clone();
                 // clonedRectangle.position.set(0, 0, 0); // Center in the mini viewer
                 this.scene.add(clonedRectangle);
                 this.miniViewerSceneObject.push(clonedRectangle);
             })
-        : parent.forEach(mesh => {
-            const clonedRectangle = mesh.clone();
-            clonedRectangle.position.set(0, 0, 0); // Center in the mini viewer
-            this.scene.add(clonedRectangle);
-            this.miniViewerSceneObject.push(clonedRectangle);
-        })
-        
+            : parent.forEach(mesh => {
+                const clonedRectangle = mesh.clone();
+                clonedRectangle.position.set(0, 0, 0); // Center in the mini viewer
+                this.scene.add(clonedRectangle);
+                this.miniViewerSceneObject.push(clonedRectangle);
+            })
+
         this.scene.add(this.pivot);
     }
 
     loadPartData(partData) {
-        console.log("Part Data:", partData);
 
         if (!partData || !partData.vertices || !Array.isArray(partData.vertices)) {
             console.error('Invalid part data structure');
@@ -125,7 +124,7 @@ class MiniViewer {
         const shape = new THREE.Shape(points);
         const extrudeSettings = {
             steps: 1,
-            depth: 100, 
+            depth: 100,
             bevelEnabled: false
         };
 
@@ -143,10 +142,10 @@ class MiniViewer {
         //     this.scene.remove(obj);
         // });
         // this.miniViewerSceneObject = [];
-        
+
         this.scene.add(mesh);
         this.miniViewerSceneObject.push(mesh);
-        
+
         // this.updateCameraToFit(mesh);
     }
 
@@ -154,13 +153,13 @@ class MiniViewer {
         const box = new THREE.Box3().setFromObject(mesh);
         const center = box.getCenter(new THREE.Vector3());
         const size = box.getSize(new THREE.Vector3());
-        
+
         const maxDim = Math.max(size.x, size.y, size.z);
         const fov = this.camera.fov * (Math.PI / 180);
         let cameraZ = Math.abs(maxDim / Math.tan(fov / 2));
-        
+
         cameraZ *= 1.5;
-        
+
         this.camera.position.set(center.x, center.y + cameraZ, center.z);
         this.camera.lookAt(center);
 
