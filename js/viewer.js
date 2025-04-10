@@ -42,6 +42,7 @@ class Viewer {
         this.initialMouse = new THREE.Vector2();
         this.deltaMouse = new THREE.Vector2();
         this.size = 0
+        this.selectedMeshes = [];
     }
 
     createViewer() {
@@ -173,6 +174,9 @@ class Viewer {
             case 'KeyS':
                 this.transformControls.setMode('scale');
                 break;
+            case 'Delete' :
+                this.deleteSelectedMeshes()
+                break
         }
     }
 
@@ -202,6 +206,10 @@ class Viewer {
         const { width, height, depth } = this.bodies.frame.geometry.parameters
         if (this.plane) {
             this.scene.remove(this.plane);
+        }
+
+        if (!this.bodies.transformEnabled) {
+            this.bodies.hideAllSprites()
         }
 
         this.orbitControls.reset();
@@ -252,6 +260,10 @@ class Viewer {
             }
         });
 
+        if (!this.bodies.transformEnabled) {
+            this.bodies.showAllSprites()
+        }
+
         this.orbitControls.reset();
         this.orbitControls.enableRotate = true;
         this.scene.add(this.transformControls);
@@ -283,6 +295,7 @@ class Viewer {
 
 
     handleClick(event) {
+        if (this.mode2D) return;
 
         const rect = this.renderer.domElement.getBoundingClientRect();
         const mouse = new THREE.Vector2(
@@ -291,40 +304,68 @@ class Viewer {
         );
 
         this.raycaster.setFromCamera(mouse, this.camera);
+
         if (!this.bodies.transformEnabled) {
+            // Check for sprite click first
             const spriteIntersects = this.raycaster.intersectObjects(this.bodies.spriteObjects, true);
-            if (spriteIntersects[0] && spriteIntersects[0].object) {
-                const intersectedSprite = spriteIntersects[0].object;
-                if (spriteIntersects.length > 0 && this.bodies.spriteObjects.includes(intersectedSprite)) {
-                    this.bodies.overallBodies.forEach((object) => {
-                        {
-                            if (object.sprite === spriteIntersects[0].object && object.sprite.visible) {
-                                this.popup = new Popup(intersectedSprite, object.mesh, this, this.onSave.bind(this), this.onCancel.bind(this));
-                                return;
-                            }
-
+            if (spriteIntersects.length > 0) {
+                if (this.selectedMeshes.length > 1) {
+                    this.viewSelectedMeshes();
+                } else {
+                    this.bodies.overallBodies.forEach((object)=>{ {
+                        if(object.sprite ===spriteIntersects[0].object) {
+                            this.removeEdgeHighlight(object.mesh)
+                            this.popup = new Popup(spriteIntersects[0].object,[object.mesh], this, this.onSave.bind(this), this.onCancel.bind(this));
+                            return; 
                         }
+                    }
                     })
-
                 }
             }
+        }
+        // Handle mesh selection only if no sprite was clicked
+        const objectsToCheck = this.bodies.overallBodies;
+        const items = []
+        objectsToCheck.forEach((item) => {
+            items.push(item.mesh)
+        });
+        const objectIntersects = this.raycaster.intersectObjects(items, true);
+        
+        if (objectIntersects.length > 0) {
+            const intersectedObject = objectIntersects[0].object;
+            const isAlreadySelected = this.selectedMeshes.includes(intersectedObject);
 
-
+            if (event.ctrlKey) {
+            //    if (!this.bodies.transformEnabled) {
+                if (isAlreadySelected) {
+                    const index = this.selectedMeshes.indexOf(intersectedObject);
+                    this.selectedMeshes.splice(index, 1);
+                    this.removeEdgeHighlight(intersectedObject);
+                } else {
+                    this.selectedMeshes.push(intersectedObject);
+                    this.addEdgeHighlight(intersectedObject);
+                }
+            //    }
+            } else {
+                if (!isAlreadySelected) {
+                    this.selectedMeshes.forEach(mesh => {
+                        this.removeEdgeHighlight(mesh);
+                    });
+                    this.selectedMeshes = [];
+                    
+                    this.selectedMeshes.push(intersectedObject);
+                    this.addEdgeHighlight(intersectedObject);
+                }
+            }
+        } else if (!event.ctrlKey) {
+            this.selectedMeshes.forEach(mesh => {
+                this.removeEdgeHighlight(mesh);
+            });
+            this.selectedMeshes = [];
         }
 
-        if (this.mode2D) return;
-
         if (this.bodies.transformEnabled) {
-            this.cleanupOutline();//yash need to wrok
-            const objectsToCheck = this.bodies.overallBodies;
-            const items = []
-            objectsToCheck.forEach((item) => {
-                items.push(item.mesh)
-            });
-            const objectIntersects = this.raycaster.intersectObjects(items, true);
-
             if (objectIntersects.length > 0) {
-
                 this.handleObjectIntersection(objectIntersects[0].object);
             } else {
                 this.resetTransformControls();
@@ -332,10 +373,92 @@ class Viewer {
         }
     }
 
+    addEdgeHighlight(mesh) {
+        const edgeLines = new THREE.EdgesGeometry(mesh.geometry)
+        // const outlineMaterial = new THREE.LineBasicMaterial({ color: 0xffff00, linewidth: 20 })
+        const outlineMaterial = new THREE.ShaderMaterial({
+            uniforms: {
+                glowColor: { value: new THREE.Color(0xffff00) }, // Bright yellow
+            },
+            vertexShader: `
+                    varying vec3 vNormal;
+                    void main() {
+                        vNormal = normal;
+                        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                    }
+                `,
+            fragmentShader: `
+                    varying vec3 vNormal;
+                    uniform vec3 glowColor;
+                    void main() {
+                        float intensity = pow(1.2 - dot(vNormal, vec3(0, 0, 1)), 2.0);
+                        gl_FragColor = vec4(glowColor * intensity, 1.0);
+                    }
+                `,
+            side: THREE.BackSide,
+            blending: THREE.AdditiveBlending,
+            transparent: true,
+        });
+        const edgeLineSegments = new THREE.LineSegments(edgeLines, outlineMaterial)
+        edgeLineSegments.name = 'selected-part'
+        mesh.add(edgeLineSegments)
+    }
+
+    removeEdgeHighlight(mesh) {
+        const selectedParts = mesh.children.filter(child => child.name === 'selected-part')
+        
+        selectedParts.forEach(part => {
+            mesh.remove(part)
+            part.geometry.dispose()
+            part.material.dispose()
+        })
+    }
+
+    viewSelectedMeshes() {
+        if (this.selectedMeshes.length > 0) {
+            const tempSprite = new THREE.Sprite()
+            this.selectedMeshes.forEach(mesh => {
+                this.removeEdgeHighlight(mesh)
+            })
+            this.popup = new Popup(tempSprite, this.selectedMeshes, this, 
+                () => this.onSave(), 
+                () => this.onCancel()
+            )
+        } else {
+            alert('No meshes selected. Click on meshes to select them, then click the Sprite')
+        }
+    }
+
+    deleteSelectedMeshes() {
+        this.removeSelectedPartsEdge();
+        this.selectedMeshes.forEach(mesh => {
+            const index = this.bodies.overallBodies.findIndex(body => body.mesh === mesh);
+            if (index !== -1) {
+                this.scene.remove(mesh);
+                this.removeEdgeHighlight(mesh);
+                
+                const sprite = this.bodies.overallBodies[index].sprite;
+                if (sprite) {
+                    this.scene.remove(sprite);
+                }
+                this.bodies.overallBodies.splice(index, 1);
+            }
+        });
+        this.selectedMeshes = [];
+        this.resetTransformControls();
+    }
+
+    removeSelectedPartsEdge(){
+        const selectedPartsEdge = this.scene.children.filter(child => child.name === 'selected-part')
+        selectedPartsEdge.forEach(part => {
+            this.scene.remove(part)
+            part.geometry.dispose()
+            part.material.dispose()
+        })
+    }
+
     handleObjectIntersection(intersectedObject) {
         this.intersectedObject = intersectedObject;
-        this.highlightSelectedObject(intersectedObject);
-
         // Attach Transform Controls
         this.transformControls.detach();
         this.transformControls.attach(
@@ -434,7 +557,6 @@ class Viewer {
             this.selectedOutline.geometry.dispose();
             this.selectedOutline.material.dispose();
             if (this.intersectedObject) {
-                console.log('yash')
                 this.intersectedObject.remove(this.selectedOutline);
             }
             this.selectedOutline = null;
@@ -442,50 +564,50 @@ class Viewer {
     }
 
 
-    highlightSelectedObject(intersectedObject) {
-        if (this.selectedOutline) {
-            intersectedObject.children = []
-            this.scene.remove(this.selectedOutline);
-            this.selectedOutline.geometry.dispose();
-            this.selectedOutline.material.dispose();
-            this.selectedOutline = null;
-        }
+    // highlightSelectedObject(intersectedObject) {
+    //     if (this.selectedOutline) {
+    //         intersectedObject.children = []
+    //         this.scene.remove(this.selectedOutline);
+    //         this.selectedOutline.geometry.dispose();
+    //         this.selectedOutline.material.dispose();
+    //         this.selectedOutline = null;
+    //     }
 
-        if (!intersectedObject) return;
+    //     if (!intersectedObject) return;
 
-        // Create a wireframe edges geometry
-        const edgesGeometry = new THREE.EdgesGeometry(intersectedObject.geometry);
-        /* const outlineMaterial = new THREE.LineBasicMaterial({
-            color: 0xffff00, // Yellow
-            linewidth: 3, // Line thickness (might not work in all browsers)
-        }); */
-        const outlineMaterial = new THREE.ShaderMaterial({
-            uniforms: {
-                glowColor: { value: new THREE.Color(0xffff00) }, // Bright yellow
-            },
-            vertexShader: `
-                varying vec3 vNormal;
-                void main() {
-                    vNormal = normal;
-                    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-                }
-            `,
-            fragmentShader: `
-                varying vec3 vNormal;
-                uniform vec3 glowColor;
-                void main() {
-                    float intensity = pow(1.2 - dot(vNormal, vec3(0, 0, 1)), 2.0);
-                    gl_FragColor = vec4(glowColor * intensity, 1.0);
-                }
-            `,
-            side: THREE.BackSide,
-            blending: THREE.AdditiveBlending,
-            transparent: true,
-        });
+    //     // Create a wireframe edges geometry
+    //     const edgesGeometry = new THREE.EdgesGeometry(intersectedObject.geometry);
+    //     /* const outlineMaterial = new THREE.LineBasicMaterial({
+    //         color: 0xffff00, // Yellow
+    //         linewidth: 3, // Line thickness (might not work in all browsers)
+    //     }); */
+    //     const outlineMaterial = new THREE.ShaderMaterial({
+    //         uniforms: {
+    //             glowColor: { value: new THREE.Color(0xffff00) }, // Bright yellow
+    //         },
+    //         vertexShader: `
+    //             varying vec3 vNormal;
+    //             void main() {
+    //                 vNormal = normal;
+    //                 gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    //             }
+    //         `,
+    //         fragmentShader: `
+    //             varying vec3 vNormal;
+    //             uniform vec3 glowColor;
+    //             void main() {
+    //                 float intensity = pow(1.2 - dot(vNormal, vec3(0, 0, 1)), 2.0);
+    //                 gl_FragColor = vec4(glowColor * intensity, 1.0);
+    //             }
+    //         `,
+    //         side: THREE.BackSide,
+    //         blending: THREE.AdditiveBlending,
+    //         transparent: true,
+    //     });
 
-        this.selectedOutline = new THREE.LineSegments(edgesGeometry, outlineMaterial);
-        intersectedObject.add(this.selectedOutline)
-    }
+    //     this.selectedOutline = new THREE.LineSegments(edgesGeometry, outlineMaterial);
+    //     intersectedObject.add(this.selectedOutline)
+    // }
 
 
     resetTransformControls() {
@@ -531,11 +653,17 @@ class Viewer {
     }
 
     onSave() {
-        this.bodies.showAllSprites()
+        this.selectedMeshes.forEach(mesh => {
+            this.removeEdgeHighlight(mesh);
+        });
+        this.selectedMeshes = [];
     }
 
     onCancel() {
-        this.bodies.showAllSprites()
+        this.selectedMeshes.forEach(mesh => {
+            this.removeEdgeHighlight(mesh);
+        });
+        this.selectedMeshes = [];
     }
 
     animate() {

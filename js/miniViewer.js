@@ -47,7 +47,14 @@ class MiniViewer {
     }
 
     setupCamera(parent) {
-        const cameraPosition = Math.max(parent.geometry.parameters.height, parent.geometry.parameters.width)
+        let cameraPosition = 0;
+        
+        parent.forEach(mesh => {
+            const height = mesh.geometry.parameters.height;
+            const width = mesh.geometry.parameters.width;
+            cameraPosition = Math.max(height, width);
+        });
+        
         this.camera = new THREE.PerspectiveCamera(75, this.widthO / this.heightO, 0.1, 10000);
         this.camera.position.set(0, 0, cameraPosition);
         this.scene.add(this.camera);
@@ -55,7 +62,7 @@ class MiniViewer {
     setupLights(object) {
         this.lights = new THREE.AmbientLight(0xffffff, 2);
         this.scene.add(this.lights);
-        const cameraPosition = Math.max(object.geometry.parameters.height, object.geometry.parameters.width)
+        const cameraPosition = Math.max(object[0].geometry.parameters.height, object[0].geometry.parameters.width)
         const spotLight = new THREE.SpotLight(0xffffff, 3);
         spotLight.position.set(0, 0, cameraPosition);
         spotLight.castShadow = true;
@@ -66,9 +73,9 @@ class MiniViewer {
         spotLight.decay = 0;
         spotLight.shadow.focus = 1;
         spotLight.shadow.camera.near = 1;
-        spotLight.shadow.camera.far = cameraPosition + object.geometry.parameters.depth;
+        spotLight.shadow.camera.far = cameraPosition + object[0].geometry.parameters.depth;
         spotLight.shadow.camera.fov = 75;
-        spotLight.distance = cameraPosition + object.geometry.parameters.depth;
+        spotLight.distance = cameraPosition + object[0].geometry.parameters.depth;
 
         this.scene.add(spotLight);
 
@@ -76,14 +83,91 @@ class MiniViewer {
     }
 
     setupMesh(parent) {
-        this.viewer.bodies.hideAllSprites()
-        const clonedRectangle = parent.clone();
-        clonedRectangle.position.set(0, 0, 0); // Center in the mini viewer
+     
         this.pivot = new THREE.Object3D();
-        this.scene.add(clonedRectangle);
+        parent.length > 1 
+        ?   parent.forEach(mesh => {
+                const clonedRectangle = mesh.clone();
+                // clonedRectangle.position.set(0, 0, 0); // Center in the mini viewer
+                this.scene.add(clonedRectangle);
+                this.miniViewerSceneObject.push(clonedRectangle);
+            })
+        : parent.forEach(mesh => {
+            const clonedRectangle = mesh.clone();
+            clonedRectangle.position.set(0, 0, 0); // Center in the mini viewer
+            this.scene.add(clonedRectangle);
+            this.miniViewerSceneObject.push(clonedRectangle);
+        })
+        
         this.scene.add(this.pivot);
-        this.miniViewerSceneObject.push(clonedRectangle)
     }
+
+    loadPartData(partData) {
+        console.log("Part Data:", partData);
+
+        if (!partData || !partData.vertices || !Array.isArray(partData.vertices)) {
+            console.error('Invalid part data structure');
+            return;
+        }
+
+        const points = [];
+        partData.vertices.forEach(vertex => {
+            if (vertex.pointX !== undefined && vertex.pointY !== undefined) {
+                points.push(new THREE.Vector2(vertex.pointX, vertex.pointY));
+            }
+        });
+
+        if (points.length < 3) {
+            console.error('Not enough valid vertices to create a shape');
+            return;
+        }
+
+        const shape = new THREE.Shape(points);
+        const extrudeSettings = {
+            steps: 1,
+            depth: 100, 
+            bevelEnabled: false
+        };
+
+        const geometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
+        const material = new THREE.MeshStandardMaterial({
+            color: 0x371a75,
+            side: THREE.DoubleSide,
+            flatShading: true
+        });
+        const mesh = new THREE.Mesh(geometry, material);
+
+        // mesh.rotation.x = Math.PI / 2;
+
+        // this.miniViewerSceneObject.forEach(obj => {
+        //     this.scene.remove(obj);
+        // });
+        // this.miniViewerSceneObject = [];
+        
+        this.scene.add(mesh);
+        this.miniViewerSceneObject.push(mesh);
+        
+        // this.updateCameraToFit(mesh);
+    }
+
+    updateCameraToFit(mesh) {
+        const box = new THREE.Box3().setFromObject(mesh);
+        const center = box.getCenter(new THREE.Vector3());
+        const size = box.getSize(new THREE.Vector3());
+        
+        const maxDim = Math.max(size.x, size.y, size.z);
+        const fov = this.camera.fov * (Math.PI / 180);
+        let cameraZ = Math.abs(maxDim / Math.tan(fov / 2));
+        
+        cameraZ *= 1.5;
+        
+        this.camera.position.set(center.x, center.y + cameraZ, center.z);
+        this.camera.lookAt(center);
+
+        this.orbitControls.target.copy(center);
+        this.orbitControls.update();
+    }
+
     setupRayCaster() {
         this.raycaster = new THREE.Raycaster();
     }
@@ -239,7 +323,9 @@ class MiniViewer {
                 this.pivot.scale.y !== 1 ? originalScale.y + this.pivot.scale.y : originalScale.y,
                 this.pivot.scale.z !== 1 ? originalScale.z + this.pivot.scale.z : originalScale.z
             );
-            this.viewer.popup.mesh.scale.copy(newScale);
+            this.viewer.popup.meshes.forEach(mesh => {
+                mesh.scale.copy(newScale);
+            });
             this.intersectedObject.applyMatrix4(this.pivot.matrixWorld);
             this.resetPivot();
             this.scene.add(this.intersectedObject);

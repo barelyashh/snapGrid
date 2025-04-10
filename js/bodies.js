@@ -108,9 +108,8 @@ class Bodies {
         });
 
         const sprite = new THREE.Sprite(spriteMaterial);
-        //need to add scale dynamic
         sprite.scale.set(0.025, 0.025, 0.025);
-        sprite.visible = false;
+        sprite.visible = !this.transformEnabled;
         this.pivot = new THREE.Object3D();
         this.viewer.scene.add(this.pivot);
         if (visible) this.viewer.scene.add(rectangle);
@@ -119,12 +118,12 @@ class Bodies {
             const object = { lineSegments, width: widthBox, height: heightBox, depth: depthBox }
             this.overallBodies.push({ mesh: rectangle, line: object, sprite : sprite });
         } else {
-            this.overallBodies.push({ mesh: rectangle,sprite : sprite });
+            this.overallBodies.push({ mesh: rectangle, sprite : sprite });
         }
 
         this.spriteObjects.push(sprite);
+        this.viewer.scene.add(sprite);
         return rectangle
-
     }
 
     positionRectangle(rectangle) {
