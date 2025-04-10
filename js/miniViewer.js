@@ -59,26 +59,86 @@ class MiniViewer {
         this.camera.position.set(0, 0, cameraPosition);
         this.scene.add(this.camera);
     }
-    setupLights(object) {
+
+    setupLights(objects) {
+        // Remove previous lights if needed
+        if (this.lights) {
+            this.scene.remove(this.lights);
+        }
+
+        // Ambient Light
         this.lights = new THREE.AmbientLight(0xffffff, 2);
         this.scene.add(this.lights);
-        const cameraPosition = Math.max(object[0].geometry.parameters.height, object[0].geometry.parameters.width)
-        const spotLight = new THREE.SpotLight(0xffffff, 3);
-        spotLight.position.set(0, 0, cameraPosition);
-        spotLight.castShadow = true;
-        spotLight.shadow.mapSize.width = 1024;
-        spotLight.shadow.mapSize.height = 1024;
-        spotLight.angle = Math.PI / 2;
-        spotLight.penumbra = 1;
-        spotLight.decay = 0;
-        spotLight.shadow.focus = 1;
-        spotLight.shadow.camera.near = 1;
-        spotLight.shadow.camera.far = cameraPosition + object[0].geometry.parameters.depth;
-        spotLight.shadow.camera.fov = 75;
-        spotLight.distance = cameraPosition + object[0].geometry.parameters.depth;
 
-        this.scene.add(spotLight);
+        // Compute bounding box for all objects
+        const combinedBox = new THREE.Box3();
+        objects.forEach(obj => {
+            obj.updateMatrixWorld();
+            combinedBox.expandByObject(obj);
+        });
 
+        const frameSize = new THREE.Vector3();
+        combinedBox.getSize(frameSize);
+
+        const frameCenter = new THREE.Vector3();
+        combinedBox.getCenter(frameCenter);
+
+        const distance = Math.max(frameSize.x, frameSize.z) * 20;
+
+        const sideDirs = [
+            new THREE.Vector3(1, 0, 0),   // Right
+            new THREE.Vector3(-1, 0, 0),  // Left
+            new THREE.Vector3(0, 0, 1),   // Front
+            new THREE.Vector3(0, 0, -1)   // Back
+        ];
+
+        // Side Lights
+        sideDirs.forEach(dir => {
+            const spotLight = new THREE.SpotLight(0xffffff, 2);
+            const lightPos = frameCenter.clone().add(dir.clone().multiplyScalar(distance));
+            lightPos.y = frameCenter.y; // Middle height
+
+            spotLight.position.copy(lightPos);
+            spotLight.target.position.copy(frameCenter);
+            this.scene.add(spotLight.target);
+
+            spotLight.castShadow = true;
+            spotLight.shadow.mapSize.width = 1024;
+            spotLight.shadow.mapSize.height = 1024;
+            spotLight.angle = Math.PI / 4;
+            spotLight.penumbra = 0.5;
+            spotLight.decay = 0;
+            spotLight.shadow.focus = 1;
+            spotLight.shadow.camera.near = 1;
+            spotLight.shadow.camera.far = frameSize.length();
+            spotLight.shadow.camera.fov = 75;
+            spotLight.distance = distance * 1.5;
+
+            this.scene.add(spotLight);
+        });
+
+        // Top Light
+        const topLight = new THREE.SpotLight(0xffffff, 2.5);
+        const topPos = frameCenter.clone();
+        topPos.y += frameSize.y * 1.5;
+
+        topLight.position.copy(topPos);
+        topLight.target.position.copy(frameCenter);
+        this.scene.add(topLight.target);
+
+        topLight.castShadow = true;
+        topLight.shadow.mapSize.width = 1024;
+        topLight.shadow.mapSize.height = 1024;
+        topLight.angle = Math.PI / 4;
+        topLight.penumbra = 0.5;
+        topLight.decay = 0;
+        topLight.shadow.focus = 1;
+        topLight.shadow.camera.near = 1;
+        topLight.shadow.camera.far = frameSize.length();
+        topLight.shadow.camera.fov = 75;
+        topLight.distance = frameSize.length() * 2;
+
+        this.scene.add(topLight);
 
     }
 
