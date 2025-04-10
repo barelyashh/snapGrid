@@ -8,6 +8,7 @@ class UserInterface {
     createUI() {
         this.createHeader();
         this.createSidebar();
+        this.createSnapWarningBox();
     }
 
     createHeader() {
@@ -26,8 +27,10 @@ class UserInterface {
         const sidebar = document.createElement('aside');
         sidebar.className = 'sidebar';
 
-        const overallDefaults = { Width: 500, Height: 750, Depth: 500 };
-        const rectangleDefaults = { Width: 19, Height: 750, Depth: 500 };
+        /*    const overallDefaults = { Width: 500, Height: 750, Depth: 500 };
+           const rectangleDefaults = { Width: 19, Height: 500, Depth: 500 }; */
+        const overallDefaults = { Width: 3000, Height: 2200, Depth: 300 };
+        const rectangleDefaults = { Width: 200, Height: 2200, Depth: 200 };
 
         const overallPanel = this.createPanel('OVERALL DIMENSIONS', ['Width', 'Height', 'Depth'], (inputs) => {
             this.handleOverallDimensions(inputs);
@@ -44,10 +47,39 @@ class UserInterface {
             setTimeout(() => rectanglePanel.querySelector('.add-btn').click(), 200);
         }, 200);
 
-        sidebar.appendChild(this.createButton('Toggle Transform Control', 'toggle-btn', () => this.completeViewer.bodies.toggleTransformMode()));
+        //Switch Mode
         sidebar.appendChild(this.createButton('Switch mode', 'toggle-btn-2d', () => this.completeViewer.switchMode()));
-        sidebar.appendChild(this.createButton('Switch Snap', 'toggle-btn-2d', () => this.completeViewer.bodies.switchSnap()));
 
+        //Switch Snap (only in 2D mode)
+        const snapButton = this.createButton('Switch Snap', 'toggle-btn-2d', () => this.completeViewer.bodies.switchSnap());
+
+        //Transform Control (only in 3D mode)
+        const transformControlContainer = document.createElement('div');
+        transformControlContainer.className = 'transform-control-container';
+
+        const toggleSwitch = document.createElement('label');
+        toggleSwitch.className = 'toggle-switch';
+
+        const toggleInput = document.createElement('input');
+        toggleInput.type = 'checkbox';
+
+        const toggleSlider = document.createElement('span');
+        toggleSlider.className = 'toggle-slider';
+
+        const toggleLabel = document.createElement('span');
+        toggleLabel.className = 'toggle-label';
+        toggleLabel.textContent = 'Toggle Access Point';
+
+        toggleInput.addEventListener('change', () => {
+            this.completeViewer.bodies.toggleTransformMode();
+        });
+
+        toggleSwitch.appendChild(toggleInput);
+        toggleSwitch.appendChild(toggleSlider);
+        transformControlContainer.appendChild(toggleSwitch);
+        transformControlContainer.appendChild(toggleLabel);
+        sidebar.appendChild(transformControlContainer);
+        sidebar.appendChild(snapButton);
         sideBarContainer.appendChild(sidebar);
     }
 
@@ -94,7 +126,7 @@ class UserInterface {
         const height = Number(inputs.Height.value.trim());
         const depth = Number(inputs.Depth.value.trim());
 
-        if (!width || !height || width < 100 || width > 2500 || height < 100 || height > 2500 || depth < 0 || depth > 2500) {
+        if (!width || !height || width < 100 || width > 3500 || height < 100 || height > 3500 || depth < 0 || depth > 3500) {
             alert('Enter valid dimensions (100-2000mm for width/height, 0-50mm for depth)');
             return;
         }
@@ -131,6 +163,27 @@ class UserInterface {
             dimensionBox.id = "dimension-box";
             document.body.appendChild(dimensionBox);
         }
+    }
+
+    createSnapWarningBox() {
+        const warningBox = document.createElement("div");
+        warningBox.id = "snap-warning";
+        warningBox.style.cssText = `
+            position: absolute;
+            top: 60px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 10px 20px;
+            background-color: rgba(255, 100, 100, 0.9);
+            color: white;
+            font-family: sans-serif;
+            font-size: 14px;
+            border-radius: 8px;
+            display: none;
+            z-index: 10;
+            pointer-events: none;
+        `;
+        document.body.appendChild(warningBox);
     }
 
 }

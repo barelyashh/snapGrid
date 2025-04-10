@@ -1,22 +1,26 @@
 import { MiniViewer } from './miniViewer.js';
+
 class Popup {
     constructor(selectedRectangle, mesh, viewer, onSave, onCancel) {
         this.selectedRectangle = selectedRectangle;
         this.onSave = onSave
         this.onCancel = onCancel
         this.viewer = viewer
-        this.mesh = mesh
-        if (mesh) {
-            const parent = mesh;
-            this.initialProperties = {
-                position: parent.position.clone(), // ✅ Deep copy of Vector3
-                color: `#${parent.material.color.getHexString()}`, // ✅ Ensure correct hex format
-                opacity: parent.material.opacity,
-                metalness: parent.material.metalness,
-                roughness: parent.material.roughness,
-                type: parent.userData?.type || "" // ✅ Avoids undefined errors
-            };
-        }
+        this.meshes = mesh
+
+        const getProperties = (parent) => ({
+            position: parent.position.clone(),
+            color: `#${parent.material.color.getHexString()}`,
+            opacity: parent.material.opacity,
+            metalness: parent.material.metalness,
+            roughness: parent.material.roughness,
+            type: parent.userData?.type || ""
+        })
+
+        this.initialProperties = this.meshes.length === 0
+            ? alert('Please choose the model')
+            : this.meshes.map(getProperties);
+
         this.init();
     }
 
@@ -65,7 +69,7 @@ class Popup {
         const typeSelect = document.createElement("select")
         typeSelect.style.marginBottom = "15px"
         typeSelect.style.padding = "5px"
-        typeSelect.value = this.mesh?.userData?.type || "";
+        typeSelect.value = this.meshes.forEach((mesh) => { mesh?.userData?.type || ""; })
 
 
         // Add the four type options
@@ -226,9 +230,10 @@ class Popup {
         this.detailsContainer.appendChild(dataBoxContainer)
 
         // Title
-        const title = document.createElement("h2");
-        title.innerText = "Material Properties";
-        this.detailsContainer.appendChild(title);
+        const titleProperties = document.createElement("h2");
+        titleProperties.innerText = "Position Properties";
+        // if(this.meshes.length > 1) titleProperties.style.display = 'none'
+        this.detailsContainer.appendChild(titleProperties);
 
         this.detailsContainer.appendChild(this.createPositionInput("X Position", "x"));
         this.detailsContainer.appendChild(this.createPositionInput("Y Position", "y"));
@@ -262,7 +267,7 @@ class Popup {
         document.body.appendChild(this.popupContainer);
 
         // Initialize the mini viewer
-        this.miniViewer = new MiniViewer(this.mesh, this.viewer, this.popupContainer);
+        this.miniViewer = new MiniViewer(this.meshes, this.viewer, this.popupContainer);
     }
 
     createPositionInput(labelText, axis) {
@@ -275,9 +280,11 @@ class Popup {
 
         const input = document.createElement("input");
         input.type = "number";
-        input.value = Math.round(this.mesh?.position[axis]) || 0;
+        this.meshes.forEach((mesh) => { input.value = Math.round(mesh?.position[axis]) || 0; })
         input.step = "0.1"; // Small increments
         input.oninput = () => this.updatePosition(axis, parseFloat(input.value));
+
+        // if(this.meshes.length > 1) wrapper.style.display = 'none'
 
         wrapper.appendChild(label);
         wrapper.appendChild(input);
@@ -285,34 +292,37 @@ class Popup {
     }
 
     updatePosition(axis, value) {
-        if (!this.selectedRectangle || !this.mesh) return;
-        this.mesh.position[axis] = value;
+        if (!this.selectedRectangle || !this.meshes) return;
+        this.meshes.forEach(mesh => {
+            mesh.position[axis] = value;
+        });
     }
 
     updateMaterial(property, value) {
-        if (!this.selectedRectangle || !this.mesh) return;
-        const material = this.mesh.material;
-        switch (property) {
-            case 'color':
-                material.color.set(value);
-                break;
-            case 'transparency':
-                material.transparent = value;
-                break;
-            case 'opacity':
-                material.opacity = value;
-                break;
-            case 'metalness':
-                material.metalness = value;
-                break;
-            case 'roughness':
-                material.roughness = value;
-                break;
-            default:
-                console.warn(`Unknown property: ${property}`);
-        }
-
-        material.needsUpdate = true;
+        if (!this.selectedRectangle || !this.meshes) return;
+        this.meshes.forEach(mesh => {
+            const material = mesh.material;
+            switch (property) {
+                case 'color':
+                    material.color.set(value);
+                    break;
+                case 'transparency':
+                    material.transparent = value;
+                    break;
+                case 'opacity':
+                    material.opacity = value;
+                    break;
+                case 'metalness':
+                    material.metalness = value;
+                    break;
+                case 'roughness':
+                    material.roughness = value;
+                    break;
+                default:
+                    console.warn(`Unknown property: ${property}`);
+            }
+            material.needsUpdate = true;
+        })
     }
 
     async loadArticleData() {
@@ -364,26 +374,33 @@ class Popup {
     }
 
     saveChanges() {
-        if (!this.selectedRectangle || !this.mesh) return;
-        this.mesh.userData.type = this.typeSelect.value;;
+        if (!this.selectedRectangle || !this.meshes) return;
+        this.meshes.forEach(mesh => {
+            mesh.userData.type = this.typeSelect.value;
+        });
         this.popupContainer.remove();
         if (this.onSave) this.onSave();
     }
 
     cancelButton() {
-        if (this.mesh) {
-            const parent = this.mesh;
-            parent.position.set(
-                this.initialProperties.position.x,
-                this.initialProperties.position.y,
-                this.initialProperties.position.z
-            );
-            parent.material.color.set(`${this.initialProperties.color}`);
-            parent.material.opacity = this.initialProperties.opacity;
-            parent.material.metalness = this.initialProperties.metalness;
-            parent.material.roughness = this.initialProperties.roughness;
-            parent.userData.type = this.initialProperties.type;
-            parent.material.needsUpdate = true;
+        if (this.meshes) {
+            // Restore initial properties - match each mesh with its corresponding initial properties
+            this.meshes.forEach((mesh, index) => {
+                const init = this.initialProperties[index];
+                if (init) {
+                    mesh.position.set(
+                        init.position.x,
+                        init.position.y,
+                        init.position.z
+                    );
+                    mesh.material.color.set(`${init.color}`);
+                    mesh.material.opacity = init.opacity;
+                    mesh.material.metalness = init.metalness;
+                    mesh.material.roughness = init.roughness;
+                    mesh.userData.type = init.type;
+                    mesh.material.needsUpdate = true;
+                }
+            });
         }
         this.popupContainer.remove();
         if (this.onCancel) this.onCancel();
@@ -400,8 +417,13 @@ class Popup {
     }
 
 
-    handleItemClick(itemId) {
-        console.log("Selected Item ID:", itemId)
+    async handleItemClick(itemId) {
+        const response = await fetch(`http://localhost:3030/api/parts/${itemId}`)
+        if (!response.ok) {
+            throw new Error('Failed to fetch part data')
+        }
+        const partData = await response.json()
+        this.miniViewer.loadPartData(partData)
     }
 }
 
