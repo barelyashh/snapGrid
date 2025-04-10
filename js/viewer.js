@@ -139,6 +139,7 @@ class Viewer {
             const frameDiagonal = frameSize.length();
             spotLight.distance = frameDiagonal * 2;
 
+            
             // Add to scene
             this.scene.add(spotLight);
         });
