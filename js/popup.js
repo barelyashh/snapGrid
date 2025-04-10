@@ -7,7 +7,7 @@ class Popup {
         this.onCancel = onCancel
         this.viewer = viewer
         this.meshes = mesh
-        
+
         const getProperties = (parent) => ({
             position: parent.position.clone(),
             color: `#${parent.material.color.getHexString()}`,
@@ -15,12 +15,12 @@ class Popup {
             metalness: parent.material.metalness,
             roughness: parent.material.roughness,
             type: parent.userData?.type || ""
-        })        
+        })
 
-        this.initialProperties = this.meshes.length === 0 
+        this.initialProperties = this.meshes.length === 0
             ? alert('Please choose the model')
             : this.meshes.map(getProperties);
-            
+
         this.init();
     }
 
@@ -69,8 +69,8 @@ class Popup {
         const typeSelect = document.createElement("select")
         typeSelect.style.marginBottom = "15px"
         typeSelect.style.padding = "5px"
-        typeSelect.value = this.meshes.forEach((mesh)=>{mesh?.userData?.type || "";})
-        
+        typeSelect.value = this.meshes.forEach((mesh) => { mesh?.userData?.type || ""; })
+
 
         // Add the four type options
         const types = ["Choose the type!!", "article", "part", "profile", "item master"]
@@ -280,10 +280,10 @@ class Popup {
 
         const input = document.createElement("input");
         input.type = "number";
-        this.meshes.forEach((mesh)=>{input.value = Math.round(mesh?.position[axis]) || 0;})
+        this.meshes.forEach((mesh) => { input.value = Math.round(mesh?.position[axis]) || 0; })
         input.step = "0.1"; // Small increments
         input.oninput = () => this.updatePosition(axis, parseFloat(input.value));
-        
+
         // if(this.meshes.length > 1) wrapper.style.display = 'none'
 
         wrapper.appendChild(label);

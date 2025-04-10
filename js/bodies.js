@@ -58,7 +58,7 @@ class Bodies {
 
         this.viewer.position.z = z
         this.viewer.camera.position.set(x, y, z);
-        this.viewer.setupLights( z, geometry.parameters.depth)
+        this.viewer.setupLights(z, geometry.parameters.depth)
 
     }
     addRectangle({ widthBox, heightBox, depthBox }) {
@@ -118,7 +118,7 @@ class Bodies {
             const object = { lineSegments, width: widthBox, height: heightBox, depth: depthBox }
             this.overallBodies.push({ mesh: rectangle, line: object, sprite: sprite });
         } else {
-            this.overallBodies.push({ mesh: rectangle, sprite : sprite });
+            this.overallBodies.push({ mesh: rectangle, sprite: sprite });
         }
         this.snap.rebuildSnapMarkers();
         this.spriteObjects.push(sprite);

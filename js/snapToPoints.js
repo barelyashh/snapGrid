@@ -2,7 +2,7 @@ import * as THREE from 'three';
 class SnapPoints {
     constructor(shapeData) {
         this.shapeData = shapeData,
-        this.snapMarkers = []
+            this.snapMarkers = []
         this.snapGridLines = []
     }
     snapTogrid(draggedObject) {
@@ -155,13 +155,13 @@ class SnapPoints {
         });
     }
 
-    getFrameScale(){
+    getFrameScale() {
         const frameBox = new THREE.Box3().setFromObject(this.shapeData.viewer.bodies.frame);
         const frameSize = new THREE.Vector3();
         frameBox.getSize(frameSize);
 
         // Scale factor could be a small fraction of the largest side
-        const scaleFactor = Math.max(frameSize.x, frameSize.y, frameSize.z) * 0.015;  
+        const scaleFactor = Math.max(frameSize.x, frameSize.y, frameSize.z) * 0.015;
         return scaleFactor
     }
 
@@ -306,8 +306,8 @@ class SnapPoints {
         ];
     }
 
-    createPlusHelper(baseSize = 5, thickness = 0.1,  color = 0xff0000) {
-       const scaleFactor = this.getFrameScale()
+    createPlusHelper(baseSize = 5, thickness = 0.1, color = 0xff0000) {
+        const scaleFactor = this.getFrameScale()
 
         const size = baseSize * scaleFactor;
         const thick = thickness * scaleFactor;

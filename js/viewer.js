@@ -101,7 +101,6 @@ class Viewer {
         frameBox.getSize(frameSize);
 
         const maxHorizontal = Math.max(frameSize.z, frameSize.y);
-        console.log(maxHorizontal)
         const distance = maxHorizontal;
         const height = frameSize.y;
 
@@ -216,17 +215,17 @@ class Viewer {
         const intersects = this.raycaster.intersectObjects(this.bodies.snap.snapMarkers, true);
 
         if (intersects.length > 0) {
-          let intersected = null
-          for (const hit of intersects) {
-              if (hit.object.userData.owner?.name === "shape") {
-                  intersected = hit.object;
-                  break; 
-              }
-          }
+            let intersected = null
+            for (const hit of intersects) {
+                if (hit.object.userData.owner?.name === "shape") {
+                    intersected = hit.object;
+                    break;
+                }
+            }
 
-          if (!intersected) {
-              intersected = intersects[0].object;
-          }
+            if (!intersected) {
+                intersected = intersects[0].object;
+            }
             const clickedMarker = intersected;
             const point = clickedMarker.position;
             const parentObject = clickedMarker.userData.owner;
@@ -247,7 +246,7 @@ class Viewer {
                 const isSourceFrame = sourceObject === this.bodies.frame;
 
                 if (isSourceFrame) {
-                    console.warn("❌ Invalid snap: Frame cannot be the source.");
+                    this.showSnapWarning('❌ Invalid snap: Frame cannot be the source.')
                     this.selectedSnap = {};
                     this.bodies.snap.snapHoverHelperForFrame.visible = false;
                     this.bodies.snap.snapHoverHelperForMesh.visible = false;
@@ -269,7 +268,7 @@ class Viewer {
                 const isInside = overallBox.containsBox(meshBox);
 
                 if (!isInside) {
-                    console.warn("❌ Snap rejected: Mesh would move outside the overall frame.");
+                    this.showSnapWarning('❌ Snap rejected: Mesh would move outside the overall frame')
                     sourceObject.position.copy(originalPosition); // Revert move
                 } else {
                     console.log("✅ Snap successful.");
@@ -312,7 +311,8 @@ class Viewer {
 
         const sprite = new THREE.Sprite(material);
         sprite.position.copy(position.clone().add(new THREE.Vector3(0, 0, 0.1))); // Slightly in front
-        sprite.scale.set(25, 25, 1); // Large enough to see
+        const scaleFactor = this.bodies.snap.getFrameScale(); // Inverse of frame scale
+        sprite.scale.set(scaleFactor, scaleFactor, 1);
 
         this.scene.add(sprite);
 
@@ -323,7 +323,7 @@ class Viewer {
             const elapsed = time - start;
             const t = Math.min(1, elapsed / duration);
 
-            const scale = 15 + t * 15;
+            const scale = scaleFactor * (1 + t); // Grows over time
             sprite.scale.set(scale, scale, 1);
             sprite.material.opacity = 1 - t;
 
@@ -355,11 +355,11 @@ class Viewer {
                 if (this.bodies.snap.snapMarkers.includes(intersectedSnap)) {
                     const point = intersectedSnap.position;
                     const parentObject = intersectedSnap.userData.owner;
-                
+
                     // Hide both first
                     this.bodies.snap.snapHoverHelperForFrame.visible = false;
                     this.bodies.snap.snapHoverHelperForMesh.visible = false;
-                
+
                     if (parentObject === this.bodies.frame) {
                         // Show red plus for frame
                         this.bodies.snap.snapHoverHelperForFrame.visible = true;
@@ -369,7 +369,7 @@ class Viewer {
                         this.bodies.snap.snapHoverHelperForMesh.visible = true;
                         this.bodies.snap.snapHoverHelperForMesh.position.copy(point);
                     }
-                
+
                     return;
                 }
             }
@@ -411,7 +411,7 @@ class Viewer {
                 this.isCtrlPressed = true;
                 break;
 
-            case 'Delete' :
+            case 'Delete':
                 this.deleteSelectedMeshes()
                 break
 
@@ -560,13 +560,14 @@ class Viewer {
                 if (this.selectedMeshes.length > 1) {
                     this.viewSelectedMeshes();
                 } else {
-                    this.bodies.overallBodies.forEach((object)=>{ {
-                        if(object.sprite ===spriteIntersects[0].object) {
-                            this.removeEdgeHighlight(object.mesh)
-                            this.popup = new Popup(spriteIntersects[0].object,[object.mesh], this, this.onSave.bind(this), this.onCancel.bind(this));
-                            return; 
+                    this.bodies.overallBodies.forEach((object) => {
+                        {
+                            if (object.sprite === spriteIntersects[0].object) {
+                                this.removeEdgeHighlight(object.mesh)
+                                this.popup = new Popup(spriteIntersects[0].object, [object.mesh], this, this.onSave.bind(this), this.onCancel.bind(this));
+                                return;
+                            }
                         }
-                    }
                     })
                 }
             }
@@ -578,13 +579,13 @@ class Viewer {
             items.push(item.mesh)
         });
         const objectIntersects = this.raycaster.intersectObjects(items, true);
-        
+
         if (objectIntersects.length > 0) {
             const intersectedObject = objectIntersects[0].object;
             const isAlreadySelected = this.selectedMeshes.includes(intersectedObject);
 
             if (event.ctrlKey) {
-            //    if (!this.bodies.transformEnabled) {
+                //    if (!this.bodies.transformEnabled) {
                 if (isAlreadySelected) {
                     const index = this.selectedMeshes.indexOf(intersectedObject);
                     this.selectedMeshes.splice(index, 1);
@@ -593,14 +594,14 @@ class Viewer {
                     this.selectedMeshes.push(intersectedObject);
                     this.addEdgeHighlight(intersectedObject);
                 }
-            //    }
+                //    }
             } else {
                 if (!isAlreadySelected) {
                     this.selectedMeshes.forEach(mesh => {
                         this.removeEdgeHighlight(mesh);
                     });
                     this.selectedMeshes = [];
-                    
+
                     this.selectedMeshes.push(intersectedObject);
                     this.addEdgeHighlight(intersectedObject);
                 }
@@ -654,7 +655,7 @@ class Viewer {
 
     removeEdgeHighlight(mesh) {
         const selectedParts = mesh.children.filter(child => child.name === 'selected-part')
-        
+
         selectedParts.forEach(part => {
             mesh.remove(part)
             part.geometry.dispose()
@@ -668,8 +669,8 @@ class Viewer {
             this.selectedMeshes.forEach(mesh => {
                 this.removeEdgeHighlight(mesh)
             })
-            this.popup = new Popup(tempSprite, this.selectedMeshes, this, 
-                () => this.onSave(), 
+            this.popup = new Popup(tempSprite, this.selectedMeshes, this,
+                () => this.onSave(),
                 () => this.onCancel()
             )
         } else {
@@ -684,7 +685,7 @@ class Viewer {
             if (index !== -1) {
                 this.scene.remove(mesh);
                 this.removeEdgeHighlight(mesh);
-                
+
                 const sprite = this.bodies.overallBodies[index].sprite;
                 if (sprite) {
                     this.scene.remove(sprite);
@@ -696,7 +697,7 @@ class Viewer {
         this.resetTransformControls();
     }
 
-    removeSelectedPartsEdge(){
+    removeSelectedPartsEdge() {
         const selectedPartsEdge = this.scene.children.filter(child => child.name === 'selected-part')
         selectedPartsEdge.forEach(part => {
             this.scene.remove(part)
@@ -898,6 +899,18 @@ class Viewer {
             );
         }
 
+    }
+
+    showSnapWarning(message, duration = 2000) {
+        const el = document.getElementById("snap-warning");
+        if (!el) return;
+        el.textContent = message;
+        el.style.display = "block";
+
+        clearTimeout(this._snapWarningTimeout);
+        this._snapWarningTimeout = setTimeout(() => {
+            el.style.display = "none";
+        }, duration);
     }
 
     onSave() {
