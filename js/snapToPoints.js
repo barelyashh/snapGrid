@@ -68,6 +68,13 @@ class SnapPoints {
 
     addSnapPointsTo2Drectangles() {
         if (!this.shapeData.viewer.scene || !this.shapeData.innerObjects.length) return;
+    
+        // Calculate generic scale from frame size
+        const frameBox = new THREE.Box3().setFromObject(this.shapeData.viewer.bodies.frame);
+        const frameSize = new THREE.Vector3();
+        frameBox.getSize(frameSize);
+        const genericScale = Math.max(frameSize.x, frameSize.y) /2 * 0.01; // 1% of frame size
+    
         this.shapeData.innerObjects.forEach(object => {
             object.lineSegments.geometry.computeBoundingBox();
             const bbox = object.lineSegments.geometry.boundingBox;
@@ -107,7 +114,7 @@ class SnapPoints {
                 );
                 const edgeMaterial = new THREE.LineBasicMaterial({ color: 'blue', transparent: true, opacity: 0.3 });
                 const borderLine = new THREE.Line(frontFaceGeometry, edgeMaterial);
-                borderLine.scale.set(1.5, 1.5, 1.5)
+                borderLine.scale.set(genericScale, genericScale, genericScale); // Consistent size!
                 snapPoint.add(borderLine);
                 object.lineSegments.add(snapPoint);
                 object.snapPoints.push(snapPoint);
