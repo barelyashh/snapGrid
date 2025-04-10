@@ -95,7 +95,6 @@ class Bodies {
         material.opacity = 0.8
         const rectangle = new THREE.Mesh(new THREE.BoxGeometry(widthBox, heightBox, depthBox), material);
         rectangle.castShadow = true;
-        rectangle.receiveShadow = true;
         rectangle.name = 'shape';
         this.positionRectangle(rectangle);
         const textureLoader = new THREE.TextureLoader();
