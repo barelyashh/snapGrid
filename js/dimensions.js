@@ -23,6 +23,7 @@ class Dimensions {
 
         const width = size.x;
         const height = size.y;
+        const depth = size.z;
         //need to work find genric solution for it
         const position = (mesh.parent.name === 'scene') ? mesh.position.clone() : new THREE.Vector3(0, 0, 0);
 
@@ -30,8 +31,9 @@ class Dimensions {
         const createDimensionArrows = (start, end) => {
             const direction = new THREE.Vector3().subVectors(end, start).normalize();
             const length = start.distanceTo(end);
-            const arrowSize = 1;
-            const arrowWidth = 3;
+            const cameraDistance = this.viewer.camera.position.distanceTo(center);
+            const arrowSize = cameraDistance * 0.02; // size of arrowhead
+            const arrowWidth = cameraDistance * 0.008; // width of arrowhead
 
             const arrow1 = new THREE.ArrowHelper(direction, start, length, 0x000000, arrowSize, arrowWidth);
             const arrow2 = new THREE.ArrowHelper(direction.clone().negate(), end, length, 0x000000, arrowSize, arrowWidth);
@@ -46,17 +48,19 @@ class Dimensions {
         const halfWidth = width / 2;
         const halfHeight = height / 2;
         const offsetDistance = 5; // Adjust this value for spacing
-
         const topStart = new THREE.Vector3(center.x - halfWidth, center.y + halfHeight + offsetDistance, center.z);
         const topEnd = new THREE.Vector3(center.x + halfWidth, center.y + halfHeight + offsetDistance, center.z);
 
         const sideStart = new THREE.Vector3(center.x + halfWidth + offsetDistance, center.y - halfHeight, center.z);
         const sideEnd = new THREE.Vector3(center.x + halfWidth + offsetDistance, center.y + halfHeight, center.z);
-
+        const frontStart = new THREE.Vector3(center.x - halfWidth - offsetDistance, center.y, center.z - depth / 2);
+        const frontEnd = new THREE.Vector3(center.x - halfWidth - offsetDistance, center.y, center.z + depth / 2);
+        
         const topArrows = createDimensionArrows(topStart, topEnd);
         const sideArrows = createDimensionArrows(sideStart, sideEnd);
+        const depthArrows = createDimensionArrows(frontStart, frontEnd);
 
-        mesh.userData.dimensionLines = [...topArrows, ...sideArrows];
+        mesh.userData.dimensionLines = [...topArrows, ...sideArrows, ...depthArrows];
 
         const createDimensionLabel = (text, position) => {
             const label = document.createElement('div');
@@ -89,12 +93,13 @@ class Dimensions {
 
         const topLabel = createDimensionLabel(`${Math.round(width * scale.x)} mm`, new THREE.Vector3(position.x, position.y + halfHeight + 10, position.z));
         const sideLabel = createDimensionLabel(`${Math.round(height * scale.y)} mm`, new THREE.Vector3(position.x + halfWidth + 10, position.y, position.z));
-
-        mesh.userData.dimensionLabels = [topLabel.element, sideLabel.element];
+        const depthLabel = createDimensionLabel(`${Math.round(depth * scale.z)} mm`, new THREE.Vector3(center.x - halfWidth - offsetDistance - 5, center.y, center.z));
+        mesh.userData.dimensionLabels = [topLabel.element, sideLabel.element, depthLabel.element];
 
         const updateLabels = () => {
             topLabel.updatePosition();
             sideLabel.updatePosition();
+            depthLabel.updatePosition();
         };
 
         this.viewer.orbitControls.addEventListener('change', updateLabels);

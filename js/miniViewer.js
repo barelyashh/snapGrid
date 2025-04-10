@@ -47,18 +47,34 @@ class MiniViewer {
     }
 
     setupCamera(parent) {
-        let cameraPosition = 0;
+
+        const box = new THREE.Box3();
 
         parent.forEach(mesh => {
-            const height = mesh.geometry.parameters.height;
-            const width = mesh.geometry.parameters.width;
-            cameraPosition = Math.max(height, width);
+            mesh.updateMatrixWorld();
+            box.expandByObject(mesh);
         });
 
+        const size = new THREE.Vector3();
+        const center = new THREE.Vector3();
+        box.getSize(size);
+        box.getCenter(center);
+
+
         this.camera = new THREE.PerspectiveCamera(75, this.widthO / this.heightO, 0.1, 10000);
-        this.camera.position.set(0, 0, cameraPosition);
+
+        const maxDim = Math.max(size.x, size.y, size.z);
+        const fov = this.camera.fov * (Math.PI / 180);
+
+        const distance = (maxDim / 2) / Math.tan(fov / 2);
+        const offset = 2;
+
+        this.camera.position.set(center.x, center.y, center.z + distance * offset);
+        this.camera.lookAt(center);
+
         this.scene.add(this.camera);
     }
+
 
     setupLights(objects) {
         // Remove previous lights if needed

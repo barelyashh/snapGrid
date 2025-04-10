@@ -139,7 +139,7 @@ class Viewer {
             const frameDiagonal = frameSize.length();
             spotLight.distance = frameDiagonal * 2;
 
-            
+
             // Add to scene
             this.scene.add(spotLight);
         });
@@ -239,7 +239,6 @@ class Viewer {
                 const source = this.selectedSnap.source;
                 const sourceObject = this.selectedSnap.sourceObject;
                 const target = point;
-                const targetObject = parentObject;
 
                 const isSourceFrame = sourceObject === this.bodies.frame;
 
@@ -272,7 +271,7 @@ class Viewer {
                     console.log("✅ Snap successful.");
                 }
 
-                this.bodies.snap.rebuildSnapMarkers();
+                this.bodies.snap.rebuildSnapMarkers3D();
                 this.selectedSnap.source = null;
                 this.selectedSnap.sourceObject = null;
             }
@@ -495,6 +494,12 @@ class Viewer {
     enable3DMode() {
         this.scene.add(this.plane);
         this.bodies.points = []
+
+        // Remove snap points
+        if (this.bodies && this.bodies.snapPoints) {
+            this.bodies.snapPoints.forEach(sp => this.scene.remove(sp));
+            this.bodies.snapPoints = [];
+        }
         const gridHelper = this.scene.getObjectByName('gridHelper');
         const lineSegments = this.scene.getObjectByName('lineSegments');
 
