@@ -30,8 +30,9 @@ class Dimensions {
         const createDimensionArrows = (start, end) => {
             const direction = new THREE.Vector3().subVectors(end, start).normalize();
             const length = start.distanceTo(end);
-            const arrowSize = 1;
-            const arrowWidth = 3;
+            const cameraDistance = this.viewer.camera.position.distanceTo(center);
+            const arrowSize = cameraDistance * 0.02; // size of arrowhead
+            const arrowWidth = cameraDistance * 0.008; // width of arrowhead
 
             const arrow1 = new THREE.ArrowHelper(direction, start, length, 0x000000, arrowSize, arrowWidth);
             const arrow2 = new THREE.ArrowHelper(direction.clone().negate(), end, length, 0x000000, arrowSize, arrowWidth);
