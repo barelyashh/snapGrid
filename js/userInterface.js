@@ -27,10 +27,10 @@ class UserInterface {
         const sidebar = document.createElement('aside');
         sidebar.className = 'sidebar';
 
-        /*    const overallDefaults = { Width: 500, Height: 750, Depth: 500 };
-           const rectangleDefaults = { Width: 19, Height: 500, Depth: 500 }; */
-        const overallDefaults = { Width: 3000, Height: 2200, Depth: 300 };
-        const rectangleDefaults = { Width: 200, Height: 2200, Depth: 200 };
+           const overallDefaults = { Width: 500, Height: 750, Depth: 500 };
+           const rectangleDefaults = { Width: 19, Height: 500, Depth: 500 };
+        /* const overallDefaults = { Width: 3000, Height: 2200, Depth: 300 };
+        const rectangleDefaults = { Width: 200, Height: 2200, Depth: 200 }; */
 
         const overallPanel = this.createPanel('OVERALL DIMENSIONS', ['Width', 'Height', 'Depth'], (inputs) => {
             this.handleOverallDimensions(inputs);
