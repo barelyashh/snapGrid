@@ -162,8 +162,71 @@ class MiniViewer {
         this.scene.add(this.pivot);
     }
 
-    loadPartData(partData) {
+    async materialData(itemId, hash) {
+        try {            
+            const response = await fetch(`http://localhost:3030/api/material?materialId=${encodeURIComponent(itemId)}&hash=${encodeURIComponent(hash)}`)
+            if (!response.ok) {
+                const errorData = await response.text();
+                console.error('Material data fetch failed:', errorData);
+                throw new Error(`Failed to fetch material data: ${errorData}`);
+            }
 
+            const data = await response.json();
+            return data.data; // This will be the data URL containing the base64 image
+        } catch (error) {
+            console.error('Error loading material data:', error);
+            throw error;
+        }
+    }
+    async fetchTexture(materialId) {
+        const response = await fetch(`http://localhost:3030/api/materialId/${materialId}`)
+        const data = await response.json();        
+        return data
+    }
+    async fetchTextureValue(textureId) {
+        const response = await fetch(`http://localhost:3030/api/textureId/${textureId}`)
+        const data = await response.json();        
+        return data
+    }
+
+    applyTextureToMesh(textureDataUrl, targetMesh) {
+        if (!textureDataUrl || !targetMesh) return;
+                // const textureDataURL1 = 'https://imagedelivery.net/6Q4HLLMjcXxpmSYfQ3vMaw/d419666c-f723-4320-29d7-04f2f687c200/2000px'
+        const textureLoader = new THREE.TextureLoader();
+        return new Promise((resolve, reject) => {
+            textureLoader.load(
+                textureDataUrl,
+                (texture) => {
+                    texture.wrapS = THREE.RepeatWrapping;
+                    texture.wrapT = THREE.RepeatWrapping;
+
+                    // Calculate the size of the mesh
+                    const boundingBox = new THREE.Box3().setFromObject(targetMesh);
+                    const size = new THREE.Vector3();
+                    boundingBox.getSize(size);
+
+                    // Apply repeat value based on mesh size
+                    const repeatValue = 1 / Math.max(size.x, size.y); // Adjust as needed
+                    texture.repeat.set(repeatValue, repeatValue);
+                    
+                    if (targetMesh.material) {
+                        const newMat = new THREE.MeshBasicMaterial({ map: texture });
+                        targetMesh.material = newMat;
+                        targetMesh.material.needsUpdate = true;
+                    }
+                    
+                    resolve(texture);
+                },
+                undefined,
+                (error) => {
+                    console.error('Error loading texture:', error);
+                    reject(error);
+                }
+            );
+        });
+    }
+
+    async loadPartData(partData) {
         if (!partData || !partData.vertices || !Array.isArray(partData.vertices)) {
             console.error('Invalid part data structure');
             return;
@@ -181,32 +244,32 @@ class MiniViewer {
             return;
         }
 
+        //texture and thickness           
+        const textureIdData = await this.fetchTexture(partData.composite[0].materialId);
+
+        const textureValue = await this.fetchTextureValue(textureIdData.textureItemId);
+
         const shape = new THREE.Shape(points);
         const extrudeSettings = {
             steps: 1,
-            depth: 100,
+            depth: textureIdData.thickness,
             bevelEnabled: false
         };
 
         const geometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
-        const material = new THREE.MeshStandardMaterial({
-            color: 0x371a75,
-            side: THREE.DoubleSide,
-            flatShading: true
-        });
-        const mesh = new THREE.Mesh(geometry, material);
+        const mesh = new THREE.Mesh(geometry);
 
-        // mesh.rotation.x = Math.PI / 2;
-
-        // this.miniViewerSceneObject.forEach(obj => {
-        //     this.scene.remove(obj);
-        // });
-        // this.miniViewerSceneObject = [];
-
+        try {
+            
+            const textureDataUrl = await this.materialData(textureValue.id, textureValue.hash);
+            if (textureDataUrl) {
+                await this.applyTextureToMesh(textureDataUrl, mesh);
+            }
+        } catch (error) {
+            console.error('Error loading texture data:', error);
+        }
         this.scene.add(mesh);
         this.miniViewerSceneObject.push(mesh);
-
-        // this.updateCameraToFit(mesh);
     }
 
     updateCameraToFit(mesh) {
