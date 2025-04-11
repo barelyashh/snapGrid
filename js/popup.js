@@ -1,4 +1,5 @@
 import { MiniViewer } from './miniViewer.js';
+import { API } from './api.js';
 
 class Popup {
     constructor(selectedRectangle, mesh, viewer, onSave, onCancel) {
@@ -106,7 +107,8 @@ class Popup {
                     break
                 case 'article':
                     this.updateMaterial('color', 0x8c3118)
-                    await this.loadArticleData()
+                    this.articleData = await API.loadArticleData()
+                    console.log(this.articleData);
                     if (this.articleData) {
                         this.articleData.data.forEach(article => {
                             const div = document.createElement("div")
@@ -125,7 +127,7 @@ class Popup {
                                 div.style.backgroundColor = ""
                             }
                             div.onclick = () => {
-                                this.handleItemClick(article.id)
+                                this.handleItemClick(article.id, 'article');
                             }
 
                             dataBox.appendChild(div)
@@ -134,7 +136,8 @@ class Popup {
                     break
                 case 'part':
                     this.updateMaterial('color', 0x371a75)
-                    await this.loadPartData()
+                    this.partData = await API.loadPartData()
+                    console.log(this.partData);
                     if (this.partData) {
                         this.partData.data.forEach(part => {
                             const div = document.createElement("div")
@@ -154,7 +157,7 @@ class Popup {
                             }
 
                             div.onclick = () => {
-                                this.handleItemClick(part.id)
+                                this.handleItemClick(part.id, 'part');
                             }
 
                             dataBox.appendChild(div)
@@ -163,7 +166,9 @@ class Popup {
                     break
                 case 'profile':
                     this.updateMaterial('color', 0x0e8499)
-                    await this.loadProfileData()
+                    this.profileData = await API.loadProfileData()
+                    console.log(this.profileData);
+                    
                     if (this.profileData) {
                         this.profileData.data.forEach(profile => {
                             const div = document.createElement("div")
@@ -183,7 +188,7 @@ class Popup {
                             }
 
                             div.onclick = () => {
-                                this.handleItemClick(profile.id)
+                                this.handleItemClick(profile.id, 'profile');
                             }
 
                             dataBox.appendChild(div)
@@ -192,7 +197,8 @@ class Popup {
                     break
                 case 'item master':
                     this.updateMaterial('color', 0x4f9116)
-                    await this.loadItemMasterData()
+                    this.itemMasterData = await API.loadItemMasterData()
+                    console.log(this.itemMasterData);
                     if (this.itemMasterData) {
                         this.itemMasterData.data.forEach(itemMaster => {
                             const div = document.createElement("div")
@@ -212,7 +218,7 @@ class Popup {
                             }
 
                             div.onclick = () => {
-                                this.handleItemClick(itemMaster.id)
+                                this.handleItemClick(itemMaster.id, 'item master');
                             }
 
                             dataBox.appendChild(div)
@@ -325,54 +331,6 @@ class Popup {
         })
     }
 
-    async loadArticleData() {
-        try {
-            const response = await fetch('http://localhost:3030/api/articles')
-            if (!response.ok) {
-                throw new Error('Failed to fetch article data')
-            }
-            this.articleData = await response.json()
-        } catch (error) {
-            console.error('Error loading article data:', error)
-        }
-    }
-
-    async loadPartData() {
-        try {
-            const response = await fetch('http://localhost:3030/api/parts')
-            if (!response.ok) {
-                throw new Error('Failed to fetch part data')
-            }
-            this.partData = await response.json()
-        } catch (error) {
-            console.error('Error loading part data:', error)
-        }
-    }
-
-    async loadProfileData() {
-        try {
-            const response = await fetch('http://localhost:3030/api/profiles')
-            if (!response.ok) {
-                throw new Error('Failed to fetch profile data')
-            }
-            this.profileData = await response.json()
-        } catch (error) {
-            console.error('Error loading profile data:', error)
-        }
-    }
-
-    async loadItemMasterData() {
-        try {
-            const response = await fetch('http://localhost:3030/api/items')
-            if (!response.ok) {
-                throw new Error('Failed to fetch itemMaster data')
-            }
-            this.itemMasterData = await response.json()
-        } catch (error) {
-            console.error('Error loading itemMaster data:', error)
-        }
-    }
-
     saveChanges() {
         if (!this.selectedRectangle || !this.meshes) return;
         this.meshes.forEach(mesh => {
@@ -416,14 +374,25 @@ class Popup {
         }
     }
 
-
-    async handleItemClick(itemId) {
-        const response = await fetch(`http://localhost:3030/api/parts/${itemId}`)
-        if (!response.ok) {
-            throw new Error('Failed to fetch part data')
+    async handleItemClick(itemId, type) {
+        try {
+            const [selectedData, dataType] = await API.handleItemClick(itemId, type);
+            console.log(selectedData);
+            if (dataType === 'article') {
+                // this.miniViewer.loadArticleData(selectedData);
+                console.log(selectedData);            
+            } else if (dataType === 'part') {
+                this.miniViewer.loadPartData(selectedData);
+            } else if (dataType === 'profile') {
+                // this.miniViewer.loadProfileData(selectedData);
+                console.log(selectedData);
+            } else if (dataType === 'item master') {
+                // this.miniViewer.loadItemMasterData(selectedData);
+                console.log(selectedData);
+            }
+        } catch (error) {
+            console.error('Error loading part data:', error);
         }
-        const partData = await response.json()
-        this.miniViewer.loadPartData(partData)
     }
 }
 

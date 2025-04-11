@@ -2,6 +2,8 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { TransformControls } from 'three/addons/controls/TransformControls.js';
 import { Dimensions } from './dimensions.js';
+import { API } from './api.js';
+
 class MiniViewer {
     constructor(parent, viewer, container) {
         this.viewer = viewer
@@ -162,33 +164,6 @@ class MiniViewer {
         this.scene.add(this.pivot);
     }
 
-    async materialData(itemId, hash) {
-        try {            
-            const response = await fetch(`http://localhost:3030/api/material?materialId=${encodeURIComponent(itemId)}&hash=${encodeURIComponent(hash)}`)
-            if (!response.ok) {
-                const errorData = await response.text();
-                console.error('Material data fetch failed:', errorData);
-                throw new Error(`Failed to fetch material data: ${errorData}`);
-            }
-
-            const data = await response.json();
-            return data.data; // This will be the data URL containing the base64 image
-        } catch (error) {
-            console.error('Error loading material data:', error);
-            throw error;
-        }
-    }
-    async fetchTexture(materialId) {
-        const response = await fetch(`http://localhost:3030/api/materialId/${materialId}`)
-        const data = await response.json();        
-        return data
-    }
-    async fetchTextureValue(textureId) {
-        const response = await fetch(`http://localhost:3030/api/textureId/${textureId}`)
-        const data = await response.json();        
-        return data
-    }
-
     applyTextureToMesh(textureDataUrl, targetMesh) {
         if (!textureDataUrl || !targetMesh) return;
                 // const textureDataURL1 = 'https://imagedelivery.net/6Q4HLLMjcXxpmSYfQ3vMaw/d419666c-f723-4320-29d7-04f2f687c200/2000px'
@@ -244,10 +219,9 @@ class MiniViewer {
             return;
         }
 
-        //texture and thickness           
-        const textureIdData = await this.fetchTexture(partData.composite[0].materialId);
-
-        const textureValue = await this.fetchTextureValue(textureIdData.textureItemId);
+        // Fetch texture and thickness data first
+        const textureIdData = await API.fetchTexture(partData.composite[0].materialId);
+        const textureValue = await API.fetchTextureValue(textureIdData.textureItemId);
 
         const shape = new THREE.Shape(points);
         const extrudeSettings = {
@@ -260,14 +234,14 @@ class MiniViewer {
         const mesh = new THREE.Mesh(geometry);
 
         try {
-            
-            const textureDataUrl = await this.materialData(textureValue.id, textureValue.hash);
+            const textureDataUrl = await API.materialData(textureValue.id, textureValue.hash);
             if (textureDataUrl) {
                 await this.applyTextureToMesh(textureDataUrl, mesh);
             }
         } catch (error) {
             console.error('Error loading texture data:', error);
         }
+
         this.scene.add(mesh);
         this.miniViewerSceneObject.push(mesh);
     }
