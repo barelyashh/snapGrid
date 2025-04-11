@@ -391,7 +391,7 @@ class MiniViewer {
                 return false
             }
         }
-    t
+    
     handleMouseDown() {
         if (this.transformControls.mode === 'scale') {
 
