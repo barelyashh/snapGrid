@@ -71,6 +71,7 @@ class Bodies {
     }
 
     create2DShape(widthBox, heightBox, depthBox) {
+        console.log('yash')
         const tri = new THREE.Shape();
         tri.moveTo(-widthBox / 2, heightBox / 2);
         tri.lineTo(widthBox / 2, heightBox / 2);
@@ -78,7 +79,7 @@ class Bodies {
         tri.lineTo(-widthBox / 2, -heightBox / 2)
         tri.lineTo(-widthBox / 2, heightBox / 2)
         const geometry = new THREE.ShapeGeometry(tri);
-        const lineSegments = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({ color: "#7F4125" }))
+        const lineSegments = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ color: "#7F4125" }))
         lineSegments.material.side = THREE.DoubleSide
         lineSegments.name = 'segments'
         lineSegments.position.y = 0.3;
@@ -90,6 +91,7 @@ class Bodies {
     }
 
     createRectangle(widthBox, heightBox, depthBox, visible, lineSegments) {
+        console.log('yash2')
         const material = new THREE.MeshStandardMaterial({ color: '#7F4125' });
         // material.transparent = true
         material.opacity = 0.8
@@ -119,10 +121,13 @@ class Bodies {
         } else {
             this.overallBodies.push({ mesh: rectangle, sprite: sprite });
         }
-        if (!this.viewer.mode2D) {
-            this.snap.rebuildSnapMarkers3D();
-        } else {
-            this.snap.rebuildSnapMarkers2D();
+        console.log(this.snapEnabled)
+        if (this.snapEnabled) {
+            if (!this.viewer.mode2D) {
+                this.snap.rebuildSnapMarkers3D();
+            } else {
+                this.snap.rebuildSnapMarkers2D();
+            }
         }
 
         this.spriteObjects.push(sprite);
