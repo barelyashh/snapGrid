@@ -421,6 +421,7 @@ class MiniViewer {
 
 
             modelBox.getSize(smallSize);
+            this.orbitControls.enabled = false
         } else {
             this.transformControls.attach(this.intersectedObject);
         }
