@@ -24,8 +24,8 @@ class Viewer {
         this.renderer = null;
         this.mouse = null;
         this.raycaster = null;
-        this.widthO = 1600;
-        this.heightO = 900;
+        this.widthO = 1500;
+        this.heightO = 860;
         this.raycasterObject = [];
         this.overallWidth = null;
         this.overallHeight = null;
