@@ -430,6 +430,10 @@ class MiniViewer {
         if (this.transformControls.mode === "scale") {
             this.transformControls.detach();
             this.dimensions.removeDimensions();
+            const originalScale = this.intersectedObject.scale.clone();
+            this.viewer.popup.meshes.forEach(mesh => {
+                mesh.scale.set(originalScale.x,originalScale.y,originalScale.z)
+            });
         }
     }
 
