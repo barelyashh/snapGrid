@@ -1,39 +1,37 @@
 import * as THREE from 'three';
 
-
 class Dimensions {
     constructor(viewer) {
-        this.viewer = viewer
-        this.dimensionLines = []
+        this.viewer = viewer;
+        this.dimensionLines = [];
     }
 
     add3DDimensionsToRectangles(mesh) {
         const box = new THREE.Box3().setFromObject(mesh);
         const size = new THREE.Vector3();
         const center = new THREE.Vector3();
-        box.getSize(size); // Get the updated dimensions
-        box.getCenter(center); // Get the new center of the object
+        box.getSize(size);
+        box.getCenter(center);
+
+        const boundingDiagonal = size.length();
+        const cameraDistance = this.viewer.camera.position.distanceTo(center);
+        const offsetDistance = Math.max(boundingDiagonal * 0.01, cameraDistance * 0.02);
 
         if (mesh.userData.dimensionLines) {
             mesh.userData.dimensionLines.forEach(line => this.viewer.scene.remove(line));
-        }
-        if (mesh.userData.dimensionLabels) {
-            mesh.userData.dimensionLabels.forEach(label => label.remove());
         }
 
         const width = size.x;
         const height = size.y;
         const depth = size.z;
-        //need to work find genric solution for it
-        const position = (mesh.parent.name === 'scene') ? mesh.position.clone() : new THREE.Vector3(0, 0, 0);
-
         const scale = mesh.scale.clone();
+
         const createDimensionArrows = (start, end) => {
             const direction = new THREE.Vector3().subVectors(end, start).normalize();
             const length = start.distanceTo(end);
             const cameraDistance = this.viewer.camera.position.distanceTo(center);
-            const arrowSize = cameraDistance * 0.02; // size of arrowhead
-            const arrowWidth = cameraDistance * 0.008; // width of arrowhead
+            const arrowSize = cameraDistance * 0.02;
+            const arrowWidth = cameraDistance * 0.008;
 
             const arrow1 = new THREE.ArrowHelper(direction, start, length, 0x000000, arrowSize, arrowWidth);
             const arrow2 = new THREE.ArrowHelper(direction.clone().negate(), end, length, 0x000000, arrowSize, arrowWidth);
@@ -47,62 +45,97 @@ class Dimensions {
 
         const halfWidth = width / 2;
         const halfHeight = height / 2;
-        const offsetDistance = 5; // Adjust this value for spacing
+
         const topStart = new THREE.Vector3(center.x - halfWidth, center.y + halfHeight + offsetDistance, center.z);
         const topEnd = new THREE.Vector3(center.x + halfWidth, center.y + halfHeight + offsetDistance, center.z);
 
         const sideStart = new THREE.Vector3(center.x + halfWidth + offsetDistance, center.y - halfHeight, center.z);
         const sideEnd = new THREE.Vector3(center.x + halfWidth + offsetDistance, center.y + halfHeight, center.z);
+
         const frontStart = new THREE.Vector3(center.x - halfWidth - offsetDistance, center.y, center.z - depth / 2);
         const frontEnd = new THREE.Vector3(center.x - halfWidth - offsetDistance, center.y, center.z + depth / 2);
-        
+
         const topArrows = createDimensionArrows(topStart, topEnd);
         const sideArrows = createDimensionArrows(sideStart, sideEnd);
         const depthArrows = createDimensionArrows(frontStart, frontEnd);
 
         mesh.userData.dimensionLines = [...topArrows, ...sideArrows, ...depthArrows];
 
-        const createDimensionLabel = (text, position) => {
-            const label = document.createElement('div');
-            label.className = 'dimension-label';
-            label.textContent = text;
-            label.style.position = 'absolute';
-            label.style.color = 'black';
-            label.style.background = 'white';
-            label.style.padding = '2px 5px';
-            label.style.fontSize = '12px';
-            var container = document.getElementById('mini-container')
-            if (container) {
-                container.appendChild(label);
+        // Update dimension box
+        this.updateDimensionBox(width * scale.x, height * scale.y, depth * scale.z);
+    }
+
+    updateDimensionBox(width, height, depth) {
+        let dimensionBox = document.getElementById("dimension-box");
+
+        if (!dimensionBox) {
+           
+
+            // Attach to appropriate container
+            const miniContainer = document.getElementById("mini-container");
+            if (miniContainer) {
+                console.log('yash')
+                dimensionBox = document.createElement("div");
+                dimensionBox.id = "dimension-box";
+                dimensionBox.style.position = "absolute";
+                dimensionBox.style.background = "rgb(0, 64, 128)";
+                dimensionBox.style.border = "1px solid #ccc";
+                dimensionBox.style.fontSize = "14px";
+                dimensionBox.style.color = "white";
+                dimensionBox.style.zIndex = "999";
+                dimensionBox.style.fontFamily = "monospace";
+                dimensionBox.style.padding = "8px 12px";
+                dimensionBox.style.borderRadius = "6px";
+               // dimensionBox.style.boxShadow = "0 2px 8px rgba(0,0,0,0.2)";
+                miniContainer.appendChild(dimensionBox);
             } else {
-                document.body.appendChild(label)
+                console.log('soni')
+                dimensionBox = document.createElement("div");
+                dimensionBox.id = "dimension-box";
+                dimensionBox.style.position = "absolute";
+                dimensionBox.style.top = "60px";
+                dimensionBox.style.right = "20px";
+                dimensionBox.style.background = "rgb(0, 64, 128)";
+                dimensionBox.style.border = "1px solid #ccc";
+                dimensionBox.style.fontSize = "14px";
+                dimensionBox.style.color = "white";
+                dimensionBox.style.zIndex = "10";
+                dimensionBox.style.fontFamily = "monospace";
+                dimensionBox.style.padding = "8px 12px";
+                dimensionBox.style.borderRadius = "6px";
+              //  dimensionBox.style.boxShadow = "0 2px 8px rgba(0,0,0,0.2)";
+                document.body.appendChild(dimensionBox);
             }
+        }
 
-            const updateLabelPosition = () => {
+        // Update box content
+        dimensionBox.innerHTML = `
+            <div><strong>X:</strong> ${Math.round(width)} mm</div>
+            <div><strong>Y:</strong> ${Math.round(height)} mm</div>
+            <div><strong>Z:</strong> ${Math.round(depth)} mm</div>
+        `;
 
-                const screenPosition = position.clone().project(this.viewer.camera);
-                const x = (screenPosition.x * 0.5 + 0.5) * this.viewer.widthO;
-                const y = (-screenPosition.y * 0.5 + 0.5) * this.viewer.heightO;
-                label.style.left = `${x}px`;
-                label.style.top = `${y}px`;
-            };
+        // Set position based on parent
+        if (dimensionBox.parentElement?.id === "mini-container") {
+            dimensionBox.style.top = "30px";
+            dimensionBox.style.right = "570px";
+            dimensionBox.style.zIndex = "1000";
 
-            updateLabelPosition();
-            return { element: label, updatePosition: updateLabelPosition };
-        };
+        } else {
+            dimensionBox.style.top = "60px";
+            dimensionBox.style.right = "20px";
+        }
 
-        const topLabel = createDimensionLabel(`${Math.round(width * scale.x)} mm`, new THREE.Vector3(position.x, position.y + halfHeight + 10, position.z));
-        const sideLabel = createDimensionLabel(`${Math.round(height * scale.y)} mm`, new THREE.Vector3(position.x + halfWidth + 10, position.y, position.z));
-        const depthLabel = createDimensionLabel(`${Math.round(depth * scale.z)} mm`, new THREE.Vector3(center.x - halfWidth - offsetDistance - 5, center.y, center.z));
-        mesh.userData.dimensionLabels = [topLabel.element, sideLabel.element, depthLabel.element];
+        dimensionBox.style.display = "block";
+    }
 
-        const updateLabels = () => {
-            topLabel.updatePosition();
-            sideLabel.updatePosition();
-            depthLabel.updatePosition();
-        };
 
-        this.viewer.orbitControls.addEventListener('change', updateLabels);
+    hideDimensionBox() {
+        const box = document.getElementById("dimension-box");
+        if (box && box.parentNode) {
+            box.style.display = "none";
+            box.parentNode.removeChild(box);
+        }
     }
 
     removeDimensions() {
@@ -111,23 +144,17 @@ class Dimensions {
             this.dimensionLines = [];
         }
 
-        document.querySelectorAll('.dimension-label').forEach(label => label.remove());
-
-        // Remove references from userData for each mesh
         if (this.viewer.bodies) {
             this.viewer.bodies.overallBodies.forEach(mesh => {
                 if (mesh.mesh.userData.dimensionLines) {
                     mesh.mesh.userData.dimensionLines.forEach(line => this.viewer.scene.remove(line));
                     delete mesh.mesh.userData.dimensionLines;
                 }
-                if (mesh.mesh.userData.dimensionLabels) {
-                    mesh.mesh.userData.dimensionLabels.forEach(label => label.remove());
-                    delete mesh.mesh.userData.dimensionLabels;
-                }
             });
         }
 
+        this.hideDimensionBox();
     }
 }
 
-export { Dimensions }
+export { Dimensions };

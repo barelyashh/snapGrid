@@ -2,7 +2,6 @@ class UserInterface {
     constructor(viewer) {
         this.completeViewer = viewer;
         this.createUI();
-        this.createDimensionBox();
     }
 
     createUI() {
@@ -153,17 +152,7 @@ class UserInterface {
         }
 
         this.completeViewer.bodies.addRectangle({ widthBox, heightBox, depthBox });
-    }
-
-    createDimensionBox() {
-        // Check if the dimension box already exists
-        let dimensionBox = document.getElementById("dimension-box");
-        if (!dimensionBox) {
-            dimensionBox = document.createElement("div");
-            dimensionBox.id = "dimension-box";
-            document.body.appendChild(dimensionBox);
-        }
-    }
+    }   
 
     createSnapWarningBox() {
         const warningBox = document.createElement("div");

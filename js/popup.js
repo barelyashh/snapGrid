@@ -26,7 +26,6 @@ class Popup {
 
     init() {
         this.createPopup();
-        this.createDimensionBox()
     }
 
     createPopup() {
@@ -405,17 +404,6 @@ class Popup {
         this.popupContainer.remove();
         if (this.onCancel) this.onCancel();
     }
-
-    createDimensionBox() {
-        // Check if the dimension box already exists
-        let dimensionBox = document.getElementById("dimension-box");
-        if (!dimensionBox) {
-            dimensionBox = document.createElement("div");
-            dimensionBox.id = "dimension-box";
-            document.body.appendChild(dimensionBox);
-        }
-    }
-
 
     async handleItemClick(itemId) {
         const response = await fetch(`http://localhost:3030/api/parts/${itemId}`)

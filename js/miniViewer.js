@@ -301,7 +301,7 @@ class MiniViewer {
 
     handleKeyDown(event) {
         switch (event.code) {
-            case 'KeyG':
+            case 'KeyT':
                 this.transformControls.setMode('translate');
                 break;
             case 'KeyR':
