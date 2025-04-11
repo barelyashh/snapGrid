@@ -241,7 +241,7 @@ class MiniViewer {
         const geometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
         const mesh = new THREE.Mesh(geometry);
 
-        if(textureValue.textureItemId){
+        if(textureIdData.textureItemId){
             try {
                 const textureDataUrl = await API.materialData(textureValue.id, textureValue.hash);
                 if (textureDataUrl) {
