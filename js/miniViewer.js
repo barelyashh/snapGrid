@@ -308,8 +308,8 @@ class MiniViewer {
     }
 
     handlePointerMove(event) {
-        this.deltaMouse.set( ((event.clientX - this.rect.left) / this.rect.width) * 2 - 1,
-        -((event.clientY - this.rect.top) / this.rect.height) * 2 + 1);
+        this.deltaMouse.set(((event.clientX - this.rect.left) / this.rect.width) * 2 - 1,
+            -((event.clientY - this.rect.top) / this.rect.height) * 2 + 1);
     }
 
     handleKeyDown(event) {
@@ -365,13 +365,13 @@ class MiniViewer {
 
         this.transformControls.addEventListener('objectChange', () => {
             if (this.transformControls.mode === 'scale') {
-                if(this.checkLimitaionScaling()) {
-                    this.temporaryScale.set(this.intersectedObject.scale.x,this.intersectedObject.scale.y,this.intersectedObject.scale.z)
-                } else{
-                    this.intersectedObject.scale.set(this.temporaryScale.x,this.temporaryScale.y,this.temporaryScale.z)
+                if (this.checkLimitaionScaling()) {
+                    this.temporaryScale.set(this.intersectedObject.scale.x, this.intersectedObject.scale.y, this.intersectedObject.scale.z)
+                } else {
+                    this.intersectedObject.scale.set(this.temporaryScale.x, this.temporaryScale.y, this.temporaryScale.z)
                 }
                 const frame = this.viewer.bodies.frame
-                scaleModel(this,frame)
+                scaleModel(this, frame)
                 this.dimensions.add3DDimensionsToRectangles(this.intersectedObject)
             }
             this.viewer.restrictDoorMovement(this.intersectedObject);
@@ -380,17 +380,17 @@ class MiniViewer {
         this.transformControls.addEventListener("mouseDown", () => this.handleMouseDown());
         this.transformControls.addEventListener("mouseUp", () => this.handleMouseUp());
     }
-     checkLimitaionScaling() {
-            const boundaryBoundingBox = new THREE.Box3().setFromObject(this.viewer.bodies.frame);
-            const modelBoundingBox = new THREE.Box3().setFromObject(this.intersectedObject);
-            if (boundaryBoundingBox.containsBox(modelBoundingBox)) {
-                return true
-            } else {
-    
-                return false
-            }
+    checkLimitaionScaling() {
+        const boundaryBoundingBox = new THREE.Box3().setFromObject(this.viewer.bodies.frame);
+        const modelBoundingBox = new THREE.Box3().setFromObject(this.intersectedObject);
+        if (boundaryBoundingBox.containsBox(modelBoundingBox)) {
+            return true
+        } else {
+
+            return false
         }
-    
+    }
+
     handleMouseDown() {
         if (this.transformControls.mode === 'scale') {
 
@@ -431,12 +431,12 @@ class MiniViewer {
             this.dimensions.removeDimensions();
             const originalScale = this.intersectedObject.scale.clone();
             this.viewer.popup.meshes.forEach(mesh => {
-                 mesh.scale.set(originalScale.x,originalScale.y,originalScale.z)
+                mesh.scale.set(originalScale.x, originalScale.y, originalScale.z)
             });
         }
     }
 
-   
+
     resetPivot() {
         this.pivot.position.set(0, 0, 0);
         this.pivot.scale.set(1, 1, 1);

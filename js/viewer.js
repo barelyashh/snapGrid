@@ -54,15 +54,15 @@ class Viewer {
 
         this.size = 0
         this.rect = null
-        this.temporaryScale = new THREE.Vector3(1,1,1)
-        this.minBox = new THREE.Vector3(0,0,0)
-        this.maxBox = new THREE.Vector3(0,0,0)
+        this.temporaryScale = new THREE.Vector3(1, 1, 1)
+        this.minBox = new THREE.Vector3(0, 0, 0)
+        this.maxBox = new THREE.Vector3(0, 0, 0)
         this.lastMouseX = 0;
         this.offsetX = 1
         this.offsetY = 1
-        this.offsetZ =1
-        this.previousScale =new THREE.Vector3(1,1,1)
-        this.scalingDampeningFactor =1;
+        this.offsetZ = 1
+        this.previousScale = new THREE.Vector3(1, 1, 1)
+        this.scalingDampeningFactor = 1;
         this.selectedMeshes = [];
 
     }
@@ -350,8 +350,8 @@ class Viewer {
 
 
     handlePointerMove(event) {
-        this.deltaMouse.set( ((event.clientX - this.rect.left) / this.rect.width) * 2 - 1,
-        -((event.clientY - this.rect.top) / this.rect.height) * 2 + 1);
+        this.deltaMouse.set(((event.clientX - this.rect.left) / this.rect.width) * 2 - 1,
+            -((event.clientY - this.rect.top) / this.rect.height) * 2 + 1);
         if (this.bodies.snapEnabled && this.isCtrlPressed) {
             const rect = this.renderer.domElement.getBoundingClientRect();
             const mouse = new THREE.Vector2(
@@ -442,7 +442,7 @@ class Viewer {
 
     switchMode() {
         this.mode2D = !this.mode2D;
-
+        this.bodies.snapEnabled = false
         if (this.mode2D) {
             this.bodies.snap.clearSnapGridData()
             this.enable2DMode();
@@ -743,13 +743,13 @@ class Viewer {
 
         this.transformControls.addEventListener("objectChange", (e) => {
             if (this.transformControls.mode === "scale") {
-                if(this.checkLimitaionScaling()) {
-                    this.temporaryScale.set(this.intersectedObject.scale.x,this.intersectedObject.scale.y,this.intersectedObject.scale.z)
-                } else{
-                    this.intersectedObject.scale.set(this.temporaryScale.x,this.temporaryScale.y,this.temporaryScale.z)
+                if (this.checkLimitaionScaling()) {
+                    this.temporaryScale.set(this.intersectedObject.scale.x, this.intersectedObject.scale.y, this.intersectedObject.scale.z)
+                } else {
+                    this.intersectedObject.scale.set(this.temporaryScale.x, this.temporaryScale.y, this.temporaryScale.z)
                 }
                 const frame = this.bodies.frame
-                scaleModel(this,frame)
+                scaleModel(this, frame)
                 this.dimensions.add3DDimensionsToRectangles(this.intersectedObject);
             }
             this.restrictDoorMovement(this.intersectedObject);
@@ -773,19 +773,19 @@ class Viewer {
             const modelBox = new THREE.Box3().setFromObject(this.intersectedObject);
             const frameBox = new THREE.Box3().setFromObject(this.bodies.frame);
 
-          
+
             const bigSize = new THREE.Vector3();
             const smallSize = new THREE.Vector3();
 
             frameBox.getSize(bigSize);
             modelBox.getSize(smallSize);
-          
+
             this.minBox.copy(modelBox.min);
             this.maxBox.copy(modelBox.max);
 
             // Track mouse direction only once
             if (!this._mouseMoveHandler) {
-                this.lastMouseX = 0; 
+                this.lastMouseX = 0;
                 this._mouseMoveHandler = (event) => {
                     const mouseX = event.clientX;
                     this.lastMouseX = mouseX;
@@ -799,7 +799,7 @@ class Viewer {
         }
 
         this.transformControls.attach(this.intersectedObject);
-        
+
     }
 
     handleMouseUp() {
@@ -891,7 +891,7 @@ class Viewer {
             return THREE.MathUtils.clamp(position, halfDimension, rectangleHalf);
         };
 
-// console.log( "movement", boundaryBoundingBox.max.x <= modelBoundingBox.max.x )
+        // console.log( "movement", boundaryBoundingBox.max.x <= modelBoundingBox.max.x )
         if (
             boundaryBoundingBox.max.x < modelBoundingBox.max.x ||
             boundaryBoundingBox.min.x > modelBoundingBox.min.x ||
