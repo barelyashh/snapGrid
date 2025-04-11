@@ -25,7 +25,6 @@ class MiniViewer {
         this.offsetZ = 1
         this.previousScale = new THREE.Vector3(1, 1, 1)
         this.scalingDampeningFactor = 1;
-        this.parent =parent
         this.init(parent);
 
     }
