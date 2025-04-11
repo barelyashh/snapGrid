@@ -119,7 +119,12 @@ class Bodies {
         } else {
             this.overallBodies.push({ mesh: rectangle, sprite: sprite });
         }
-        this.snap.rebuildSnapMarkers();
+        if(!this.viewer.mode2D){
+            this.snap.rebuildSnapMarkers3D();
+        } else{
+            this.snap.rebuildSnapMarkers2D();
+        }
+      
         this.spriteObjects.push(sprite);
         this.viewer.scene.add(sprite);
         return rectangle
@@ -274,6 +279,7 @@ class Bodies {
             this.snap.snapToNearestPoint(draggedObject);
             this.restrictDoorMovement(draggedObject)
             this.snap.snapTogrid(draggedObject)
+            this.snap.updateSnapPointsFor2DRectangles();
 
         });
 
@@ -332,7 +338,16 @@ class Bodies {
     switchSnap() {
         this.snapEnabled = !this.snapEnabled;
         if (this.snapEnabled) {
-            this.viewer.mode2D ? this.snap.addSnapPointsTo2Drectangles() : this.snap.addSnapPointsTo3D();
+           
+            if( this.viewer.mode2D){
+                console.log(  this.viewer.mode2D,'  this.viewer.mode2D')
+                this.snap.addSnapPointsTo2Drectangles()
+                
+            }else{
+                console.log(  this.viewer.mode2D,'  this.viewer.mode2D')
+                this.snap.addSnapPointsTo3D();
+            }
+           // this.viewer.mode2D ? this.snap.addSnapPointsTo2Drectangles() : this.snap.addSnapPointsTo3D();
         } else {
             this.snap.clearSnapGridData()
             this.snap.removeSnapPoints(this.viewer.mode2D);
