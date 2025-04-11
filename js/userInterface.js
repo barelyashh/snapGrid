@@ -29,8 +29,8 @@ class UserInterface {
 
         /* const overallDefaults = { Width: 500, Height: 750, Depth: 500 };
         const rectangleDefaults = { Width: 19, Height: 500, Depth: 500 }; */
-         const overallDefaults = { Width: 3000, Height: 2200, Depth: 300 };
-        const rectangleDefaults = { Width: 200, Height: 2200, Depth: 200 }; 
+        const overallDefaults = { Width: 3000, Height: 2200, Depth: 300 };
+        const rectangleDefaults = { Width: 200, Height: 2200, Depth: 200 };
 
         const overallPanel = this.createPanel(
             'OVERALL DIMENSIONS',
@@ -152,7 +152,7 @@ class UserInterface {
         }
 
         this.completeViewer.bodies.addRectangle({ widthBox, heightBox, depthBox });
-    }   
+    }
 
     createSnapWarningBox() {
         const warningBox = document.createElement("div");
@@ -192,15 +192,16 @@ class UserInterface {
             z-index: 100;
         `;
 
-        const modeBtn = this.createIconButton('mode-btn', () => this.completeViewer.switchMode());
+
 
         const snapBtn = this.createIconButton('snap-btn', () => this.completeViewer.bodies.switchSnap());
 
         const transformBtn = this.createIconButton('transform-btn', () => this.completeViewer.bodies.toggleTransformMode());
+        const modeBtn = this.createIconButton('mode-btn', () => this.completeViewer.switchMode());
 
-        toolbar.appendChild(modeBtn);
         toolbar.appendChild(snapBtn);
         toolbar.appendChild(transformBtn);
+        toolbar.appendChild(modeBtn);
         document.body.appendChild(toolbar);
     }
 
@@ -219,12 +220,12 @@ class UserInterface {
         `;
 
         // Set image via class or add logic to inject image path here
-        if (className === 'mode-btn') {
-            btn.style.backgroundImage = `url('https://ik.imagekit.io/tub6tn2qk8/3d_rotation.png?updatedAt=1744287481007')`;
-        } else if (className === 'snap-btn') {
-            btn.style.backgroundImage = `url('https://ik.imagekit.io/tub6tn2qk8/snap-icon.png?updatedAt=1744287479894')`;
+        if (className === 'snap-btn') {
+            btn.style.backgroundImage = `url('https://ik.imagekit.io/tub6tn2qk8/snap-icon.png?updatedAt=1744287479894')`
         } else if (className === 'transform-btn') {
             btn.style.backgroundImage = `url('https://ik.imagekit.io/tub6tn2qk8/transform-icon.png?updatedAt=1744287479810')`;
+        } else if (className === 'mode-btn') {
+            btn.style.backgroundImage = `url('https://ik.imagekit.io/tub6tn2qk8/3d_rotation.png?updatedAt=1744287481007')`;
         }
 
         btn.onclick = onClick;
