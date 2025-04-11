@@ -202,6 +202,8 @@ class MiniViewer {
     }
 
     async loadPartData(partData) {
+        console.log(partData,"partData");
+        
         if (!partData || !partData.vertices || !Array.isArray(partData.vertices)) {
             console.error('Invalid part data structure');
             return;
@@ -240,6 +242,21 @@ class MiniViewer {
 
         const geometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
         const mesh = new THREE.Mesh(geometry);
+
+
+         if (partData.positionMatrix) {
+            const matrix = new THREE.Matrix4();
+            const pos = partData.positionMatrix;
+            matrix.set(
+                pos.vxx, pos.vxy, pos.vxz, pos.mx,
+                pos.vyx, pos.vyy, pos.vyz, pos.my,
+                pos.vzx, pos.vzy, pos.vzz, pos.mz,
+                0, 0, 0, 1
+            );
+            
+            mesh.applyMatrix4(matrix);
+        }
+
 
         if(textureIdData.textureItemId){
             try {
