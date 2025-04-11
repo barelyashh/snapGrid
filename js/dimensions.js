@@ -69,7 +69,7 @@ class Dimensions {
         let dimensionBox = document.getElementById("dimension-box");
 
         if (!dimensionBox) {
-           
+
 
             // Attach to appropriate container
             const miniContainer = document.getElementById("mini-container");
@@ -86,7 +86,7 @@ class Dimensions {
                 dimensionBox.style.fontFamily = "monospace";
                 dimensionBox.style.padding = "8px 12px";
                 dimensionBox.style.borderRadius = "6px";
-               // dimensionBox.style.boxShadow = "0 2px 8px rgba(0,0,0,0.2)";
+                // dimensionBox.style.boxShadow = "0 2px 8px rgba(0,0,0,0.2)";
                 miniContainer.appendChild(dimensionBox);
             } else {
                 console.log('soni')
@@ -103,7 +103,7 @@ class Dimensions {
                 dimensionBox.style.fontFamily = "monospace";
                 dimensionBox.style.padding = "8px 12px";
                 dimensionBox.style.borderRadius = "6px";
-              //  dimensionBox.style.boxShadow = "0 2px 8px rgba(0,0,0,0.2)";
+                //  dimensionBox.style.boxShadow = "0 2px 8px rgba(0,0,0,0.2)";
                 document.body.appendChild(dimensionBox);
             }
         }

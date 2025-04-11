@@ -91,7 +91,7 @@ class Bodies {
 
     createRectangle(widthBox, heightBox, depthBox, visible, lineSegments) {
         const material = new THREE.MeshStandardMaterial({ color: '#7F4125' });
-       // material.transparent = true
+        // material.transparent = true
         material.opacity = 0.8
         const rectangle = new THREE.Mesh(new THREE.BoxGeometry(widthBox, heightBox, depthBox), material);
         rectangle.castShadow = true;
@@ -119,12 +119,12 @@ class Bodies {
         } else {
             this.overallBodies.push({ mesh: rectangle, sprite: sprite });
         }
-        if(!this.viewer.mode2D){
+        if (!this.viewer.mode2D) {
             this.snap.rebuildSnapMarkers3D();
-        } else{
+        } else {
             this.snap.rebuildSnapMarkers2D();
         }
-      
+
         this.spriteObjects.push(sprite);
         this.viewer.scene.add(sprite);
         return rectangle
@@ -338,16 +338,16 @@ class Bodies {
     switchSnap() {
         this.snapEnabled = !this.snapEnabled;
         if (this.snapEnabled) {
-           
-            if( this.viewer.mode2D){
-                console.log(  this.viewer.mode2D,'  this.viewer.mode2D')
+
+            if (this.viewer.mode2D) {
+                console.log(this.viewer.mode2D, '  this.viewer.mode2D')
                 this.snap.addSnapPointsTo2Drectangles()
-                
-            }else{
-                console.log(  this.viewer.mode2D,'  this.viewer.mode2D')
+
+            } else {
+                console.log(this.viewer.mode2D, '  this.viewer.mode2D')
                 this.snap.addSnapPointsTo3D();
             }
-           // this.viewer.mode2D ? this.snap.addSnapPointsTo2Drectangles() : this.snap.addSnapPointsTo3D();
+            // this.viewer.mode2D ? this.snap.addSnapPointsTo2Drectangles() : this.snap.addSnapPointsTo3D();
         } else {
             this.snap.clearSnapGridData()
             this.snap.removeSnapPoints(this.viewer.mode2D);
