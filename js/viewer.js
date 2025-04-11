@@ -793,12 +793,13 @@ class Viewer {
                 window.addEventListener('mousemove', this._mouseMoveHandler);
             }
 
-           
+
             modelBox.getSize(smallSize);
             this.orbitControls.enabled = false
-        } else {
-            this.transformControls.attach(this.intersectedObject);
         }
+
+        this.transformControls.attach(this.intersectedObject);
+        
     }
 
     handleMouseUp() {
