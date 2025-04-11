@@ -25,7 +25,7 @@ class MiniViewer {
         this.offsetZ = 1
         this.previousScale = new THREE.Vector3(1, 1, 1)
         this.scalingDampeningFactor = 1;
-
+        this.parent =parent
         this.init(parent);
 
     }
@@ -432,7 +432,7 @@ class MiniViewer {
             this.dimensions.removeDimensions();
             const originalScale = this.intersectedObject.scale.clone();
             this.viewer.popup.meshes.forEach(mesh => {
-                mesh.scale.set(originalScale.x,originalScale.y,originalScale.z)
+                 mesh.scale.set(originalScale.x,originalScale.y,originalScale.z)
             });
         }
     }
