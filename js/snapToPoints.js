@@ -388,7 +388,7 @@ class SnapPoints {
     }
 
     rebuildSnapMarkers2D() {
-       // this.clearSnapGridData();
+        // this.clearSnapGridData();
         this.removeSnapPoints(true); // true for 2D
         this.addSnapPointsTo2Drectangles();
     }
