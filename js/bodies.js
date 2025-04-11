@@ -8,7 +8,7 @@ class Bodies {
         this.spriteObjects = [];
         this.arcBodies = [];
         this.overallBodies = [];
-        this.frame = {}
+        this.frame = null
         this.twoDObjects = []
         this.transformEnabled = true
         this.snapPoints = []
@@ -19,12 +19,19 @@ class Bodies {
     }
 
     addOverallDimension(width, height, depth) {
-        let { scene, raycasterObject, currentWall } = this.viewer;
-        if (currentWall) {
-            scene.remove(currentWall);
-            raycasterObject = raycasterObject.filter(obj => obj !== currentWall);
+        let { scene, raycasterObject } = this.viewer;
+
+        // Only update if frame already exists
+        if (this.frame) {
+            this.frame.geometry.dispose(); // Dispose old geometry
+            this.frame.geometry = new THREE.BoxGeometry(width, height, depth);
+            this.frame.geometry.computeBoundingSphere();
+            this.viewer.overallDimensionValues = { width, height, depth };
+            this.initializeWithFrame(this.frame.geometry);
+            return;
         }
 
+        // Else create new frame
         this.viewer.overallDimensionValues = { width, height, depth };
         const geometry = new THREE.BoxGeometry(width, height, depth);
         const material = new THREE.MeshStandardMaterial({
@@ -37,16 +44,16 @@ class Bodies {
         this.frame = new THREE.Mesh(geometry, material);
         this.frame.castShadow = true;
         this.frame.receiveShadow = true;
-        this.frame.name = 'frame'
+        this.frame.name = 'frame';
         this.frame.position.z = -0.1;
 
         scene.add(this.frame);
         raycasterObject.push(this.frame);
-        currentWall = this.frame;
 
-        geometry.computeBoundingSphere()
-        this.initializeWithFrame(geometry)
+        geometry.computeBoundingSphere();
+        this.initializeWithFrame(geometry);
     }
+
 
     initializeWithFrame(geometry) {
         const boundingSphere = geometry.boundingSphere;
