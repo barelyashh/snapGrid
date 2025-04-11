@@ -221,7 +221,15 @@ class MiniViewer {
 
         // Fetch texture and thickness data first
         const textureIdData = await API.fetchTexture(partData.composite[0].materialId);
-        const textureValue = await API.fetchTextureValue(textureIdData.textureItemId);
+        let textureValue;
+        if(textureIdData.textureItemId){
+            textureValue = await API.fetchTextureValue(textureIdData.textureItemId);
+        }else{
+            const textureValueArray = await API.loadRALData();
+            textureValue = textureValueArray.data.find(item => item.id === textureIdData.colorId)
+            console.log(textureValue,"textureValue");
+            
+        }
 
         const shape = new THREE.Shape(points);
         const extrudeSettings = {
@@ -233,15 +241,18 @@ class MiniViewer {
         const geometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
         const mesh = new THREE.Mesh(geometry);
 
-        try {
-            const textureDataUrl = await API.materialData(textureValue.id, textureValue.hash);
-            if (textureDataUrl) {
-                await this.applyTextureToMesh(textureDataUrl, mesh);
+        if(textureValue.textureItemId){
+            try {
+                const textureDataUrl = await API.materialData(textureValue.id, textureValue.hash);
+                if (textureDataUrl) {
+                    await this.applyTextureToMesh(textureDataUrl, mesh);
+                }
+            } catch (error) {
+                console.error('Error loading texture data:', error);
             }
-        } catch (error) {
-            console.error('Error loading texture data:', error);
+        }else{
+            mesh.material = new THREE.MeshBasicMaterial({ color: textureValue.rgb });
         }
-
         this.scene.add(mesh);
         this.miniViewerSceneObject.push(mesh);
     }

@@ -108,6 +108,14 @@ class API {
         const data = await response.json()
         return [data, type];
     }
+
+    static async loadRALData() {
+        const response = await fetch(`${BASE_URL}/api/ral`)
+        if (!response.ok) {
+            throw new Error('Failed to fetch RAL data')
+        }
+        return response.json()
+    }
 }
 
 export { API }; 
