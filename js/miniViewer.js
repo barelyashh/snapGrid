@@ -60,43 +60,202 @@ class MiniViewer {
     }
 
     setupCamera(parent) {
-        const cameraPosition = Math.max(parent.geometry.parameters.height, parent.geometry.parameters.width)
+
+        const box = new THREE.Box3();
+
+        parent.forEach(mesh => {
+            mesh.updateMatrixWorld();
+            box.expandByObject(mesh);
+        });
+
+        const size = new THREE.Vector3();
+        const center = new THREE.Vector3();
+        box.getSize(size);
+        box.getCenter(center);
+
+
         this.camera = new THREE.PerspectiveCamera(75, this.widthO / this.heightO, 0.1, 10000);
-        this.camera.position.set(0, 0, cameraPosition);
+
+        const maxDim = Math.max(size.x, size.y, size.z);
+        const fov = this.camera.fov * (Math.PI / 180);
+
+        const distance = (maxDim / 2) / Math.tan(fov / 2);
+        const offset = 2;
+
+        this.camera.position.set(center.x, center.y, center.z + distance * offset);
+        this.camera.lookAt(center);
+
         this.scene.add(this.camera);
     }
-    setupLights(object) {
+
+
+    setupLights(objects) {
+        // Remove previous lights if needed
+        if (this.lights) {
+            this.scene.remove(this.lights);
+        }
+
+        // Ambient Light
         this.lights = new THREE.AmbientLight(0xffffff, 2);
         this.scene.add(this.lights);
-        const cameraPosition = Math.max(object.geometry.parameters.height, object.geometry.parameters.width)
-        const spotLight = new THREE.SpotLight(0xffffff, 3);
-        spotLight.position.set(0, 0, cameraPosition);
-        spotLight.castShadow = true;
-        spotLight.shadow.mapSize.width = 1024;
-        spotLight.shadow.mapSize.height = 1024;
-        spotLight.angle = Math.PI / 2;
-        spotLight.penumbra = 1;
-        spotLight.decay = 0;
-        spotLight.shadow.focus = 1;
-        spotLight.shadow.camera.near = 1;
-        spotLight.shadow.camera.far = cameraPosition + object.geometry.parameters.depth;
-        spotLight.shadow.camera.fov = 75;
-        spotLight.distance = cameraPosition + object.geometry.parameters.depth;
 
-        this.scene.add(spotLight);
+        // Compute bounding box for all objects
+        const combinedBox = new THREE.Box3();
+        objects.forEach(obj => {
+            obj.updateMatrixWorld();
+            combinedBox.expandByObject(obj);
+        });
 
+        const frameSize = new THREE.Vector3();
+        combinedBox.getSize(frameSize);
+
+        const frameCenter = new THREE.Vector3();
+        combinedBox.getCenter(frameCenter);
+
+        const distance = Math.max(frameSize.x, frameSize.z) * 20;
+
+        const sideDirs = [
+            new THREE.Vector3(1, 0, 0),   // Right
+            new THREE.Vector3(-1, 0, 0),  // Left
+            new THREE.Vector3(0, 0, 1),   // Front
+            new THREE.Vector3(0, 0, -1)   // Back
+        ];
+
+        // Side Lights
+        sideDirs.forEach(dir => {
+            const spotLight = new THREE.SpotLight(0xffffff, 2);
+            const lightPos = frameCenter.clone().add(dir.clone().multiplyScalar(distance));
+            lightPos.y = frameCenter.y; // Middle height
+
+            spotLight.position.copy(lightPos);
+            spotLight.target.position.copy(frameCenter);
+            this.scene.add(spotLight.target);
+
+            spotLight.castShadow = true;
+            spotLight.shadow.mapSize.width = 1024;
+            spotLight.shadow.mapSize.height = 1024;
+            spotLight.angle = Math.PI / 4;
+            spotLight.penumbra = 0.5;
+            spotLight.decay = 0;
+            spotLight.shadow.focus = 1;
+            spotLight.shadow.camera.near = 1;
+            spotLight.shadow.camera.far = frameSize.length();
+            spotLight.shadow.camera.fov = 75;
+            spotLight.distance = distance * 1.5;
+
+            this.scene.add(spotLight);
+        });
+
+        // Top Light
+        const topLight = new THREE.SpotLight(0xffffff, 2.5);
+        const topPos = frameCenter.clone();
+        topPos.y += frameSize.y * 1.5;
+
+        topLight.position.copy(topPos);
+        topLight.target.position.copy(frameCenter);
+        this.scene.add(topLight.target);
+
+        topLight.castShadow = true;
+        topLight.shadow.mapSize.width = 1024;
+        topLight.shadow.mapSize.height = 1024;
+        topLight.angle = Math.PI / 4;
+        topLight.penumbra = 0.5;
+        topLight.decay = 0;
+        topLight.shadow.focus = 1;
+        topLight.shadow.camera.near = 1;
+        topLight.shadow.camera.far = frameSize.length();
+        topLight.shadow.camera.fov = 75;
+        topLight.distance = frameSize.length() * 2;
+
+        this.scene.add(topLight);
 
     }
 
     setupMesh(parent) {
-        this.viewer.bodies.hideAllSprites()
-        const clonedRectangle = parent.clone();
-        clonedRectangle.position.set(0, 0, 0); // Center in the mini viewer
+
         this.pivot = new THREE.Object3D();
-        this.scene.add(clonedRectangle);
+        parent.length > 1
+            ? parent.forEach(mesh => {
+                const clonedRectangle = mesh.clone();
+                // clonedRectangle.position.set(0, 0, 0); // Center in the mini viewer
+                this.scene.add(clonedRectangle);
+                this.miniViewerSceneObject.push(clonedRectangle);
+            })
+            : parent.forEach(mesh => {
+                const clonedRectangle = mesh.clone();
+                clonedRectangle.position.set(0, 0, 0); // Center in the mini viewer
+                this.scene.add(clonedRectangle);
+                this.miniViewerSceneObject.push(clonedRectangle);
+            })
+
         this.scene.add(this.pivot);
-        this.miniViewerSceneObject.push(clonedRectangle)
     }
+
+    loadPartData(partData) {
+
+        if (!partData || !partData.vertices || !Array.isArray(partData.vertices)) {
+            console.error('Invalid part data structure');
+            return;
+        }
+
+        const points = [];
+        partData.vertices.forEach(vertex => {
+            if (vertex.pointX !== undefined && vertex.pointY !== undefined) {
+                points.push(new THREE.Vector2(vertex.pointX, vertex.pointY));
+            }
+        });
+
+        if (points.length < 3) {
+            console.error('Not enough valid vertices to create a shape');
+            return;
+        }
+
+        const shape = new THREE.Shape(points);
+        const extrudeSettings = {
+            steps: 1,
+            depth: 100,
+            bevelEnabled: false
+        };
+
+        const geometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
+        const material = new THREE.MeshStandardMaterial({
+            color: 0x371a75,
+            side: THREE.DoubleSide,
+            flatShading: true
+        });
+        const mesh = new THREE.Mesh(geometry, material);
+
+        // mesh.rotation.x = Math.PI / 2;
+
+        // this.miniViewerSceneObject.forEach(obj => {
+        //     this.scene.remove(obj);
+        // });
+        // this.miniViewerSceneObject = [];
+
+        this.scene.add(mesh);
+        this.miniViewerSceneObject.push(mesh);
+
+        // this.updateCameraToFit(mesh);
+    }
+
+    updateCameraToFit(mesh) {
+        const box = new THREE.Box3().setFromObject(mesh);
+        const center = box.getCenter(new THREE.Vector3());
+        const size = box.getSize(new THREE.Vector3());
+
+        const maxDim = Math.max(size.x, size.y, size.z);
+        const fov = this.camera.fov * (Math.PI / 180);
+        let cameraZ = Math.abs(maxDim / Math.tan(fov / 2));
+
+        cameraZ *= 1.5;
+
+        this.camera.position.set(center.x, center.y + cameraZ, center.z);
+        this.camera.lookAt(center);
+
+        this.orbitControls.target.copy(center);
+        this.orbitControls.update();
+    }
+
     setupRayCaster() {
         this.raycaster = new THREE.Raycaster();
     }
@@ -156,7 +315,7 @@ class MiniViewer {
 
     handleKeyDown(event) {
         switch (event.code) {
-            case 'KeyG':
+            case 'KeyT':
                 this.transformControls.setMode('translate');
                 break;
             case 'KeyR':
@@ -275,7 +434,7 @@ class MiniViewer {
         }
     }
 
-
+   
     resetPivot() {
         this.pivot.position.set(0, 0, 0);
         this.pivot.scale.set(1, 1, 1);

@@ -19,7 +19,7 @@ class Bodies {
     }
 
     addOverallDimension(width, height, depth) {
-        let { scene, raycasterObject, currentWall} = this.viewer;
+        let { scene, raycasterObject, currentWall } = this.viewer;
         if (currentWall) {
             scene.remove(currentWall);
             raycasterObject = raycasterObject.filter(obj => obj !== currentWall);
@@ -58,7 +58,7 @@ class Bodies {
 
         this.viewer.position.z = z
         this.viewer.camera.position.set(x, y, z);
-        this.viewer.setupLights(x, z, geometry.parameters.depth)
+        this.viewer.setupLights(z, geometry.parameters.depth)
 
     }
     addRectangle({ widthBox, heightBox, depthBox }) {
@@ -90,41 +90,44 @@ class Bodies {
     }
 
     createRectangle(widthBox, heightBox, depthBox, visible, lineSegments) {
-        const material = new THREE.MeshStandardMaterial({ color: '#7F4125'});
- 
-        material.opacity = 0.6
+        const material = new THREE.MeshStandardMaterial({ color: '#7F4125' });
+       // material.transparent = true
+        material.opacity = 0.8
         const rectangle = new THREE.Mesh(new THREE.BoxGeometry(widthBox, heightBox, depthBox), material);
         rectangle.castShadow = true;
-        rectangle.receiveShadow = true;
         rectangle.name = 'shape';
         this.positionRectangle(rectangle);
         const textureLoader = new THREE.TextureLoader();
         const spriteMaterial = new THREE.SpriteMaterial({
             map: textureLoader.load('https://media-hosting.imagekit.io/b856a4f175bf4f98/sprite.png?Expires=1838118552&Key-Pair-Id=K2ZIVPTIP2VGHC&Signature=p21IjJNaJ5N1qf~pedo4XTU-vsLY8raIqieZeDZI9VC8eDxOuGSy8PwDniJtQxmpLjrmQASnSOlZouaDUDE2WemoJKOw2~4T7ODshHJ2Zh2UxvhpgJJt4BtB9VB5lb7qI8JmpbDxP1PD2Nz~7loweKi4MUgwUbBBeNjdIZuyeI9Fh9E-DeLD7W9tmhD~ZgtfldRRKOuTUXu4CfJbI9FNa9ESXQsOGlR7t-RE9YcOQlPcRipYaQg3AyhSAizUMK58dh34l9iCe3AUB8Qe2TKX6pGp22EqPUgYOjuG9jP~fBPz~-Bdyqzbe1fhU3035Qa4K9N8rAxhtyHRRH8VhoMu9w__'),
             transparent: true,
-            sizeAttenuation : false,
-            depthTest:false,
-            depthWrite:false
+            sizeAttenuation: false,
+            depthTest: false,
+            depthWrite: false
         });
 
         const sprite = new THREE.Sprite(spriteMaterial);
-        //need to add scale dynamic
         sprite.scale.set(0.025, 0.025, 0.025);
-        sprite.visible = false;
+        sprite.visible = !this.transformEnabled;
         this.pivot = new THREE.Object3D();
         this.viewer.scene.add(this.pivot);
         if (visible) this.viewer.scene.add(rectangle);
         rectangle.position.y = 0.1;
         if (lineSegments) {
             const object = { lineSegments, width: widthBox, height: heightBox, depth: depthBox }
-            this.overallBodies.push({ mesh: rectangle, line: object, sprite : sprite });
+            this.overallBodies.push({ mesh: rectangle, line: object, sprite: sprite });
         } else {
-            this.overallBodies.push({ mesh: rectangle,sprite : sprite });
+            this.overallBodies.push({ mesh: rectangle, sprite: sprite });
         }
-
+        if(!this.viewer.mode2D){
+            this.snap.rebuildSnapMarkers3D();
+        } else{
+            this.snap.rebuildSnapMarkers2D();
+        }
+      
         this.spriteObjects.push(sprite);
+        this.viewer.scene.add(sprite);
         return rectangle
-
     }
 
     positionRectangle(rectangle) {
@@ -227,7 +230,7 @@ class Bodies {
 
     toggleTransformMode() {
         this.transformEnabled = !this.transformEnabled;
-
+        this.snap.clearSnapGridData();
         if (this.transformEnabled) {
             this.viewer.scene.add(this.viewer.transformControls);
             this.enableSprite(true)
@@ -236,7 +239,6 @@ class Bodies {
             this.viewer.transformControls.detach();
             this.enableSprite(false)
         }
-       
     }
     enableSprite(enabled) {
         this.overallBodies.forEach((obj) => {
@@ -277,6 +279,7 @@ class Bodies {
             this.snap.snapToNearestPoint(draggedObject);
             this.restrictDoorMovement(draggedObject)
             this.snap.snapTogrid(draggedObject)
+            this.snap.updateSnapPointsFor2DRectangles();
 
         });
 
@@ -331,13 +334,22 @@ class Bodies {
         }
 
     }
+
     switchSnap() {
         this.snapEnabled = !this.snapEnabled;
         if (this.snapEnabled) {
-            //wor on 3d snapping points + for 3d use dragballcontrols or something else for snap
-            //this.mode2D ? this.bodies.addSnapPointsTo2Drectangles() : this.bodies.addSnapPointsTo3DRectangles();
-            this.snap.addSnapPointsTo2Drectangles()
+           
+            if( this.viewer.mode2D){
+                console.log(  this.viewer.mode2D,'  this.viewer.mode2D')
+                this.snap.addSnapPointsTo2Drectangles()
+                
+            }else{
+                console.log(  this.viewer.mode2D,'  this.viewer.mode2D')
+                this.snap.addSnapPointsTo3D();
+            }
+           // this.viewer.mode2D ? this.snap.addSnapPointsTo2Drectangles() : this.snap.addSnapPointsTo3D();
         } else {
+            this.snap.clearSnapGridData()
             this.snap.removeSnapPoints(this.viewer.mode2D);
         }
     }
