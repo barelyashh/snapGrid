@@ -100,11 +100,12 @@ class Bodies {
     createRectangle(widthBox, heightBox, depthBox, visible, lineSegments) {
         console.log('yash2')
         const material = new THREE.MeshStandardMaterial({ color: '#7F4125' });
-        // material.transparent = true
-        material.opacity = 0.8
+        material.transparent = true
+        material.opacity = 0.6
         const rectangle = new THREE.Mesh(new THREE.BoxGeometry(widthBox, heightBox, depthBox), material);
         rectangle.castShadow = true;
         rectangle.name = 'shape';
+        rectangle.renderOrder = 1; // Try higher numbers if needed
         this.positionRectangle(rectangle);
         const textureLoader = new THREE.TextureLoader();
         const spriteMaterial = new THREE.SpriteMaterial({
@@ -120,6 +121,7 @@ class Bodies {
         sprite.visible = !this.transformEnabled;
         this.pivot = new THREE.Object3D();
         this.viewer.scene.add(this.pivot);
+        sprite.renderOrder = 2; // Try higher numbers if needed
         if (visible) this.viewer.scene.add(rectangle);
         rectangle.position.y = 0.1;
         if (lineSegments) {

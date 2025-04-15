@@ -29,8 +29,8 @@ class UserInterface {
 
         /* const overallDefaults = { Width: 500, Height: 750, Depth: 500 };
         const rectangleDefaults = { Width: 19, Height: 500, Depth: 500 }; */
-        /*  const overallDefaults = { Width: 3000, Height: 2200, Depth: 300 };
-         const rectangleDefaults = { Width: 200, Height: 2200, Depth: 200 }; */
+       /*  const overallDefaults = { Width: 3000, Height: 2200, Depth: 300 };
+        const rectangleDefaults = { Width: 200, Height: 2200, Depth: 200 }; */
 
         const overallPanel = this.createPanel(
             'OVERALL DIMENSIONS',
@@ -50,10 +50,10 @@ class UserInterface {
         );
         sidebar.appendChild(rectanglePanel);
 
-        /*  setTimeout(() => {
-             overallPanel.querySelector('.add-btn').click();
-             setTimeout(() => rectanglePanel.querySelector('.add-btn').click(), 200);
-         }, 200); */
+        /* setTimeout(() => {
+            overallPanel.querySelector('.add-btn').click();
+            setTimeout(() => rectanglePanel.querySelector('.add-btn').click(), 200);
+        }, 200); */
 
 
 

@@ -62,7 +62,7 @@ class Dimensions {
         mesh.userData.dimensionLines = [...topArrows, ...sideArrows, ...depthArrows];
 
         // Update dimension box
-        this.updateDimensionBox(width * scale.x, height * scale.y, depth * scale.z);
+        this.updateDimensionBox(width + scale.x, height + scale.y, depth + scale.z);
     }
 
     updateDimensionBox(width, height, depth) {
