@@ -8,7 +8,7 @@ class Bodies {
         this.spriteObjects = [];
         this.arcBodies = [];
         this.overallBodies = [];
-        this.frame = {}
+        this.frame = null
         this.twoDObjects = []
         this.transformEnabled = true
         this.snapPoints = []
@@ -19,12 +19,19 @@ class Bodies {
     }
 
     addOverallDimension(width, height, depth) {
-        let { scene, raycasterObject, currentWall } = this.viewer;
-        if (currentWall) {
-            scene.remove(currentWall);
-            raycasterObject = raycasterObject.filter(obj => obj !== currentWall);
+        let { scene, raycasterObject } = this.viewer;
+
+        // Only update if frame already exists
+        if (this.frame) {
+            this.frame.geometry.dispose(); // Dispose old geometry
+            this.frame.geometry = new THREE.BoxGeometry(width, height, depth);
+            this.frame.geometry.computeBoundingSphere();
+            this.viewer.overallDimensionValues = { width, height, depth };
+            this.initializeWithFrame(this.frame.geometry);
+            return;
         }
 
+        // Else create new frame
         this.viewer.overallDimensionValues = { width, height, depth };
         const geometry = new THREE.BoxGeometry(width, height, depth);
         const material = new THREE.MeshStandardMaterial({
@@ -37,16 +44,16 @@ class Bodies {
         this.frame = new THREE.Mesh(geometry, material);
         this.frame.castShadow = true;
         this.frame.receiveShadow = true;
-        this.frame.name = 'frame'
+        this.frame.name = 'frame';
         this.frame.position.z = -0.1;
 
         scene.add(this.frame);
         raycasterObject.push(this.frame);
-        currentWall = this.frame;
 
-        geometry.computeBoundingSphere()
-        this.initializeWithFrame(geometry)
+        geometry.computeBoundingSphere();
+        this.initializeWithFrame(geometry);
     }
+
 
     initializeWithFrame(geometry) {
         const boundingSphere = geometry.boundingSphere;
@@ -91,15 +98,16 @@ class Bodies {
     }
 
     createRectangle(widthBox, heightBox, depthBox, visible, lineSegments) {
-        const material = new THREE.MeshStandardMaterial({ color: "#"+(((1+Math.random())*(1<<24)|0).toString(16)).substr(-6) });
-        // material.transparent = true
-        material.opacity = 0.8
+        console.log('yash2')
+        const material = new THREE.MeshStandardMaterial({ color: '#7F4125' });
+        material.transparent = true
+        material.opacity = 0.6
         const rectangle = new THREE.Mesh(new THREE.BoxGeometry(widthBox, heightBox, depthBox), material);
         rectangle.castShadow = true;
         rectangle.name = 'shape';
+        rectangle.renderOrder = 1; // Try higher numbers if needed
         const status = this.positionRectangle(rectangle)
         if(status === false) return
-     
         const textureLoader = new THREE.TextureLoader();
         const spriteMaterial = new THREE.SpriteMaterial({
             map: textureLoader.load('https://media-hosting.imagekit.io/b856a4f175bf4f98/sprite.png?Expires=1838118552&Key-Pair-Id=K2ZIVPTIP2VGHC&Signature=p21IjJNaJ5N1qf~pedo4XTU-vsLY8raIqieZeDZI9VC8eDxOuGSy8PwDniJtQxmpLjrmQASnSOlZouaDUDE2WemoJKOw2~4T7ODshHJ2Zh2UxvhpgJJt4BtB9VB5lb7qI8JmpbDxP1PD2Nz~7loweKi4MUgwUbBBeNjdIZuyeI9Fh9E-DeLD7W9tmhD~ZgtfldRRKOuTUXu4CfJbI9FNa9ESXQsOGlR7t-RE9YcOQlPcRipYaQg3AyhSAizUMK58dh34l9iCe3AUB8Qe2TKX6pGp22EqPUgYOjuG9jP~fBPz~-Bdyqzbe1fhU3035Qa4K9N8rAxhtyHRRH8VhoMu9w__'),
@@ -114,6 +122,7 @@ class Bodies {
         sprite.visible = !this.transformEnabled;
         this.pivot = new THREE.Object3D();
         this.viewer.scene.add(this.pivot);
+        sprite.renderOrder = 2; // Try higher numbers if needed
         if (visible) this.viewer.scene.add(rectangle);
         // rectangle.position.y = 0.1;
         if (lineSegments) {
