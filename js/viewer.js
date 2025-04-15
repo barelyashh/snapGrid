@@ -239,19 +239,19 @@ class Viewer {
             const clickedMarker = intersected;
             const point = clickedMarker.position;
             const parentObject = clickedMarker.userData.owner;
-
+            this.createSelectionCircle(point); // Show pulse only for mesh point
             if (!this.selectedSnap.source) {
                 this.selectedSnap.source = point.clone();
                 this.selectedSnap.sourceObject = parentObject;
                 const isSourceFrame = parentObject === this.bodies.frame;
                 if (!isSourceFrame) {
-                    this.createSelectionCircle(point); // Show pulse only for mesh point
+                 //   this.createSelectionCircle(point); // Show pulse only for mesh point
                 }
             } else {
                 const source = this.selectedSnap.source;
                 const sourceObject = this.selectedSnap.sourceObject;
                 const target = point;
-
+              //  this.createSelectionCircle(point); // Show pulse only for mesh point
                 const isSourceFrame = sourceObject === this.bodies.frame;
 
                 if (isSourceFrame) {
@@ -259,6 +259,7 @@ class Viewer {
                     this.selectedSnap = {};
                     this.bodies.snap.snapHoverHelperForFrame.visible = false;
                     this.bodies.snap.snapHoverHelperForMesh.visible = false;
+                   // this.createSelectionCircle(point); // Show pulse only for mesh point
                     return;
                 }
 
@@ -640,7 +641,6 @@ class Viewer {
 
     addEdgeHighlight(mesh) {
         const edgeLines = new THREE.EdgesGeometry(mesh.geometry)
-        // const outlineMaterial = new THREE.LineBasicMaterial({ color: 0xffff00, linewidth: 20 })
         const outlineMaterial = new THREE.ShaderMaterial({
             uniforms: {
                 glowColor: { value: new THREE.Color(0xffff00) }, // Bright yellow
@@ -891,7 +891,6 @@ class Viewer {
             return THREE.MathUtils.clamp(position, halfDimension, rectangleHalf);
         };
 
-        // console.log( "movement", boundaryBoundingBox.max.x <= modelBoundingBox.max.x )
         if (
             boundaryBoundingBox.max.x < modelBoundingBox.max.x ||
             boundaryBoundingBox.min.x > modelBoundingBox.min.x ||

@@ -149,7 +149,7 @@ class SnapPoints {
 
     addSnapPointsTo3D() {
         if (!this.shapeData.viewer.scene) return;
-        this.snapHoverHelperForFrame = this.createPlusHelper(3, 0.3, 0xff0000);
+        this.snapHoverHelperForFrame = this.createPlusHelper(3, 0.3, 0x5dad47);
         this.snapHoverHelperForMesh = this.createPlusHelper(3, 0.3, 0x5dad47);
         this.shapeData.viewer.scene.add(this.snapHoverHelperForFrame)
         this.shapeData.viewer.scene.add(this.snapHoverHelperForMesh)
@@ -342,7 +342,8 @@ class SnapPoints {
 
         const size = baseSize * scaleFactor;
         const thick = thickness * scaleFactor;
-        const material = new THREE.MeshBasicMaterial({ color: color });
+        const material = new THREE.MeshLambertMaterial({ color: color });
+        material.side = THREE.DoubleSide
         const boxX = new THREE.BoxGeometry(size, thick, thick);
         const boxY = new THREE.BoxGeometry(thick, size, thick);
 
