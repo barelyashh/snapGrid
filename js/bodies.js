@@ -100,7 +100,7 @@ class Bodies {
     createRectangle(widthBox, heightBox, depthBox, visible, lineSegments) {
         console.log('yash2')
         const material = new THREE.MeshStandardMaterial({ color: '#7F4125' });
-        // material.transparent = true
+        material.transparent = true
         material.opacity = 0.8
         const rectangle = new THREE.Mesh(new THREE.BoxGeometry(widthBox, heightBox, depthBox), material);
         rectangle.castShadow = true;
