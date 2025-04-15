@@ -106,7 +106,8 @@ class Bodies {
         rectangle.castShadow = true;
         rectangle.name = 'shape';
         rectangle.renderOrder = 1; // Try higher numbers if needed
-        this.positionRectangle(rectangle);
+        const status = this.positionRectangle(rectangle)
+        if(status === false) return
         const textureLoader = new THREE.TextureLoader();
         const spriteMaterial = new THREE.SpriteMaterial({
             map: textureLoader.load('https://media-hosting.imagekit.io/b856a4f175bf4f98/sprite.png?Expires=1838118552&Key-Pair-Id=K2ZIVPTIP2VGHC&Signature=p21IjJNaJ5N1qf~pedo4XTU-vsLY8raIqieZeDZI9VC8eDxOuGSy8PwDniJtQxmpLjrmQASnSOlZouaDUDE2WemoJKOw2~4T7ODshHJ2Zh2UxvhpgJJt4BtB9VB5lb7qI8JmpbDxP1PD2Nz~7loweKi4MUgwUbBBeNjdIZuyeI9Fh9E-DeLD7W9tmhD~ZgtfldRRKOuTUXu4CfJbI9FNa9ESXQsOGlR7t-RE9YcOQlPcRipYaQg3AyhSAizUMK58dh34l9iCe3AUB8Qe2TKX6pGp22EqPUgYOjuG9jP~fBPz~-Bdyqzbe1fhU3035Qa4K9N8rAxhtyHRRH8VhoMu9w__'),
@@ -123,7 +124,7 @@ class Bodies {
         this.viewer.scene.add(this.pivot);
         sprite.renderOrder = 2; // Try higher numbers if needed
         if (visible) this.viewer.scene.add(rectangle);
-        rectangle.position.y = 0.1;
+        // rectangle.position.y = 0.1;
         if (lineSegments) {
             const object = { lineSegments, width: widthBox, height: heightBox, depth: depthBox }
             this.overallBodies.push({ mesh: rectangle, line: object, sprite: sprite });
@@ -145,10 +146,109 @@ class Bodies {
     }
 
     positionRectangle(rectangle) {
-        if (!this.viewer.overallDepth) return;
+        const updatedArray = [...this.overallBodies];
+        const frameBox = new THREE.Box3().setFromObject(this.frame);
+        const rectWidth = rectangle.geometry.parameters.width;
+        const rectHeight = rectangle.geometry.parameters.height;
         const rectDepth = rectangle.geometry.parameters.depth;
-        rectangle.position.z = this.viewer.overallDepth / 2 - rectDepth / 2;
+    
+        const getBox = (mesh) => new THREE.Box3().setFromObject(mesh);
+    
+        // Try placing rectangle along X-axis
+        const tryPlaceInX = () => {
+            if (updatedArray.length >= 2) {
+                updatedArray.sort((a, b) => a.mesh.position.x - b.mesh.position.x);
+            }
+    
+            const lastBox = getBox(updatedArray[updatedArray.length - 1].mesh);
+            const firstBox = getBox(updatedArray[0].mesh);
+            const xPosition = lastBox.max.x + rectWidth / 2;
+    
+           
+            if ((firstBox.min.x - frameBox.min.x) > rectWidth) {
+                rectangle.position.x = frameBox.min.x + rectWidth / 2;
+                return true;
+            }
+    
+           
+            if ((xPosition + rectWidth / 2) < frameBox.max.x) {
+                rectangle.position.x = xPosition;
+                return true;
+            }
+    
+          
+            for (let i = 0; i < updatedArray.length - 1; i++) {
+                const currentBox = getBox(updatedArray[i].mesh);
+                const nextBox = getBox(updatedArray[i + 1].mesh);
+                const distance = nextBox.min.x - currentBox.max.x;
+    
+                if (distance >= rectWidth) {
+                    rectangle.position.x = currentBox.max.x + rectWidth / 2;
+                    return true;
+                }
+            }
+    
+            return false;
+        };
+    
+        //  Try placing rectangle along Y-axis
+        const tryPlaceInY = () => {
+            if (updatedArray.length >= 2) {
+                updatedArray.sort((a, b) => a.mesh.position.y - b.mesh.position.y);
+            }
+    
+            const lastBox = getBox(updatedArray[updatedArray.length - 1].mesh);
+            const firstBox = getBox(updatedArray[0].mesh);
+            const yPosition = lastBox.max.y + rectHeight / 2;
+    
+          
+            if ((firstBox.min.y - frameBox.min.y) > rectHeight) {
+                rectangle.position.y = frameBox.min.y + rectHeight / 2;
+                return true;
+            }
+    
+          
+            if ((yPosition + rectHeight / 2) < frameBox.max.y) {
+                rectangle.position.y = yPosition;
+                return true;
+            }
+    
+           
+            for (let i = 0; i < updatedArray.length - 1; i++) {
+                const currentBox = getBox(updatedArray[i].mesh);
+                const nextBox = getBox(updatedArray[i + 1].mesh);
+                const distance = nextBox.min.y - currentBox.max.y;
+    
+                if (distance >= rectHeight) {
+                    rectangle.position.y = currentBox.max.y + rectHeight / 2;
+                    return true;
+                }
+            }
+    
+            return false;
+        };
+    
+      
+        if (updatedArray.length === 0) {
+            rectangle.position.x = frameBox.min.x + rectWidth / 2;
+        } else {
+            const placedInX = tryPlaceInX();
+            if (!placedInX) {
+                const placedInY = tryPlaceInY();
+                if (!placedInY) {
+                    alert('Entered maximum limit 😔');
+                    return false;
+                }
+            }
+        }
+    
+        if (this.viewer?.overallDepth) {
+            rectangle.position.z = this.viewer.overallDepth / 2 - rectDepth / 2;
+        }
+    
+        return true;
     }
+    
 
     generate2DDrawing() {
         if (this.frame) {
