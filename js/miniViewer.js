@@ -2,7 +2,9 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { TransformControls } from 'three/addons/controls/TransformControls.js';
 import { Dimensions } from './dimensions.js';
+import { API } from './api.js';
 import { scaleModel } from './operations/scalingHelper.js';
+
 class MiniViewer {
     constructor(parent, viewer, container) {
         this.viewer = viewer
@@ -190,8 +192,46 @@ class MiniViewer {
         this.scene.add(this.pivot);
     }
 
-    loadPartData(partData) {
+    applyTextureToMesh(textureDataUrl, targetMesh) {
+        if (!textureDataUrl || !targetMesh) return;
+                // const textureDataURL1 = 'https://imagedelivery.net/6Q4HLLMjcXxpmSYfQ3vMaw/d419666c-f723-4320-29d7-04f2f687c200/2000px'
+        const textureLoader = new THREE.TextureLoader();
+        return new Promise((resolve, reject) => {
+            textureLoader.load(
+                textureDataUrl,
+                (texture) => {
+                    texture.wrapS = THREE.RepeatWrapping;
+                    texture.wrapT = THREE.RepeatWrapping;
 
+                    // Calculate the size of the mesh
+                    const boundingBox = new THREE.Box3().setFromObject(targetMesh);
+                    const size = new THREE.Vector3();
+                    boundingBox.getSize(size);
+
+                    // Apply repeat value based on mesh size
+                    const repeatValue = 1 / Math.max(size.x, size.y); // Adjust as needed
+                    texture.repeat.set(repeatValue, repeatValue);
+                    
+                    if (targetMesh.material) {
+                        const newMat = new THREE.MeshBasicMaterial({ map: texture });
+                        targetMesh.material = newMat;
+                        targetMesh.material.needsUpdate = true;
+                    }
+                    
+                    resolve(texture);
+                },
+                undefined,
+                (error) => {
+                    console.error('Error loading texture:', error);
+                    reject(error);
+                }
+            );
+        });
+    }
+
+    async loadPartData(partData) {
+        console.log(partData,"partData");
+        
         if (!partData || !partData.vertices || !Array.isArray(partData.vertices)) {
             console.error('Invalid part data structure');
             return;
@@ -209,32 +249,57 @@ class MiniViewer {
             return;
         }
 
+        // Fetch texture and thickness data first
+        const textureIdData = await API.fetchTexture(partData.composite[0].materialId);
+        let textureValue;
+        if(textureIdData.textureItemId){
+            textureValue = await API.fetchTextureValue(textureIdData.textureItemId);
+        }else{
+            const textureValueArray = await API.loadRALData();
+            textureValue = textureValueArray.data.find(item => item.id === textureIdData.colorId)
+            console.log(textureValue,"textureValue");
+            
+        }
+
         const shape = new THREE.Shape(points);
         const extrudeSettings = {
             steps: 1,
-            depth: 100,
+            depth: textureIdData.thickness,
             bevelEnabled: false
         };
 
         const geometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
-        const material = new THREE.MeshStandardMaterial({
-            color: 0x371a75,
-            side: THREE.DoubleSide,
-            flatShading: true
-        });
-        const mesh = new THREE.Mesh(geometry, material);
+        const mesh = new THREE.Mesh(geometry);
 
-        // mesh.rotation.x = Math.PI / 2;
 
-        // this.miniViewerSceneObject.forEach(obj => {
-        //     this.scene.remove(obj);
-        // });
-        // this.miniViewerSceneObject = [];
+         if (partData.positionMatrix) {
+            const matrix = new THREE.Matrix4();
+            const pos = partData.positionMatrix;
+            matrix.set(
+                pos.vxx, pos.vxy, pos.vxz, pos.mx,
+                pos.vyx, pos.vyy, pos.vyz, pos.my,
+                pos.vzx, pos.vzy, pos.vzz, pos.mz,
+                0, 0, 0, 1
+            );
+            
+            mesh.applyMatrix4(matrix);
+        }
 
+
+        if(textureIdData.textureItemId){
+            try {
+                const textureDataUrl = await API.materialData(textureValue.id, textureValue.hash);
+                if (textureDataUrl) {
+                    await this.applyTextureToMesh(textureDataUrl, mesh);
+                }
+            } catch (error) {
+                console.error('Error loading texture data:', error);
+            }
+        }else{
+            mesh.material = new THREE.MeshBasicMaterial({ color: textureValue.rgb });
+        }
         this.scene.add(mesh);
         this.miniViewerSceneObject.push(mesh);
-
-        // this.updateCameraToFit(mesh);
     }
 
     updateCameraToFit(mesh) {
