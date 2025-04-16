@@ -8,7 +8,7 @@ class Bodies {
         this.spriteObjects = [];
         this.arcBodies = [];
         this.overallBodies = [];
-        this.frame = {}
+        this.frame = null
         this.twoDObjects = []
         this.transformEnabled = true
         this.snapPoints = []
@@ -19,12 +19,19 @@ class Bodies {
     }
 
     addOverallDimension(width, height, depth) {
-        let { scene, raycasterObject, currentWall } = this.viewer;
-        if (currentWall) {
-            scene.remove(currentWall);
-            raycasterObject = raycasterObject.filter(obj => obj !== currentWall);
+        let { scene, raycasterObject } = this.viewer;
+
+        // Only update if frame already exists
+        if (this.frame) {
+            this.frame.geometry.dispose(); // Dispose old geometry
+            this.frame.geometry = new THREE.BoxGeometry(width, height, depth);
+            this.frame.geometry.computeBoundingSphere();
+            this.viewer.overallDimensionValues = { width, height, depth };
+            this.initializeWithFrame(this.frame.geometry);
+            return;
         }
 
+        // Else create new frame
         this.viewer.overallDimensionValues = { width, height, depth };
         const geometry = new THREE.BoxGeometry(width, height, depth);
         const material = new THREE.MeshStandardMaterial({
@@ -37,16 +44,16 @@ class Bodies {
         this.frame = new THREE.Mesh(geometry, material);
         this.frame.castShadow = true;
         this.frame.receiveShadow = true;
-        this.frame.name = 'frame'
+        this.frame.name = 'frame';
         this.frame.position.z = -0.1;
 
         scene.add(this.frame);
         raycasterObject.push(this.frame);
-        currentWall = this.frame;
 
-        geometry.computeBoundingSphere()
-        this.initializeWithFrame(geometry)
+        geometry.computeBoundingSphere();
+        this.initializeWithFrame(geometry);
     }
+
 
     initializeWithFrame(geometry) {
         const boundingSphere = geometry.boundingSphere;
@@ -71,6 +78,7 @@ class Bodies {
     }
 
     create2DShape(widthBox, heightBox, depthBox) {
+        console.log('yash')
         const tri = new THREE.Shape();
         tri.moveTo(-widthBox / 2, heightBox / 2);
         tri.lineTo(widthBox / 2, heightBox / 2);
@@ -78,7 +86,7 @@ class Bodies {
         tri.lineTo(-widthBox / 2, -heightBox / 2)
         tri.lineTo(-widthBox / 2, heightBox / 2)
         const geometry = new THREE.ShapeGeometry(tri);
-        const lineSegments = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({ color: "#7F4125" }))
+        const lineSegments = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ color: "#7F4125" }))
         lineSegments.material.side = THREE.DoubleSide
         lineSegments.name = 'segments'
         lineSegments.position.y = 0.3;
@@ -90,12 +98,14 @@ class Bodies {
     }
 
     createRectangle(widthBox, heightBox, depthBox, visible, lineSegments) {
+        console.log('yash2')
         const material = new THREE.MeshStandardMaterial({ color: '#7F4125' });
-       // material.transparent = true
-        material.opacity = 0.8
+        material.transparent = true
+        material.opacity = 0.6
         const rectangle = new THREE.Mesh(new THREE.BoxGeometry(widthBox, heightBox, depthBox), material);
         rectangle.castShadow = true;
         rectangle.name = 'shape';
+        rectangle.renderOrder = 1; // Try higher numbers if needed
         this.positionRectangle(rectangle);
         const textureLoader = new THREE.TextureLoader();
         const spriteMaterial = new THREE.SpriteMaterial({
@@ -111,6 +121,7 @@ class Bodies {
         sprite.visible = !this.transformEnabled;
         this.pivot = new THREE.Object3D();
         this.viewer.scene.add(this.pivot);
+        sprite.renderOrder = 2; // Try higher numbers if needed
         if (visible) this.viewer.scene.add(rectangle);
         rectangle.position.y = 0.1;
         if (lineSegments) {
@@ -119,7 +130,15 @@ class Bodies {
         } else {
             this.overallBodies.push({ mesh: rectangle, sprite: sprite });
         }
-        this.snap.rebuildSnapMarkers();
+        console.log(this.snapEnabled)
+        if (this.snapEnabled) {
+            if (!this.viewer.mode2D) {
+                this.snap.rebuildSnapMarkers3D();
+            } else {
+                this.snap.rebuildSnapMarkers2D();
+            }
+        }
+
         this.spriteObjects.push(sprite);
         this.viewer.scene.add(sprite);
         return rectangle
@@ -274,6 +293,7 @@ class Bodies {
             this.snap.snapToNearestPoint(draggedObject);
             this.restrictDoorMovement(draggedObject)
             this.snap.snapTogrid(draggedObject)
+            this.snap.updateSnapPointsFor2DRectangles();
 
         });
 
@@ -332,7 +352,16 @@ class Bodies {
     switchSnap() {
         this.snapEnabled = !this.snapEnabled;
         if (this.snapEnabled) {
-            this.viewer.mode2D ? this.snap.addSnapPointsTo2Drectangles() : this.snap.addSnapPointsTo3D();
+
+            if (this.viewer.mode2D) {
+                console.log(this.viewer.mode2D, '  this.viewer.mode2D')
+                this.snap.addSnapPointsTo2Drectangles()
+
+            } else {
+                console.log(this.viewer.mode2D, '  this.viewer.mode2D')
+                this.snap.addSnapPointsTo3D();
+            }
+            // this.viewer.mode2D ? this.snap.addSnapPointsTo2Drectangles() : this.snap.addSnapPointsTo3D();
         } else {
             this.snap.clearSnapGridData()
             this.snap.removeSnapPoints(this.viewer.mode2D);
