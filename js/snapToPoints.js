@@ -34,11 +34,18 @@ class SnapPoints {
     }
 
     snapToNearestPoint(draggedMesh) {
-        let threshold = 5; // Adjust as needed
+        let frameBox = new THREE.Box3().setFromObject(this.shapeData.viewer.bodies.frame);
+        let frameSize = new THREE.Vector3();
+        frameBox.getSize(frameSize);
+        let threshold = Math.max(frameSize.x, frameSize.y) / 2 * 0.015;
         let closestSnap = null;
         let minDistance = Infinity;
-        if (!draggedMesh.children) return
-        draggedMesh.children.forEach(draggedSnapPoint => {
+
+        // Find the associated object from innerObjects
+        const draggedObject = this.shapeData.innerObjects.find(obj => obj.lineSegments === draggedMesh);
+        if (!draggedObject || !draggedObject.snapPoints) return;
+
+        draggedObject.snapPoints.forEach(draggedSnapPoint => {
             let draggedWorldPos = new THREE.Vector3();
             draggedSnapPoint.getWorldPosition(draggedWorldPos);
 
@@ -61,13 +68,19 @@ class SnapPoints {
         });
 
         if (closestSnap) {
-            let offset = new THREE.Vector3().subVectors(closestSnap.targetPosition, closestSnap.draggedPosition);
+            const offset = new THREE.Vector3().subVectors(closestSnap.targetPosition, closestSnap.draggedPosition);
             draggedMesh.position.add(offset);
         }
     }
 
     addSnapPointsTo2Drectangles() {
         if (!this.shapeData.viewer.scene || !this.shapeData.innerObjects.length) return;
+
+        const frameBox = new THREE.Box3().setFromObject(this.shapeData.viewer.bodies.frame);
+        const frameSize = new THREE.Vector3();
+        frameBox.getSize(frameSize);
+        const genericScale = Math.max(frameSize.x, frameSize.y) / 2 * 0.015;
+
         this.shapeData.innerObjects.forEach(object => {
             object.lineSegments.geometry.computeBoundingBox();
             const bbox = object.lineSegments.geometry.boundingBox;
@@ -76,6 +89,8 @@ class SnapPoints {
                 object.snapPoints.forEach(sp => this.shapeData.viewer.scene.remove(sp));
             }
             object.snapPoints = [];
+
+            const worldMatrix = object.lineSegments.matrixWorld;
 
             const positions = [
                 [bbox.min.x, bbox.min.y, 0], // Bottom-left
@@ -87,34 +102,50 @@ class SnapPoints {
             ];
 
             positions.forEach(([x, y, z]) => {
-                const geometry = new THREE.BoxGeometry(2, 2, 2);
-                const material = new THREE.MeshBasicMaterial({ color: 0xff0000, visible: false });
+                const localPos = new THREE.Vector3(x, y, z);
+                const worldPos = localPos.applyMatrix4(worldMatrix); // Convert to world coordinates
+
+                const geometry = new THREE.SphereGeometry(genericScale, 16, 16);
+                const material = new THREE.MeshBasicMaterial({ color: 0x0000ff, transparent: true, opacity: 0.5 });
                 const snapPoint = new THREE.Mesh(geometry, material);
 
-                snapPoint.position.set(x, y, z);
-                const frontFaceVertices = [
-                    1, 1, -1,
-                    -1, 1, -1,
-                    -1, -1, -1,
-                    1, -1, -1,
-                    1, 1, -1,
-                ];
-
-                const frontFaceGeometry = new THREE.BufferGeometry();
-                frontFaceGeometry.setAttribute(
-                    'position',
-                    new THREE.Float32BufferAttribute(frontFaceVertices, 3)
-                );
-                const edgeMaterial = new THREE.LineBasicMaterial({ color: 'blue', transparent: true, opacity: 0.3 });
-                const borderLine = new THREE.Line(frontFaceGeometry, edgeMaterial);
-                borderLine.scale.set(1.5, 1.5, 1.5)
-                snapPoint.add(borderLine);
-                object.lineSegments.add(snapPoint);
+                snapPoint.position.copy(worldPos);
+                this.shapeData.viewer.scene.add(snapPoint);
                 object.snapPoints.push(snapPoint);
                 this.shapeData.snapPoints.push(snapPoint);
             });
         });
     }
+
+    updateSnapPointsFor2DRectangles() {
+        if (!this.shapeData.viewer.scene || !this.shapeData.innerObjects.length) return;
+
+        this.shapeData.innerObjects.forEach(object => {
+            if (!object.snapPoints) return;
+
+            object.lineSegments.geometry.computeBoundingBox();
+            const bbox = object.lineSegments.geometry.boundingBox;
+            const worldMatrix = object.lineSegments.matrixWorld;
+
+            const positions = [
+                [bbox.min.x, bbox.min.y, 0],
+                [bbox.max.x, bbox.min.y, 0],
+                [bbox.min.x, bbox.max.y, 0],
+                [bbox.max.x, bbox.max.y, 0],
+                [bbox.min.x, (bbox.min.y + bbox.max.y) / 2, 0],
+                [bbox.max.x, (bbox.min.y + bbox.max.y) / 2, 0],
+            ];
+
+            positions.forEach(([x, y, z], index) => {
+                const localPos = new THREE.Vector3(x, y, z);
+                const worldPos = localPos.applyMatrix4(worldMatrix);
+                if (object.snapPoints[index]) {
+                    object.snapPoints[index].position.copy(worldPos);
+                }
+            });
+        });
+    }
+
 
     addSnapPointsTo3D() {
         if (!this.shapeData.viewer.scene) return;
@@ -346,7 +377,7 @@ class SnapPoints {
         }
     }
 
-    rebuildSnapMarkers() {
+    rebuildSnapMarkers3D() {
         if (this.shapeData.viewer.bodies.snapEnabled) {
             this.snapMarkers.forEach(marker => {
                 this.shapeData.viewer.scene.remove(marker);
@@ -354,6 +385,12 @@ class SnapPoints {
             this.snapMarkers = [];
             this.addSnapPointsTo3D();
         }
+    }
+
+    rebuildSnapMarkers2D() {
+        this.clearSnapGridData();
+        this.removeSnapPoints(true); // true for 2D
+        this.addSnapPointsTo2Drectangles();
     }
 
     removeSnapPoints(mode) {

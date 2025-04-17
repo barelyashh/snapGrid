@@ -27,7 +27,6 @@ class Popup {
 
     init() {
         this.createPopup();
-        this.createDimensionBox()
     }
 
     createPopup() {

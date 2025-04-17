@@ -2,11 +2,11 @@ class UserInterface {
     constructor(viewer) {
         this.completeViewer = viewer;
         this.createUI();
-        this.createDimensionBox();
     }
 
     createUI() {
         this.createHeader();
+        this.createTopToolbar();
         this.createSidebar();
         this.createSnapWarningBox();
     }
@@ -27,63 +27,41 @@ class UserInterface {
         const sidebar = document.createElement('aside');
         sidebar.className = 'sidebar';
 
-        /*    const overallDefaults = { Width: 500, Height: 750, Depth: 500 };
-           const rectangleDefaults = { Width: 19, Height: 500, Depth: 500 }; */
-        const overallDefaults = { Width: 3000, Height: 2200, Depth: 300 };
-        const rectangleDefaults = { Width: 200, Height: 2200, Depth: 200 };
+        /* const overallDefaults = { Width: 500, Height: 750, Depth: 500 };
+        const rectangleDefaults = { Width: 19, Height: 500, Depth: 500 }; */
+       /*  const overallDefaults = { Width: 3000, Height: 2200, Depth: 300 };
+        const rectangleDefaults = { Width: 200, Height: 2200, Depth: 200 }; */
 
-        const overallPanel = this.createPanel('OVERALL DIMENSIONS', ['Width', 'Height', 'Depth'], (inputs) => {
-            this.handleOverallDimensions(inputs);
-        }, overallDefaults);
+        const overallPanel = this.createPanel(
+            'OVERALL DIMENSIONS',
+            ['Width', 'Height', 'Depth'],
+            (inputs) => this.handleOverallDimensions(inputs),
+            {},
+            'horizontal' // layout
+        );
         sidebar.appendChild(overallPanel);
 
-        const rectanglePanel = this.createPanel('ADD RECTANGLE', ['Width', 'Height', 'Depth'], (inputs) => {
-            this.handleRectangleAddition(inputs);
-        }, rectangleDefaults);
+        const rectanglePanel = this.createPanel(
+            'ADD RECTANGLE',
+            ['Width', 'Height', 'Depth'],
+            (inputs) => this.handleRectangleAddition(inputs),
+            {},
+            'horizontal'
+        );
         sidebar.appendChild(rectanglePanel);
 
-        setTimeout(() => {
+        /* setTimeout(() => {
             overallPanel.querySelector('.add-btn').click();
             setTimeout(() => rectanglePanel.querySelector('.add-btn').click(), 200);
-        }, 200);
+        }, 200); */
 
-        //Switch Mode
-        sidebar.appendChild(this.createButton('Switch mode', 'toggle-btn-2d', () => this.completeViewer.switchMode()));
 
-        //Switch Snap (only in 2D mode)
-        const snapButton = this.createButton('Switch Snap', 'toggle-btn-2d', () => this.completeViewer.bodies.switchSnap());
 
-        //Transform Control (only in 3D mode)
-        const transformControlContainer = document.createElement('div');
-        transformControlContainer.className = 'transform-control-container';
 
-        const toggleSwitch = document.createElement('label');
-        toggleSwitch.className = 'toggle-switch';
-
-        const toggleInput = document.createElement('input');
-        toggleInput.type = 'checkbox';
-
-        const toggleSlider = document.createElement('span');
-        toggleSlider.className = 'toggle-slider';
-
-        const toggleLabel = document.createElement('span');
-        toggleLabel.className = 'toggle-label';
-        toggleLabel.textContent = 'Toggle Access Point';
-
-        toggleInput.addEventListener('change', () => {
-            this.completeViewer.bodies.toggleTransformMode();
-        });
-
-        toggleSwitch.appendChild(toggleInput);
-        toggleSwitch.appendChild(toggleSlider);
-        transformControlContainer.appendChild(toggleSwitch);
-        transformControlContainer.appendChild(toggleLabel);
-        sidebar.appendChild(transformControlContainer);
-        sidebar.appendChild(snapButton);
         sideBarContainer.appendChild(sidebar);
     }
 
-    createPanel(title, fields, onAdd, defaultValues = {}) {
+    createPanel(title, fields, onAdd, defaultValues = {}, layout = 'vertical') {
         const panel = document.createElement('div');
         panel.className = 'panel';
         panel.innerHTML = `<div class="panel-header">${title}</div>`;
@@ -91,10 +69,24 @@ class UserInterface {
         const panelBody = document.createElement('div');
         panelBody.className = 'panel-body';
 
+        if (layout === 'horizontal') {
+            panelBody.classList.add('horizontal-inputs');
+        }
+
         const inputs = {};
+        const inputRow = document.createElement('div');
+        inputRow.className = 'input-row';
+
         fields.forEach(field => {
-            const label = document.createElement('label');
-            label.innerText = field;
+            const group = document.createElement('div');
+            group.className = 'input-group';
+
+            const wrapper = document.createElement('div');
+            wrapper.className = 'input-wrapper';
+
+            const prefix = document.createElement('span');
+            prefix.className = 'input-prefix';
+            prefix.innerText = field[0]; // W, H, D
 
             const input = document.createElement('input');
             input.type = 'text';
@@ -102,9 +94,13 @@ class UserInterface {
             input.value = defaultValues[field] || '';
             inputs[field] = input;
 
-            label.appendChild(input);
-            panelBody.appendChild(label);
+            wrapper.appendChild(prefix);
+            wrapper.appendChild(input);
+            group.appendChild(wrapper);
+            inputRow.appendChild(group);
         });
+
+        panelBody.appendChild(inputRow);
 
         const button = this.createButton('ADD', 'add-btn', () => onAdd(inputs));
         panelBody.appendChild(button);
@@ -112,6 +108,9 @@ class UserInterface {
         panel.appendChild(panelBody);
         return panel;
     }
+
+
+
 
     createButton(text, className, onClick) {
         const button = document.createElement('button');
@@ -155,23 +154,13 @@ class UserInterface {
         this.completeViewer.bodies.addRectangle({ widthBox, heightBox, depthBox });
     }
 
-    createDimensionBox() {
-        // Check if the dimension box already exists
-        let dimensionBox = document.getElementById("dimension-box");
-        if (!dimensionBox) {
-            dimensionBox = document.createElement("div");
-            dimensionBox.id = "dimension-box";
-            document.body.appendChild(dimensionBox);
-        }
-    }
-
     createSnapWarningBox() {
         const warningBox = document.createElement("div");
         warningBox.id = "snap-warning";
         warningBox.style.cssText = `
             position: absolute;
             top: 60px;
-            left: 50%;
+            left: 60%;
             transform: translateX(-50%);
             padding: 10px 20px;
             background-color: rgba(255, 100, 100, 0.9);
@@ -185,6 +174,64 @@ class UserInterface {
         `;
         document.body.appendChild(warningBox);
     }
+
+
+    createTopToolbar() {
+        const toolbar = document.createElement('div');
+        toolbar.className = 'top-toolbar';
+        toolbar.style.cssText = `
+            position: absolute;
+            top: 830px;
+            left: 60%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+            padding: 8px 12px;
+            background-color:#004080;
+            border-radius: 8px;
+            z-index: 100;
+        `;
+
+
+
+        const snapBtn = this.createIconButton('snap-btn', () => this.completeViewer.bodies.switchSnap());
+
+        const transformBtn = this.createIconButton('transform-btn', () => this.completeViewer.bodies.toggleTransformMode());
+        const modeBtn = this.createIconButton('mode-btn', () => this.completeViewer.switchMode());
+
+        toolbar.appendChild(snapBtn);
+        toolbar.appendChild(transformBtn);
+        toolbar.appendChild(modeBtn);
+        document.body.appendChild(toolbar);
+    }
+
+    // Generic icon button creator
+    createIconButton(className, onClick) {
+        const btn = document.createElement('button');
+        btn.className = className;
+        btn.style.cssText = `
+            background: none;
+            border: none;
+            width: 40px;
+            height: 40px;
+            background-size: contain;
+            background-repeat: no-repeat;
+            cursor: pointer;
+        `;
+
+        // Set image via class or add logic to inject image path here
+        if (className === 'snap-btn') {
+            btn.style.backgroundImage = `url('https://ik.imagekit.io/tub6tn2qk8/snap-icon.png?updatedAt=1744287479894')`
+        } else if (className === 'transform-btn') {
+            btn.style.backgroundImage = `url('https://ik.imagekit.io/tub6tn2qk8/transform-icon.png?updatedAt=1744287479810')`;
+        } else if (className === 'mode-btn') {
+            btn.style.backgroundImage = `url('https://ik.imagekit.io/tub6tn2qk8/3d_rotation.png?updatedAt=1744287481007')`;
+        }
+
+        btn.onclick = onClick;
+        return btn;
+    }
+
 
 }
 
